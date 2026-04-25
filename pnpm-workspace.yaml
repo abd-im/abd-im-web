@@ -1,0 +1,7 @@
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  electron: true
+  es5-ext: true
+  esbuild: true
+  koffi: true
