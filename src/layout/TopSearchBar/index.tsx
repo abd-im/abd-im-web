@@ -1,4 +1,5 @@
 import { CbEvents, MessageType } from "@openim/wasm-client-sdk";
+import { SearchOutlined } from "@ant-design/icons";
 import {
   GroupItem,
   MessageItem,
@@ -27,6 +28,7 @@ import emitter, { OpenUserCardParams } from "@/utils/events";
 
 import { IMSDK } from "../MainContentWrap";
 import SearchUserOrGroup from "./SearchUserOrGroup";
+import GlobalSearchModal from "./GlobalSearchModal";
 
 type UserCardState = OpenUserCardParams & {
   cardInfo?: CardInfo;
@@ -38,6 +40,7 @@ const TopSearchBar = () => {
   const chooseModalRef = useRef<OverlayVisibleHandle>(null);
   const searchModalRef = useRef<OverlayVisibleHandle>(null);
   const rtcRef = useRef<OverlayVisibleHandle>(null);
+  const globalSearchRef = useRef<OverlayVisibleHandle>(null);
   const [chooseModalState, setChooseModalState] = useState<ChooseModalState>({
     type: "CRATE_GROUP",
   });
@@ -146,7 +149,13 @@ const TopSearchBar = () => {
   return (
     <div className="no-mobile app-drag flex h-10 min-h-[40px] items-center bg-[var(--top-search-bar)] dark:bg-[#141414]">
       <div className="flex w-full items-center justify-center">
-        <div className="app-no-drag flex h-[26px] w-1/3 items-center justify-center rounded-md bg-[rgba(255,255,255,0.2)]"></div>
+        <div
+          className="app-no-drag flex h-[26px] w-1/3 cursor-pointer items-center justify-center rounded-md bg-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.35)] transition-colors gap-2 text-white/80"
+          onClick={() => globalSearchRef.current?.openOverlay()}
+        >
+          <SearchOutlined rev={undefined} className="text-xs" />
+          <span className="text-xs">{t("placeholder.search")}</span>
+        </div>
         <Popover
           content={<ActionPopContent actionClick={actionClick} />}
           arrow={false}
@@ -175,6 +184,7 @@ const TopSearchBar = () => {
         openGroupCardWithData={openGroupCardWithData}
       />
       <RtcCallModal ref={rtcRef} inviteData={inviteData} />
+      <GlobalSearchModal ref={globalSearchRef} />
     </div>
   );
 };
