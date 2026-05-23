@@ -12,7 +12,9 @@
   },
   "scripts": {
     "dev": "vite --force --host",
+    "dev:web": "BUILD_TARGET=web vite --force --host",
     "build": "vite build",
+    "build:web": "BUILD_TARGET=web vite build",
     "preview": "vite preview",
     "pree2e": "vite build --mode=test",
     "e2e": "playwright test",

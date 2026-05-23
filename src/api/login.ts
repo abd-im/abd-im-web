@@ -6,9 +6,10 @@ import { useUserStore } from "@/store";
 import createAxiosInstance from "@/utils/request";
 import { getChatToken } from "@/utils/storage";
 
+import { RUNTIME_CHAT_URL } from "@/config";
 import { errorHandle } from "./errorHandle";
 
-const request = createAxiosInstance(import.meta.env.VITE_CHAT_URL as string);
+const request = createAxiosInstance(RUNTIME_CHAT_URL);
 
 const platform = window.electronAPI?.getPlatform() ?? 5;
 

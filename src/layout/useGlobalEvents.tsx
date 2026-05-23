@@ -29,6 +29,7 @@ import { feedbackToast } from "@/utils/common";
 import { initStore } from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
+import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { IMSDK } from "./MainContentWrap";
 
 export function useGlobalEvent() {
@@ -123,8 +124,8 @@ export function useGlobalEvent() {
     const IMToken = (await getIMToken()) as string;
     const IMUserID = (await getIMUserID()) as string;
     try {
-      const apiAddr = import.meta.env.VITE_API_URL;
-      const wsAddr = import.meta.env.VITE_WS_URL;
+      const apiAddr = RUNTIME_API_URL;
+      const wsAddr = RUNTIME_WS_URL;
       if (window.electronAPI) {
         await IMSDK.initSDK({
           platformID: window.electronAPI?.getPlatform() ?? 5,

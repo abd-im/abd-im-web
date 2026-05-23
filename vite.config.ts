@@ -10,9 +10,13 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 // import visualizer from "rollup-plugin-visualizer";
 
+const isWeb = process.env.BUILD_TARGET === "web";
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
-  rmSync("dist-electron", { recursive: true, force: true });
+  if (!isWeb) {
+    rmSync("dist-electron", { recursive: true, force: true });
+  }
 
   const sourcemap = command === "serve" || !!process.env.VSCODE_DEBUG;
 
@@ -20,6 +24,9 @@ export default defineConfig(({ command }) => {
     resolve: {
       alias: {
         "@": path.join(__dirname, "src"),
+        ...(isWeb
+          ? { "electron-log/renderer": path.join(__dirname, "src/utils/mockLogger.ts") }
+          : {}),
       },
     },
     css: {
@@ -31,39 +38,40 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       react(),
-      electron({
-        include: ["electron"],
-        transformOptions: {
-          sourcemap,
-        },
-        plugins: [
-          ...(!!process.env.VSCODE_DEBUG
-            ? [
-              // Will start Electron via VSCode Debug
-              customStart(() =>
-                console.log(
-                    /* For `.vscode/.debug.script.mjs` */ "[startup] Electron App",
-                ),
-              ),
-            ]
-            : []),
-          // Allow use `import.meta.env.VITE_SOME_KEY` in Electron-Main
-          loadViteEnv(),
-        ],
-      }),
+      !isWeb &&
+        electron({
+          include: ["electron"],
+          transformOptions: {
+            sourcemap,
+          },
+          plugins: [
+            ...(!!process.env.VSCODE_DEBUG
+              ? [
+                  // Will start Electron via VSCode Debug
+                  customStart(() =>
+                    console.log(
+                      /* For `.vscode/.debug.script.mjs` */ "[startup] Electron App",
+                    ),
+                  ),
+                ]
+              : []),
+            // Allow use `import.meta.env.VITE_SOME_KEY` in Electron-Main
+            loadViteEnv(),
+          ],
+        }),
       // legacy({
       //   targets: ["defaults", "not IE 11"],
       // }),
       // visualizer({ open: true }),
-    ],
+    ].filter(Boolean),
     server: !!process.env.VSCODE_DEBUG
       ? (() => {
-        const url = new URL(pkg.debug.env.VITE_DEV_SERVER_URL);
-        return {
-          host: url.hostname,
-          port: +url.port,
-        };
-      })()
+          const url = new URL(pkg.debug.env.VITE_DEV_SERVER_URL);
+          return {
+            host: url.hostname,
+            port: +url.port,
+          };
+        })()
       : undefined,
     clearScreen: false,
     build: {
@@ -77,8 +85,7 @@ export default defineConfig(({ command }) => {
         },
       },
       rollupOptions: {
-        output: {
-        },
+        output: {},
       },
     },
   };
