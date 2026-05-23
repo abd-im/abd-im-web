@@ -1,6 +1,6 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import electron from "vite-electron-plugin";
 import { customStart, loadViteEnv } from "vite-electron-plugin/plugin";
@@ -13,7 +13,11 @@ const require = createRequire(import.meta.url);
 const isWeb = process.env.BUILD_TARGET === "web";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const baseDomain = env.VITE_BASE_DOMAIN || "your-server-domain";
+  const chatTarget = `https://${baseDomain}`;
+
   if (!isWeb) {
     rmSync("dist-electron", { recursive: true, force: true });
   }
@@ -64,15 +68,26 @@ export default defineConfig(({ command }) => {
       // }),
       // visualizer({ open: true }),
     ].filter(Boolean),
-    server: !!process.env.VSCODE_DEBUG
-      ? (() => {
-          const url = new URL(pkg.debug.env.VITE_DEV_SERVER_URL);
-          return {
-            host: url.hostname,
-            port: +url.port,
-          };
-        })()
-      : undefined,
+    server: {
+      ...(!!process.env.VSCODE_DEBUG
+        ? (() => {
+            const url = new URL(pkg.debug.env.VITE_DEV_SERVER_URL);
+            return {
+              host: url.hostname,
+              port: +url.port,
+            };
+          })()
+        : {
+            host: true,
+          }),
+      proxy: {
+        "/chat-api": {
+          target: chatTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/chat-api/, "/chat"),
+        },
+      },
+    },
     clearScreen: false,
     build: {
       sourcemap: false,
