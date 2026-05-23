@@ -1,17 +1,19 @@
 import { CloseOutlined, RightOutlined } from "@ant-design/icons";
-import { Checkbox, Divider, Modal } from "antd";
-import { t } from "i18next";
+import { AddFriendPermission, MessageReceiveOptType } from "@openim/wasm-client-sdk";
+import { Checkbox, Modal } from "antd";
 import { forwardRef, ForwardRefRenderFunction, memo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { modal } from "@/AntdGlobalComp";
 import i18n from "@/i18n";
+import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import { LocaleString } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
-import { IMSDK } from "../MainContentWrap";
 import BlackList from "./BlackList";
+import ChangePassword from "./ChangePassword";
 
 const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
   _,
@@ -34,8 +36,8 @@ const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> 
           transition: "none",
         },
       }}
-      width={360}
-      className="no-padding-modal max-w-[70vw]"
+      width={600}
+      className="no-padding-modal max-w-[80vw]"
       maskTransitionName=""
     >
       <PersonalSettingsContent closeOverlay={closeOverlay} />
@@ -50,105 +52,193 @@ export const PersonalSettingsContent = ({
 }: {
   closeOverlay?: () => void;
 }) => {
+  const { t } = useTranslation();
+  const selfInfo = useUserStore((state) => state.selfInfo);
   const localeStr = useUserStore((state) => state.appSettings.locale);
-  const closeAction = useUserStore((state) => state.appSettings.closeAction);
+  const allowBeep = useUserStore((state) => state.appSettings.allowBeep);
   const updateAppSettings = useUserStore((state) => state.updateAppSettings);
+  const updateSelfInfo = useUserStore((state) => state.updateSelfInfo);
 
   const backListRef = useRef<OverlayVisibleHandle>(null);
+  const changePasswordRef = useRef<OverlayVisibleHandle>(null);
 
   const localeChange = (checked: boolean, locale: LocaleString) => {
     if (!checked) return;
     window.electronAPI?.ipcInvoke("changeLanguage", locale);
     i18n.changeLanguage(locale);
-    updateAppSettings({
-      locale,
-    });
+    updateAppSettings({ locale });
   };
 
-  const closeActionChange = (checked: boolean, action: "miniSize" | "quit") => {
-    if (checked) {
-      window.electronAPI?.ipcInvoke("setKeyStore", {
-        key: "closeAction",
-        data: action,
-      });
-      updateAppSettings({
-        closeAction: action,
-      });
+  const updateGlobalDND = async (checked: boolean) => {
+    try {
+      const opt = checked
+        ? MessageReceiveOptType.NotNotify
+        : MessageReceiveOptType.Normal;
+      await IMSDK.setGlobalRecvMessageOpt(opt);
+      updateSelfInfo({ globalRecvMsgOpt: opt });
+    } catch (error) {
+      feedbackToast({ error });
     }
   };
 
-  const toBlackList = () => {
-    backListRef.current?.openOverlay();
+  const updateAddFriendPermission = async (checked: boolean) => {
+    try {
+      const permission = checked
+        ? AddFriendPermission.AddFriendDenied
+        : AddFriendPermission.AddFriendAllowed;
+      await IMSDK.setSelfInfo({ addFriendPermission: permission });
+      updateSelfInfo({ addFriendPermission: permission });
+    } catch (error) {
+      feedbackToast({ error });
+    }
+  };
+
+  const tryClearAllHistory = () => {
+    modal.confirm({
+      title: t("placeholder.clearChatHistory"),
+      content: t("toast.confirmClearChatHistory"),
+      onOk: async () => {
+        try {
+          await IMSDK.deleteAllMsgFromLocalAndSvr();
+          feedbackToast({ msg: t("toast.accessSuccess") });
+        } catch (error) {
+          feedbackToast({ error });
+        }
+      },
+    });
   };
 
   return (
-    <div className="flex flex-col bg-[var(--chat-bubble)]">
+    <div className="flex flex-col overflow-hidden rounded-lg bg-[#f4f5f7] pb-6">
       <BlackList ref={backListRef} />
-      <div className="app-drag flex items-center justify-between bg-[var(--gap-text)] p-5">
-        <span className="text-base font-medium">{t("placeholder.accountSetting")}</span>
+      <ChangePassword ref={changePasswordRef} />
+
+      {/* Header */}
+      <div className="app-drag flex items-center justify-between p-6">
+        <span className="text-xl font-bold text-[#0c1c33]">
+          {t("placeholder.accountSetting")}
+        </span>
         <CloseOutlined
-          className="app-no-drag cursor-pointer text-[#8e9aaf]"
+          className="app-no-drag cursor-pointer text-xl text-[#8e9aaf] hover:text-red-500"
           rev={undefined}
           onClick={closeOverlay}
         />
       </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-6">
+
+      <div className="flex-1 overflow-y-auto px-6">
+        {/* Card 1: Core Settings */}
+        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+          {t("placeholder.personalSetting")}
+        </div>
+        <div className="mb-6 rounded-lg bg-white p-5 shadow-sm">
+          {/* Language Selection */}
+          <div className="mb-6">
+            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+              {t("placeholder.chooseLanguage")}
+            </div>
+            <div className="flex gap-12 pl-1">
+              <Checkbox
+                checked={localeStr === "zh-CN"}
+                onChange={(e) => localeChange(e.target.checked, "zh-CN")}
+              >
+                <span className="text-sm font-medium">简体中文</span>
+              </Checkbox>
+              <Checkbox
+                checked={localeStr === "en-US"}
+                onChange={(e) => localeChange(e.target.checked, "en-US")}
+              >
+                <span className="text-sm font-medium">English</span>
+              </Checkbox>
+            </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="mb-6">
+            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+              {t("placeholder.messageToast")}
+            </div>
+            <div className="flex gap-12 pl-1">
+              <Checkbox
+                checked={allowBeep}
+                onChange={(e) => updateAppSettings({ allowBeep: e.target.checked })}
+              >
+                <span className="text-sm font-medium">
+                  {t("placeholder.messageAllowBeep")}
+                </span>
+              </Checkbox>
+              <Checkbox
+                checked={selfInfo.globalRecvMsgOpt === MessageReceiveOptType.NotNotify}
+                onChange={(e) => updateGlobalDND(e.target.checked)}
+              >
+                <span className="text-sm font-medium">
+                  {t("placeholder.messageNotNotify")}
+                </span>
+              </Checkbox>
+            </div>
+          </div>
+
+          {/* Add Friend Settings */}
           <div>
-            <div className="pb-5 pt-4 text-base font-medium">
-              {t("placeholder.personalSetting")}
+            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+              {t("placeholder.addFriendsSetting")}
             </div>
-            <div className="pb-8 pl-1">
-              <div className="pb-3 font-medium">{t("placeholder.chooseLanguage")}</div>
-              <div>
-                <Checkbox
-                  checked={localeStr === "zh-CN"}
-                  className="mr-4"
-                  onChange={(e) => localeChange(e.target.checked, "zh-CN")}
-                >
-                  简体中文
-                </Checkbox>
-                <Checkbox
-                  checked={localeStr === "en-US"}
-                  onChange={(e) => localeChange(e.target.checked, "en-US")}
-                >
-                  English
-                </Checkbox>
-              </div>
+            <div className="pl-1">
+              <Checkbox
+                checked={
+                  selfInfo.addFriendPermission === AddFriendPermission.AddFriendDenied
+                }
+                onChange={(e) => updateAddFriendPermission(e.target.checked)}
+              >
+                <span className="text-sm font-medium">
+                  {t("placeholder.refuseAddFriend")}
+                </span>
+              </Checkbox>
             </div>
-            {Boolean(window.electronAPI) && (
-              <div className="pb-8 pl-1">
-                <div className="pb-3 font-medium">
-                  {t("placeholder.closeButtonEvent")}
-                </div>
-                <div>
-                  <Checkbox
-                    checked={closeAction === "quit"}
-                    className="mr-4"
-                    onChange={(e) => closeActionChange(e.target.checked, "quit")}
-                  >
-                    {t("placeholder.exitApplication")}
-                  </Checkbox>
-                  <Checkbox
-                    checked={closeAction === "miniSize"}
-                    onChange={(e) => closeActionChange(e.target.checked, "miniSize")}
-                  >
-                    {t("placeholder.minimize")}
-                  </Checkbox>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-        <Divider className="m-0 border-4 border-[var(--gap-text)]" />
-        <div
-          className="flex cursor-pointer items-center justify-between px-6 py-4"
-          onClick={toBlackList}
-        >
-          <div className="text-base font-medium">{t("placeholder.blackList")}</div>
-          <RightOutlined rev={undefined} />
+
+        {/* Card 2: List Actions */}
+        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+          {t("placeholder.securitySetting")}
         </div>
-        <Divider className="m-0 border-4 border-[var(--gap-text)]" />
+        <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
+          <div
+            className="flex cursor-pointer items-center justify-between border-b border-[#f4f5f7] px-5 py-5 transition-colors hover:bg-gray-50 active:bg-gray-100"
+            onClick={() => backListRef.current?.openOverlay()}
+          >
+            <span className="text-sm font-bold text-[#0c1c33]">
+              {t("placeholder.blackList")}
+            </span>
+            <RightOutlined className="text-xs text-[#8e9aaf]" rev={undefined} />
+          </div>
+
+          <div
+            className="flex cursor-pointer items-center justify-between px-5 py-5 transition-colors hover:bg-gray-50 active:bg-gray-100"
+            onClick={() => {
+              changePasswordRef.current?.openOverlay();
+            }}
+          >
+            <span className="text-sm font-bold text-[#0c1c33]">
+              {t("placeholder.changePassword")}
+            </span>
+            <RightOutlined className="text-xs text-[#8e9aaf]" rev={undefined} />
+          </div>
+        </div>
+
+        {/* Card 3: Danger Action */}
+        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+          {t("placeholder.otherSetting")}
+        </div>
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+          <div
+            className="flex cursor-pointer items-center justify-center px-5 py-5 transition-colors hover:bg-red-50 active:bg-red-100"
+            onClick={tryClearAllHistory}
+          >
+            <span className="text-sm font-bold text-[#ff381f]">
+              {t("placeholder.clearChatHistory")}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

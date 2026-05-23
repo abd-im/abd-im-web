@@ -15,6 +15,7 @@ import {
 
 export type CKEditorRef = {
   focus: (moveToEnd?: boolean) => void;
+  insertEmoji: (emoji: string) => void;
 };
 
 interface CKEditorProps {
@@ -58,6 +59,16 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
     }
   };
 
+  const insertEmoji = (emoji: string) => {
+    const editor = ckEditor.current;
+    if (editor) {
+      editor.model.change((writer) => {
+        writer.insertText(emoji, editor.model.document.selection.getFirstPosition()!);
+      });
+      editor.editing.view.focus();
+    }
+  };
+
   const listenKeydown = (editor: ClassicEditor) => {
     editor.editing.view.document.on(
       "keydown",
@@ -88,6 +99,7 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
     ref,
     () => ({
       focus,
+      insertEmoji,
     }),
     [],
   );

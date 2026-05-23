@@ -7,14 +7,25 @@ import { UploadRequestOption } from "rc-upload/lib/interface";
 import { memo, ReactNode, useState } from "react";
 import React from "react";
 
+import card from "@/assets/images/chatFooter/card.png";
+import emoji from "@/assets/images/chatFooter/emoji.png";
+import file from "@/assets/images/chatFooter/file.png";
 import image from "@/assets/images/chatFooter/image.png";
-import rtc from "@/assets/images/chatFooter/rtc.png";
-
-import { SendMessageParams } from "../useSendMessage";
-import CallPopContent from "./CallPopContent";
+import video from "@/assets/images/chatFooter/video.png";
 import { useConversationStore } from "@/store";
 
+import { SendMessageParams } from "../useSendMessage";
+import EmojiPicker from "./EmojiPicker";
+
 const sendActionList = [
+  {
+    title: t("placeholder.emoji"),
+    icon: emoji,
+    key: "emoji",
+    accept: undefined,
+    comp: null, // Initialized in component
+    placement: "top",
+  },
   {
     title: t("placeholder.image"),
     icon: image,
@@ -24,60 +35,106 @@ const sendActionList = [
     placement: undefined,
   },
   {
-    title: t("placeholder.call"),
-    icon: rtc,
-    key: "rtc",
+    title: t("placeholder.video"),
+    icon: video,
+    key: "video",
+    accept: "video/*",
+    comp: null,
+    placement: undefined,
+  },
+  {
+    title: t("placeholder.card"),
+    icon: card,
+    key: "card",
     accept: undefined,
-    comp: <CallPopContent />,
+    comp: null,
     placement: "top",
+  },
+  {
+    title: t("placeholder.file"),
+    icon: file,
+    key: "file",
+    accept: "*",
+    comp: null,
+    placement: undefined,
   },
 ];
 
 i18n.on("languageChanged", () => {
-  sendActionList[0].title = t("placeholder.image");
-  sendActionList[1].title = t("placeholder.call");
+  sendActionList[0].title = t("placeholder.emoji");
+  sendActionList[1].title = t("placeholder.image");
+  sendActionList[2].title = t("placeholder.video");
+  sendActionList[3].title = t("placeholder.card");
+  sendActionList[4].title = t("placeholder.file");
 });
 
 const SendActionBar = ({
   sendMessage,
   getImageMessage,
+  getVideoMessage,
+  getFileMessage,
+  onSelectEmoji,
 }: {
   sendMessage: (params: SendMessageParams) => Promise<void>;
   getImageMessage: (file: File) => Promise<MessageItem>;
+  getVideoMessage: (file: File) => Promise<MessageItem>;
+  getFileMessage: (file: File) => Promise<MessageItem>;
+  onSelectEmoji: (emoji: string) => void;
 }) => {
   const [visibleState, setVisibleState] = useState(false);
-  const isGroupSession = useConversationStore(
-    (state) => !!state.currentConversation?.groupID,
-  );
+  const [activeAction, setActiveAction] = useState("");
 
-  const closePop = () => setVisibleState(false);
+  const closePop = () => {
+    setVisibleState(false);
+    setActiveAction("");
+  };
 
-  const fileHandle = async (options: UploadRequestOption) => {
-    const message = await getImageMessage(options.file as File);
+  const fileHandle = async (options: UploadRequestOption, key: string) => {
+    let message: MessageItem;
+    const file = options.file as File;
+    if (key === "image") {
+      message = await getImageMessage(file);
+    } else if (key === "video") {
+      message = await getVideoMessage(file);
+    } else {
+      message = await getFileMessage(file);
+    }
     sendMessage({
       message,
     });
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    onSelectEmoji(emoji);
+    closePop();
+  };
+
   return (
     <div className="flex items-center px-4.5 pt-2">
       {sendActionList.map((action) => {
-        if (action.key === "rtc" && isGroupSession) {
-          return null;
-        }
         const popProps: PopoverProps = {
           placement: action.placement as TooltipPlacement,
           content:
-            action.comp &&
-            React.cloneElement(action.comp as React.ReactElement, {
-              closePop,
-            }),
+            action.key === "emoji" ? (
+              <EmojiPicker onSelect={handleEmojiSelect} />
+            ) : (
+              action.comp &&
+              React.cloneElement(action.comp as React.ReactElement, {
+                closePop,
+              })
+            ),
           title: null,
           arrow: false,
           trigger: "click",
-          // @ts-ignore
-          open: action.comp ? visibleState : false,
-          onOpenChange: (visible) => setVisibleState(visible),
+          open: visibleState && activeAction === action.key,
+          onOpenChange: (visible) => {
+            setVisibleState(visible);
+            if (visible) {
+              setActiveAction(action.key);
+            } else {
+              setActiveAction("");
+            }
+          },
         };
 
         return (
@@ -85,7 +142,7 @@ const SendActionBar = ({
             popProps={popProps}
             key={action.key}
             accept={action.accept}
-            fileHandle={fileHandle}
+            fileHandle={(options) => fileHandle(options, action.key)}
           >
             <div
               className={clsx("flex cursor-pointer items-center last:mr-0", {
@@ -125,6 +182,8 @@ const ActionWrap = ({
       {children}
     </Upload>
   ) : (
-    <Popover {...popProps}>{children}</Popover>
+    <Popover {...popProps} overlayClassName="emoji-popover">
+      {children}
+    </Popover>
   );
 };

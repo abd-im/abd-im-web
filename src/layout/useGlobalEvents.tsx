@@ -9,6 +9,7 @@ import {
   GroupItem,
   GroupMemberItem,
   MessageItem,
+  ReceiptInfo,
   RevokedInfo,
   SelfUserInfo,
   WSEvent,
@@ -18,6 +19,7 @@ import { t } from "i18next";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { CustomType } from "@/constants";
 import {
   pushNewMessage,
@@ -25,16 +27,22 @@ import {
 } from "@/pages/chat/queryChat/useHistoryMessageList";
 import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
+import { UserStatusItem } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
 import { initStore } from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
-import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
+import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { IMSDK } from "./MainContentWrap";
 
 export function useGlobalEvent() {
   const navigate = useNavigate();
   const resume = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio(newMsgAudio);
+  }, []);
 
   // user
   const updateSyncState = useUserStore((state) => state.updateSyncState);
@@ -91,6 +99,7 @@ export function useGlobalEvent() {
   const updateSendGroupApplication = useContactStore(
     (state) => state.updateSendGroupApplication,
   );
+  const updateUserStatus = useContactStore((state) => state.updateUserStatus);
 
   useEffect(() => {
     loginCheck();
@@ -178,6 +187,8 @@ export function useGlobalEvent() {
     // message
     IMSDK.on(CbEvents.OnRecvNewMessages, newMessageHandler);
     IMSDK.on(CbEvents.OnNewRecvMessageRevoked, revokedMessageHandler);
+    IMSDK.on(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
+    IMSDK.on(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
     // conversation
     IMSDK.on(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.on(CbEvents.OnNewConversation, newConversationHandler);
@@ -275,9 +286,41 @@ export function useGlobalEvent() {
     } as MessageItem);
   };
 
+  const userStatusChangeHandler = ({ data }: WSEvent<UserStatusItem>) => {
+    updateUserStatus(data);
+  };
+
+  const c2cReadReceiptHandler = ({ data }: WSEvent<ReceiptInfo[]>) => {
+    data.forEach((receipt) => {
+      const readTime =
+        receipt.readTime < 10000000000 ? receipt.readTime * 1000 : receipt.readTime;
+      receipt.msgIDList.forEach((clientMsgID) => {
+        updateOneMessage({
+          clientMsgID,
+          isRead: true,
+          attachedInfoElem: { hasReadTime: readTime || Date.now() },
+        } as MessageItem);
+      });
+    });
+  };
+
   const notPushType = [MessageType.TypingMessage, MessageType.RevokeMessage];
 
+  const playNewMsgSound = () => {
+    const { allowBeep } = useUserStore.getState().appSettings;
+    const { globalRecvMsgOpt } = useUserStore.getState().selfInfo;
+    if (allowBeep && globalRecvMsgOpt !== 2) {
+      audioRef.current?.play().catch(() => {
+        // Browser might block auto-play if no user interaction
+      });
+    }
+  };
+
   const handleNewMessage = (newServerMsg: MessageItem) => {
+    if (newServerMsg.sendID !== useUserStore.getState().selfInfo.userID) {
+      playNewMsgSound();
+    }
+
     if (newServerMsg.contentType === MessageType.CustomMessage) {
       const customData = JSON.parse(newServerMsg.customElem!.data);
       if (
@@ -444,6 +487,8 @@ export function useGlobalEvent() {
     IMSDK.off(CbEvents.OnSyncServerFailed, syncFailedHandler);
     // message
     IMSDK.off(CbEvents.OnRecvNewMessages, newMessageHandler);
+    IMSDK.off(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
+    IMSDK.off(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
     // conversation
     IMSDK.off(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.off(CbEvents.OnNewConversation, newConversationHandler);

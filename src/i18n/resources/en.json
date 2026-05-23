@@ -182,8 +182,8 @@
     "verifyValidity": "6-digit verification code, valid for 10 minutes",
     "sendVerifyCode": "Send verification code",
     "qrCodeLogin": "QR code login",
-    "qrCodeLoginTitle": "Please scan the QR code using OpenCorp mobile",
-    "welcome": "Welcome to OpenCorp",
+    "qrCodeLoginTitle": "Please scan the QR code using ABD IM mobile",
+    "welcome": "Welcome to ABD IM",
     "title": "Online office collaboration",
     "subTitle": "Collaborative work for efficient office tasks",
     "myCreated": "I created",
@@ -301,7 +301,10 @@
     "accountSetting": "Account Settings",
     "logOut": "Log Out",
     "personalSetting": "Personal Settings",
+    "securitySetting": "Security Settings",
+    "otherSetting": "Other Settings",
     "chooseLanguage": "Choose Language",
+    "clearChatHistory": "Clear Chat History",
     "closeButtonEvent": "Event when clicking the close button",
     "exitApplication": "Exit Application",
     "minimize": "Minimize to Tray",
@@ -427,9 +430,10 @@
     "cancelAllMuteMessage": "{{operator}} disabled group mute",
     "singleMuteMessage": "{{name}} was muted by {{operator}} for {{muteTime}}",
     "cancelSingleMuteMessage": "{{name}} had their mute canceled by {{operator}}",
-    "burnReadStatus": "Burn after reading is {{status}}"
-  },
-  "time": {
+    "burnReadStatus": "Burn after reading is {{status}}",
+    "privateMessage": "Private Message"
+    },
+    "date": {
     "day": "Day",
     "week": "Week",
     "month": "Month",

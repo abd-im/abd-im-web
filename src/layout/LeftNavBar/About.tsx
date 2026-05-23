@@ -1,4 +1,4 @@
-import { CloseOutlined, RightOutlined } from "@ant-design/icons";
+import { CloseOutlined, RightOutlined, MessageFilled } from "@ant-design/icons";
 import { CbEvents } from "@openim/wasm-client-sdk";
 import { WSEvent } from "@openim/wasm-client-sdk/lib/types/entity";
 import { useRequest } from "ahooks";
@@ -7,7 +7,6 @@ import { t } from "i18next";
 import { forwardRef, ForwardRefRenderFunction, memo, useEffect, useState } from "react";
 import { useCopyToClipboard } from "react-use";
 
-import logo from "@/assets/images/profile/logo.png";
 import { APP_NAME, APP_VERSION, SDK_VERSION } from "@/config";
 import { feedbackToast } from "@/utils/common";
 
@@ -126,7 +125,7 @@ export const AboutContent = ({ closeOverlay }: { closeOverlay?: () => void }) =>
   };
 
   const handleCopy = () => {
-    copyToClipboard(`${`${APP_NAME} ${APP_VERSION}`}/${SDK_VERSION}`);
+    copyToClipboard(`${APP_NAME} ${APP_VERSION}`);
     feedbackToast({ msg: t("toast.copySuccess") });
   };
 
@@ -142,13 +141,12 @@ export const AboutContent = ({ closeOverlay }: { closeOverlay?: () => void }) =>
           />
         </div>
         <div className="flex flex-col items-center justify-center">
-          <img className="mb-2 mt-7" width={56} src={logo} alt="" />
+          <MessageFilled className="text-5xl text-[#3072ff] mb-2 mt-7" rev={undefined} />
           <div
             className="mb-5 flex cursor-pointer flex-col items-center"
             onClick={handleCopy}
           >
             <div>{`${APP_NAME} ${APP_VERSION}`}</div>
-            <div>{SDK_VERSION}</div>
           </div>
         </div>
 

@@ -183,8 +183,8 @@
     "verifyValidity": "的 6 位验证码，有效期 10 分钟",
     "sendVerifyCode": "发送验证码",
     "qrCodeLogin": "扫码登录",
-    "qrCodeLoginTitle": "请使用OpenCorp移动端扫描二维码",
-    "welcome": "欢迎使用OpenCorp",
+    "qrCodeLoginTitle": "请使用ABD IM移动端扫描二维码",
+    "welcome": "欢迎使用ABD IM",
     "title": "在线化办公",
     "subTitle": "多人协作，打造高效办公方式",
     "myCreated": "我创建的",
@@ -302,7 +302,10 @@
     "accountSetting": "账号设置",
     "logOut": "退出登录",
     "personalSetting": "个人设置",
+    "securitySetting": "安全设置",
+    "otherSetting": "其他设置",
     "chooseLanguage": "选择语言",
+    "clearChatHistory": "清空聊天记录",
     "closeButtonEvent": "点击关闭按钮时的事件",
     "exitApplication": "退出应用",
     "minimize": "最小化托盘",
@@ -428,9 +431,10 @@
     "cancelAllMuteMessage": "{{operator}}关闭了全体禁言",
     "singleMuteMessage": "{{name}}被{{operator}}禁言{{muteTime}}",
     "cancelSingleMuteMessage": "{{name}}被{{operator}}取消了禁言",
-    "burnReadStatus": "已{{status}}阅后即焚"
-  },
-  "time": {
+    "burnReadStatus": "已{{status}}阅后即焚",
+    "privateMessage": "私密消息"
+    },
+    "date": {
     "day": "天",
     "week": "周",
     "month": "月",

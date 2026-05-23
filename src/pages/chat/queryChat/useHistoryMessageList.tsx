@@ -53,18 +53,46 @@ export function useHistoryMessageList() {
           return preState;
         }
 
-        tmpList[idx] = { ...tmpList[idx], ...message };
+        tmpList[idx] = {
+          ...tmpList[idx],
+          ...message,
+          attachedInfoElem: {
+            ...tmpList[idx].attachedInfoElem,
+            ...message.attachedInfoElem,
+          },
+        } as MessageItem;
         return {
           ...preState,
           messageList: tmpList,
         };
       });
     };
+    const deleteOneMessage = (clientMsgID: string) => {
+      setLoadState((preState) => {
+        const newList = preState.messageList.filter(
+          (msg) => msg.clientMsgID !== clientMsgID,
+        );
+        return {
+          ...preState,
+          messageList: newList,
+        };
+      });
+    };
+    const clearHistory = () => {
+      setLoadState((preState) => ({
+        ...preState,
+        messageList: [],
+      }));
+    };
     emitter.on("PUSH_NEW_MSG", pushNewMessage);
     emitter.on("UPDATE_ONE_MSG", updateOneMessage);
+    emitter.on("DELETE_ONE_MSG", deleteOneMessage);
+    emitter.on("CLEAR_HISTORY_DONE", clearHistory);
     return () => {
       emitter.off("PUSH_NEW_MSG", pushNewMessage);
       emitter.off("UPDATE_ONE_MSG", updateOneMessage);
+      emitter.off("DELETE_ONE_MSG", deleteOneMessage);
+      emitter.off("CLEAR_HISTORY_DONE", clearHistory);
     };
   }, []);
 
@@ -82,15 +110,31 @@ export function useHistoryMessageList() {
         viewType: ViewType.History,
       });
       if (conversationID !== reqConversationID) return;
-      setTimeout(() =>
-        setLoadState((preState) => ({
-          ...preState,
-          initLoading: false,
-          hasMoreOld: !data.isEnd,
-          messageList: [...data.messageList, ...(loadMore ? preState.messageList : [])],
-          firstItemIndex: preState.firstItemIndex - data.messageList.length,
-        })),
-      );
+
+      const filteredMessages = data.messageList.filter((msg: MessageItem) => {
+        if (!msg.attachedInfoElem) return true;
+        const { isPrivateChat, burnDuration, hasReadTime } = msg.attachedInfoElem;
+        if (isPrivateChat && msg.isRead && hasReadTime) {
+          const now = Date.now();
+          const diff = Math.floor((now - hasReadTime) / 1000);
+          if (diff >= burnDuration) {
+            IMSDK.deleteMessageFromLocalStorage({
+              conversationID: reqConversationID!,
+              clientMsgID: msg.clientMsgID,
+            });
+            return false;
+          }
+        }
+        return true;
+      });
+
+      setLoadState((preState) => ({
+        ...preState,
+        initLoading: false,
+        hasMoreOld: !data.isEnd,
+        messageList: [...filteredMessages, ...(loadMore ? preState.messageList : [])],
+        firstItemIndex: preState.firstItemIndex - filteredMessages.length,
+      }));
     },
     {
       manual: true,
@@ -110,3 +154,5 @@ export function useHistoryMessageList() {
 export const pushNewMessage = (message: MessageItem) => emit("PUSH_NEW_MSG", message);
 export const updateOneMessage = (message: MessageItem) =>
   emit("UPDATE_ONE_MSG", message);
+export const deleteMessage = (clientMsgID: string) =>
+  emit("DELETE_ONE_MSG", clientMsgID);

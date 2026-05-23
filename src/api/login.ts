@@ -2,11 +2,11 @@ import type { MessageReceiveOptType } from "@openim/wasm-client-sdk";
 import { useMutation } from "react-query";
 import { v4 as uuidv4 } from "uuid";
 
+import { RUNTIME_CHAT_URL } from "@/config";
 import { useUserStore } from "@/store";
 import createAxiosInstance from "@/utils/request";
 import { getChatToken } from "@/utils/storage";
 
-import { RUNTIME_CHAT_URL } from "@/config";
 import { errorHandle } from "./errorHandle";
 
 const request = createAxiosInstance(RUNTIME_CHAT_URL);

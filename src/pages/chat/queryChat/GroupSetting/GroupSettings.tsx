@@ -61,100 +61,118 @@ const GroupSettings = ({
   const hasPermissions = isAdmin || isOwner;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center p-4">
-        <div className="flex items-center">
-          <Upload
-            accept="image/*"
-            className={clsx({ "disabled-upload": isNomal })}
-            openFileDialogOnClick={hasPermissions}
-            showUploadList={false}
-            customRequest={customUpload as any}
-          >
-            <div className="relative">
-              <OIMAvatar
-                isgroup
-                src={currentGroupInfo?.faceURL}
-                text={currentGroupInfo?.groupName}
+    <div className="flex h-full flex-col overflow-y-auto bg-[#F4F5F7] px-4 py-3">
+      {/* Profile Block */}
+      <div className="mb-3 flex items-center rounded-xl bg-white p-4">
+        <Upload
+          accept="image/*"
+          className={clsx({ "disabled-upload": isNomal })}
+          openFileDialogOnClick={hasPermissions}
+          showUploadList={false}
+          customRequest={customUpload as any}
+        >
+          <div className="relative">
+            <OIMAvatar
+              isgroup
+              src={currentGroupInfo?.faceURL}
+              text={currentGroupInfo?.groupName}
+            />
+            {hasPermissions && (
+              <img
+                className="absolute -bottom-1 -right-1"
+                width={15}
+                src={edit_avatar}
+                alt="edit avatar"
               />
-              {hasPermissions && (
-                <img
-                  className="absolute -bottom-1 -right-1"
-                  width={15}
-                  src={edit_avatar}
-                  alt="edit avatar"
-                />
-              )}
-            </div>
-          </Upload>
+            )}
+          </div>
+        </Upload>
 
-          <EditableContent
-            textClassName="font-medium"
-            value={currentGroupInfo?.groupName}
-            editable={hasPermissions}
-            onChange={updateGroupName}
-          />
-        </div>
+        <EditableContent
+          containerClassName="ml-3"
+          textClassName="font-medium text-base"
+          value={currentGroupInfo?.groupName}
+          editable={hasPermissions}
+          onChange={updateGroupName}
+        />
       </div>
 
-      <Divider className="m-0 border-4 border-[#F4F5F7]" />
+      {/* Member Block */}
       {currentGroupInfo && isJoinGroup && (
-        <GroupMemberRow
-          currentGroupInfo={currentGroupInfo}
-          isNomal={isNomal}
-          updateTravel={updateTravel}
-        />
-      )}
-      <Divider className="m-0 border-4 border-[#F4F5F7]" />
-
-      <Divider className="m-0 border-4 border-[#F4F5F7]" />
-      <SettingRow className="pb-2" title={`${t("placeholder.group")}ID`}>
-        <div className="flex items-center">
-          <span className="mr-1 text-xs text-[var(--sub-text)]">
-            {currentGroupInfo?.groupID}
-          </span>
-          <img
-            className="cursor-pointer"
-            width={14}
-            src={copy}
-            alt=""
-            onClick={() => {
-              copyToClipboard(currentGroupInfo?.groupID ?? "");
-              feedbackToast({ msg: t("toast.copySuccess") });
-            }}
+        <div className="mb-3 overflow-hidden rounded-xl bg-white">
+          <GroupMemberRow
+            currentGroupInfo={currentGroupInfo}
+            isNomal={isNomal}
+            updateTravel={updateTravel}
           />
         </div>
-      </SettingRow>
-      <SettingRow title={t("placeholder.groupTppe")}>
-        <span className="text-xs text-[var(--sub-text)]">
-          {t("placeholder.workGroup")}
-        </span>
-      </SettingRow>
+      )}
 
-      <Divider className="m-0 border-4 border-[#F4F5F7]" />
+      {/* Info Block */}
+      <div className="mb-3 overflow-hidden rounded-xl bg-white">
+        <SettingRow title={`${t("placeholder.group")}ID`}>
+          <div className="flex items-center">
+            <span className="mr-1 text-xs text-[var(--sub-text)]">
+              {currentGroupInfo?.groupID}
+            </span>
+            <img
+              className="cursor-pointer"
+              width={14}
+              src={copy}
+              alt=""
+              onClick={() => {
+                copyToClipboard(currentGroupInfo?.groupID ?? "");
+                feedbackToast({ msg: t("toast.copySuccess") });
+              }}
+            />
+          </div>
+        </SettingRow>
+        <Divider className="m-0 mx-4 w-auto" />
+        <SettingRow title={t("placeholder.groupTppe")}>
+          <span className="text-xs text-[var(--sub-text)]">
+            {t("placeholder.workGroup")}
+          </span>
+        </SettingRow>
+      </div>
 
+      {/* Transfer Block */}
       {isOwner && (
-        <>
-          <Divider className="m-0 border-4 border-[#F4F5F7]" />
+        <div className="mb-3 overflow-hidden rounded-xl bg-white">
           <SettingRow
             className="cursor-pointer"
             title={t("placeholder.transferGroup")}
             rowClick={transferGroup}
           >
-            <RightOutlined rev={undefined} />
+            <RightOutlined
+              className="text-xs text-[var(--sub-text)]"
+              rev={undefined}
+            />
           </SettingRow>
-        </>
+        </div>
       )}
 
       <div className="flex-1" />
+
+      {/* Action Block */}
       {isJoinGroup && (
-        <div className="flex w-full justify-center pb-3 pt-24">
+        <div className="flex w-full justify-center pb-6 pt-24">
           {!isOwner ? (
-            <Button type="primary" danger ghost onClick={tryQuitGroup}>
+            <Button
+              type="primary"
+              danger
+              ghost
+              className="h-10 w-full rounded-xl font-medium"
+              onClick={tryQuitGroup}
+            >
               {t("placeholder.exitGroup")}
             </Button>
           ) : (
-            <Button type="primary" danger onClick={tryDismissGroup}>
+            <Button
+              type="primary"
+              danger
+              className="h-10 w-full rounded-xl font-medium"
+              onClick={tryDismissGroup}
+            >
               {t("placeholder.disbandGroup")}
             </Button>
           )}

@@ -1,6 +1,4 @@
-import {
-  GroupMemberItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupMemberItem } from "@openim/wasm-client-sdk/lib/types/entity";
 import { useLatest } from "ahooks";
 import { useCallback, useState } from "react";
 

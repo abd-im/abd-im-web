@@ -1,5 +1,5 @@
-export const APP_NAME = "OpenCorp-Base";
-export const APP_VERSION = "v3.8.3";
+export const APP_NAME = "ABD IM";
+export const APP_VERSION = "v1.0.0";
 export const SDK_VERSION = "SDK(ffi) v3.8.3";
 export const isSaveLog = process.env.NODE_ENV !== "development";
 
@@ -16,9 +16,12 @@ const getRuntimeUrls = () => {
     const isHttps = window.location.protocol === "https:";
 
     // Detect if we are using the default placeholder configurations
-    const isApiPlaceholder = !api || api.includes("your-server") || api.includes("PLACEHOLDER");
-    const isWsPlaceholder = !ws || ws.includes("your-server") || ws.includes("PLACEHOLDER");
-    const isChatPlaceholder = !chat || chat.includes("your-server") || chat.includes("PLACEHOLDER");
+    const isApiPlaceholder =
+      !api || api.includes("your-server") || api.includes("PLACEHOLDER");
+    const isWsPlaceholder =
+      !ws || ws.includes("your-server") || ws.includes("PLACEHOLDER");
+    const isChatPlaceholder =
+      !chat || chat.includes("your-server") || chat.includes("PLACEHOLDER");
 
     if (isApiPlaceholder) {
       api = isHttps ? `https://${hostname}/api` : `http://${hostname}:10002`;
@@ -34,4 +37,8 @@ const getRuntimeUrls = () => {
   return { api, ws, chat };
 };
 
-export const { api: RUNTIME_API_URL, ws: RUNTIME_WS_URL, chat: RUNTIME_CHAT_URL } = getRuntimeUrls();
+export const {
+  api: RUNTIME_API_URL,
+  ws: RUNTIME_WS_URL,
+  chat: RUNTIME_CHAT_URL,
+} = getRuntimeUrls();

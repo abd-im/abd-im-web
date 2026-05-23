@@ -1,52 +1,50 @@
-import { MessageStatus } from "@openim/wasm-client-sdk";
-import { MessageItem, WsResponse } from "@openim/wasm-client-sdk/lib/types/entity";
-import { SendMsgParams } from "@openim/wasm-client-sdk/lib/types/params";
+import { MessageItem, MessageStatus, SessionType } from "@openim/wasm-client-sdk";
 import { useCallback } from "react";
+import { useParams } from "react-router-dom";
 
 import { IMSDK } from "@/layout/MainContentWrap";
-import { useConversationStore } from "@/store";
-import { emit } from "@/utils/events";
+import { useUserStore } from "@/store";
 
 import { pushNewMessage, updateOneMessage } from "../useHistoryMessageList";
 
-export type SendMessageParams = Partial<Omit<SendMsgParams, "message">> & {
+export interface SendMessageParams {
   message: MessageItem;
-  needPush?: boolean;
-};
+}
 
 export function useSendMessage() {
+  const { conversationID } = useParams();
+  const selfInfo = useUserStore((state) => state.selfInfo);
+
   const sendMessage = useCallback(
-    async ({ recvID, groupID, message, needPush }: SendMessageParams) => {
-      const currentConversation = useConversationStore.getState().currentConversation;
-      const sourceID = recvID || groupID;
-      const inCurrentConversation =
-        currentConversation?.userID === sourceID ||
-        currentConversation?.groupID === sourceID ||
-        !sourceID;
-      needPush = needPush ?? inCurrentConversation;
+    async ({ message }: SendMessageParams) => {
+      if (!conversationID) return;
 
-      if (needPush) {
-        pushNewMessage(message);
-        emit("CHAT_LIST_SCROLL_TO_BOTTOM");
-      }
+      const isGroup = conversationID.startsWith("sg_");
+      const recvID = isGroup ? "" : conversationID.split("_")[1];
+      const groupID = isGroup ? conversationID.split("_")[1] : "";
 
-      const options = {
-        recvID: recvID ?? currentConversation?.userID ?? "",
-        groupID: groupID ?? currentConversation?.groupID ?? "",
-        message,
-      };
+      message.sendID = selfInfo.userID;
+      message.senderNickname = selfInfo.nickname;
+      message.senderFaceUrl = selfInfo.faceURL;
+      message.status = MessageStatus.Sending;
+      message.sendTime = Date.now();
+      message.sessionType = isGroup ? SessionType.Group : SessionType.Single;
+
+      pushNewMessage(message);
 
       try {
-        const { data: successMessage } = await IMSDK.sendMessage(options);
-        updateOneMessage(successMessage);
-      } catch (error) {
-        updateOneMessage({
-          ...message,
-          status: MessageStatus.Failed,
+        const { data } = await IMSDK.sendMessage({
+          recvID,
+          groupID,
+          message,
         });
+        updateOneMessage(data);
+      } catch (error) {
+        message.status = MessageStatus.Failed;
+        updateOneMessage({ ...message });
       }
     },
-    [],
+    [conversationID, selfInfo],
   );
 
   return {

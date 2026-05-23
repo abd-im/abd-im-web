@@ -1,3 +1,4 @@
+import { MessageType, SessionType } from "@openim/wasm-client-sdk";
 import {
   ConversationItem,
   GroupItem,
@@ -73,6 +74,10 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     isJump?: boolean,
   ) => {
     if (!conversation) {
+      const prevConversation = get().currentConversation;
+      if (prevConversation?.conversationType === SessionType.Single) {
+        IMSDK.unsubscribeUsersStatus([prevConversation.userID]);
+      }
       set(() => ({
         currentConversation: undefined,
         quoteMessage: undefined,
@@ -85,6 +90,16 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
 
     const toggleNewConversation =
       conversation.conversationID !== prevConversation?.conversationID;
+
+    if (toggleNewConversation) {
+      if (prevConversation?.conversationType === SessionType.Single) {
+        IMSDK.unsubscribeUsersStatus([prevConversation.userID]);
+      }
+      if (conversation.conversationType === SessionType.Single) {
+        IMSDK.subscribeUsersStatus([conversation.userID]);
+      }
+    }
+
     if (toggleNewConversation && isGroupSession(conversation.conversationType)) {
       get().getCurrentGroupInfoByReq(conversation.groupID);
       await get().getCurrentMemberInGroupByReq(conversation.groupID);

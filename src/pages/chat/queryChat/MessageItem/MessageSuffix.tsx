@@ -1,13 +1,19 @@
 import { ExclamationCircleFilled, LoadingOutlined } from "@ant-design/icons";
-import { MessageStatus, MessageType } from "@openim/wasm-client-sdk";
+import { MessageStatus } from "@openim/wasm-client-sdk";
 import { Spin } from "antd";
+import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { useUserStore } from "@/store";
 
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
 
 const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
+  const { t } = useTranslation();
   const [showSending, setShowSending] = useState(false);
+  const selfID = useUserStore((state) => state.selfInfo.userID);
 
   useEffect(() => {
     if (message.status !== MessageStatus.Sending) return;
@@ -21,17 +27,33 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
     };
   }, [message.status]);
 
+  const isSelf = message.sendID === selfID;
+  const isRead = message.isRead;
+
+  if (!isSelf) return null;
+
   return (
-    <div className={styles.suffix}>
+    <div
+      className={styles.suffix}
+      style={{ minWidth: "40px", minHeight: "16px", display: "flex" }}
+    >
+      <span
+        className={clsx(
+          "select-none text-xs font-normal leading-none",
+          isRead ? "text-[#999]" : "text-[#1d6bed]",
+        )}
+      >
+        {isRead ? t("placeholder.isRead") : t("placeholder.unread")}
+      </span>
       {showSending && message.status === MessageStatus.Sending && (
         <Spin
-          className="flex"
-          indicator={<LoadingOutlined style={{ fontSize: 16 }} spin rev={undefined} />}
+          className="ml-1 flex"
+          indicator={<LoadingOutlined style={{ fontSize: 12 }} spin rev={undefined} />}
         />
       )}
       {message.status === MessageStatus.Failed && (
         <ExclamationCircleFilled
-          className="text-base text-[var(--warn-text)]"
+          className="ml-1 text-sm text-[#ff381f]"
           rev={undefined}
         />
       )}

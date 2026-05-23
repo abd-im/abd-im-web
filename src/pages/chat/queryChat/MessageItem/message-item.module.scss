@@ -10,17 +10,34 @@
 
     .bubble {
       @apply w-fit rounded-md p-2.5;
-      word-break: break-all;
       background-color: var(--chat-bubble);
+      word-break: break-all;
+    }
+
+    .message-content-group {
+      @apply flex flex-col;
+      max-width: 80%;
+    }
+
+    .message-status-wrapper {
+      @apply mt-1 flex items-center;
+      gap: 6px;
+      height: 18px;
     }
 
     .suffix {
-      @apply ml-3 flex items-center;
+      @apply flex items-center;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
-  }
 
-  .menu-wrap {
-    @apply flex w-fit;
+    .burn-countdown {
+      @apply flex items-center text-xs text-[#999];
+    }
+
+    .burn-icon {
+      @apply flex items-center text-sm;
+    }
   }
 
   &-sender {
@@ -37,27 +54,14 @@
         background-color: var(--chat-bubble-sender);
       }
 
-      .suffix {
-        @apply ml-0 mr-3;
+      .message-content-group {
+        @apply items-end;
+      }
+
+      .message-status-wrapper {
+        @apply flex-row-reverse;
       }
     }
-
-    .menu-wrap {
-      @apply flex-row-reverse;
-    }
-  }
-}
-
-.animate-container {
-  // background-color: var(--primary-active);
-  animation: animate 2s ease-in-out;
-}
-@keyframes animate {
-  from {
-    background-color: var(--primary-active);
-  }
-  to {
-    background-color: transparent;
   }
 }
 

@@ -1,51 +1,105 @@
 import { SessionType } from "@openim/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
-import { memo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { SystemMessageTypes } from "@/constants/im";
+import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import emitter from "@/utils/events";
 
 import MessageItem from "./MessageItem";
 import NotificationMessage from "./NotificationMessage";
-import { useHistoryMessageList } from "./useHistoryMessageList";
+import {
+  updateOneMessage,
+  useHistoryMessageList,
+} from "./useHistoryMessageList";
 
 const ChatContent = () => {
   const virtuoso = useRef<VirtuosoHandle>(null);
+  const lastMsgIdRef = useRef<string>("");
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
+  const [atBottom, setAtBottom] = useState(true);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback((behavior: "auto" | "smooth" = "auto") => {
     setTimeout(() => {
       virtuoso.current?.scrollToIndex({
-        index: 9999,
+        index: 99999,
         align: "end",
-        behavior: "auto",
+        behavior,
       });
     });
-  };
+  }, []);
 
-  const { SPLIT_COUNT, conversationID, loadState, moreOldLoading, getMoreOldMessages } =
-    useHistoryMessageList();
+  const {
+    SPLIT_COUNT,
+    conversationID,
+    loadState,
+    latestLoadState,
+    moreOldLoading,
+    getMoreOldMessages,
+  } = useHistoryMessageList();
 
   useEffect(() => {
-    emitter.on("CHAT_LIST_SCROLL_TO_BOTTOM", scrollToBottom);
+    lastMsgIdRef.current = "";
+  }, [conversationID]);
+
+  useEffect(() => {
+    if (conversationID) {
+      IMSDK.markConversationMessageAsRead(conversationID).then(() => {
+        latestLoadState.current.messageList.forEach((msg) => {
+          if (!msg.isRead && msg.sendID !== selfUserID) {
+            updateOneMessage({
+              clientMsgID: msg.clientMsgID,
+              isRead: true,
+              attachedInfoElem: { hasReadTime: Date.now() },
+            } as MessageItem);
+          }
+        });
+      });
+      scrollToBottom();
+    }
+  }, [conversationID, scrollToBottom]);
+
+  useEffect(() => {
+    if (!conversationID || loadState.messageList.length === 0) return;
+
+    const latestMsg = loadState.messageList[loadState.messageList.length - 1];
+    const isSelf = latestMsg.sendID === selfUserID;
+
+    if (atBottom) {
+      IMSDK.markConversationMessageAsRead(conversationID).then(() => {
+        latestLoadState.current.messageList.forEach((msg) => {
+          if (!msg.isRead && msg.sendID !== selfUserID) {
+            updateOneMessage({
+              clientMsgID: msg.clientMsgID,
+              isRead: true,
+              attachedInfoElem: { hasReadTime: Date.now() },
+            } as MessageItem);
+          }
+        });
+      });
+    }
+  }, [loadState.messageList.length, conversationID, selfUserID, atBottom]);
+
+  useEffect(() => {
+    const scrollHandler = () => scrollToBottom("smooth");
+    emitter.on("CHAT_LIST_SCROLL_TO_BOTTOM", scrollHandler);
     return () => {
-      emitter.off("CHAT_LIST_SCROLL_TO_BOTTOM", scrollToBottom);
+      emitter.off("CHAT_LIST_SCROLL_TO_BOTTOM", scrollHandler);
     };
-  }, []);
+  }, [scrollToBottom]);
 
   const loadMoreMessage = () => {
     if (!loadState.hasMoreOld || moreOldLoading) return;
-
     getMoreOldMessages();
   };
 
   return (
     <Layout.Content
-      className="relative flex h-full overflow-hidden !bg-white"
-      id="chat-main"
+      className="relative flex h-full flex-col overflow-hidden !bg-white"
+      id="chat-main-content"
     >
       {loadState.initLoading ? (
         <div className="flex h-full w-full items-center justify-center bg-white pt-1">
@@ -54,13 +108,31 @@ const ChatContent = () => {
       ) : (
         <Virtuoso
           id="chat-list"
-          className="w-full overflow-x-hidden"
-          followOutput="smooth"
+          className="flex-1 w-full"
+          followOutput={(isAtBottom: boolean) => {
+            const lastMsg = loadState.messageList[loadState.messageList.length - 1];
+            const isSelf = lastMsg?.sendID === selfUserID;
+            const lastMsgId = lastMsg?.clientMsgID;
+
+            const isNewMsg = lastMsgId && lastMsgId !== lastMsgIdRef.current;
+            if (isNewMsg) {
+              const oldId = lastMsgIdRef.current;
+              lastMsgIdRef.current = lastMsgId;
+              if (!oldId) return false;
+            }
+
+            if (isNewMsg && (isAtBottom || isSelf)) {
+              return "smooth";
+            }
+            return false;
+          }}
           firstItemIndex={loadState.firstItemIndex}
-          initialTopMostItemIndex={SPLIT_COUNT - 1}
+          initialTopMostItemIndex={99999}
           startReached={loadMoreMessage}
+          atBottomStateChange={setAtBottom}
           ref={virtuoso}
           data={loadState.messageList}
+          increaseViewportBy={500}
           components={{
             Header: () =>
               loadState.hasMoreOld ? (
@@ -81,14 +153,18 @@ const ChatContent = () => {
                 <NotificationMessage key={message.clientMsgID} message={message} />
               );
             }
-            const isSender = selfUserID === message.sendID;
             return (
               <MessageItem
                 key={message.clientMsgID}
                 conversationID={conversationID}
                 message={message}
-                messageUpdateFlag={message.senderNickname + message.senderFaceUrl}
-                isSender={isSender}
+                messageUpdateFlag={
+                  message.senderNickname +
+                  message.senderFaceUrl +
+                  String(message.isRead) +
+                  String(message.status) +
+                  String(message.attachedInfoElem?.hasReadTime)
+                }
               />
             );
           }}

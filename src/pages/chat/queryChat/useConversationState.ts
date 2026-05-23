@@ -27,10 +27,7 @@ export default function useConversationState() {
   }, [currentConversation?.conversationID]);
 
   const checkConversationState = () => {
-    if (
-      !latestCurrentConversation.current ||
-      latestSyncState.current === "loading"
-    )
+    if (!latestCurrentConversation.current || latestSyncState.current === "loading")
       return;
 
     if (latestCurrentConversation.current.unreadCount > 0) {

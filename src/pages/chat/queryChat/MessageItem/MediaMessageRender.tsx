@@ -1,8 +1,11 @@
 import { MessageStatus } from "@openim/wasm-client-sdk";
 import { Image, Spin } from "antd";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
+import clsx from "clsx";
 
 import { IMessageItemProps } from ".";
+import styles from "./message-item.module.scss";
 
 const min = (a: number, b: number) => (a > b ? b : a);
 

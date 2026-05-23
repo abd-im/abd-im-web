@@ -1,3 +1,4 @@
+import { GroupMemberRole } from "@openim/wasm-client-sdk";
 import { GroupMemberItem } from "@openim/wasm-client-sdk/lib/types/entity";
 import { Empty, Spin } from "antd";
 import { t } from "i18next";
@@ -10,7 +11,6 @@ import useGroupMembers from "@/hooks/useGroupMembers";
 import { useUserStore } from "@/store";
 
 import styles from "./group-setting.module.scss";
-import { GroupMemberRole } from "@openim/wasm-client-sdk";
 
 const GroupMemberList: FC = () => {
   const selfUserID = useUserStore((state) => state.selfInfo.userID);

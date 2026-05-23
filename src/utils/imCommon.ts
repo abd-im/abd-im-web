@@ -188,6 +188,19 @@ export const notificationMessageFormat = (msg: MessageItem) => {
             name: getName(dismissUser),
           }),
         });
+      case MessageType.RevokeMessage:
+        try {
+          const revokeDetails = JSON.parse(msg.notificationElem!.detail);
+          const isSelf = revokeDetails.revokerID === selfID;
+          const revokerName = isSelf ? t("you") : (revokeDetails.revokerNickname || msg.senderNickname);
+          return t("messageDescription.revokeMessage", {
+            revoker: `<span class="text-[#1d6bed] mx-1">${revokerName}</span>`,
+          });
+        } catch (e) {
+          return t("messageDescription.revokeMessage", {
+            revoker: `<span class="text-[#1d6bed] mx-1">${msg.senderNickname}</span>`,
+          });
+        }
       default:
         return "";
     }

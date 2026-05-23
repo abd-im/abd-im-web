@@ -2,7 +2,7 @@ import { LocaleString } from "@/store/type";
 import * as localForage from "localforage";
 
 localForage.config({
-  name: "OpenCorp-Config",
+  name: "ABD-IM-Config",
 });
 
 export const setAreaCode = (areaCode: string) =>

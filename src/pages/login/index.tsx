@@ -58,13 +58,6 @@ export const Login = () => {
           )}
         </div>
       </div>
-      <div
-        className="absolute bottom-3 right-3 flex cursor-pointer flex-col items-center text-xs"
-        onClick={handleCopy}
-      >
-        <div className="text-[var(--sub-text)]">{`${APP_NAME} ${APP_VERSION}`}</div>
-        <div className="text-[var(--sub-text)]">{SDK_VERSION}</div>
-      </div>
     </div>
   );
 };

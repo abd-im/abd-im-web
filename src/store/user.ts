@@ -21,6 +21,7 @@ export const useUserStore = create<UserStore>()((set, get) => ({
   appSettings: {
     locale: getLocale(),
     closeAction: "miniSize",
+    allowBeep: true,
   },
   updateSyncState: (syncState: IMConnectState) => {
     set({ syncState });

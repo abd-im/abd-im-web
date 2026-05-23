@@ -36,6 +36,7 @@ export interface UserStore {
 export interface AppSettings {
   locale: LocaleString;
   closeAction: "miniSize" | "quit";
+  allowBeep: boolean;
 }
 
 export type LocaleString = "zh-CN" | "en-US";
@@ -48,9 +49,7 @@ export interface ConversationStore {
   unReadCount: number;
   currentGroupInfo?: GroupItem;
   currentMemberInGroup?: GroupMemberItem;
-  getConversationListByReq: (
-    isOffset?: boolean
-  ) => Promise<boolean>;
+  getConversationListByReq: (isOffset?: boolean) => Promise<boolean>;
   updateConversationList: (
     list: ConversationItem[],
     type: ConversationListUpdateType,
@@ -73,6 +72,7 @@ export interface ContactStore {
   friendList: FriendUserItem[];
   blackList: BlackUserItem[];
   groupList: GroupItem[];
+  userStatusList: UserStatusItem[];
   recvFriendApplicationList: FriendApplicationItem[];
   sendFriendApplicationList: FriendApplicationItem[];
   recvGroupApplicationList: GroupApplicationItem[];
@@ -90,6 +90,8 @@ export interface ContactStore {
   setGroupList: (list: GroupItem[]) => void;
   updateGroup: (group: GroupItem, remove?: boolean) => void;
   pushNewGroup: (group: GroupItem) => void;
+  setUserStatusList: (list: UserStatusItem[]) => void;
+  updateUserStatus: (status: UserStatusItem) => void;
   getRecvFriendApplicationListByReq: () => Promise<void>;
   updateRecvFriendApplication: (application: FriendApplicationItem) => Promise<void>;
   getSendFriendApplicationListByReq: () => Promise<void>;
@@ -101,4 +103,10 @@ export interface ContactStore {
   updateUnHandleFriendApplicationCount: (num: number) => void;
   updateUnHandleGroupApplicationCount: (num: number) => void;
   clearContactStore: () => void;
+}
+
+export interface UserStatusItem {
+  userID: string;
+  status: number;
+  platformIDs: number[];
 }
