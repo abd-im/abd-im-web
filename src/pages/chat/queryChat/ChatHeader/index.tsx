@@ -106,9 +106,8 @@ const ChatHeader = () => {
     const userStatus = userStatusList.find(
       (item) => item.userID === currentConversation?.userID,
     );
-    if (!userStatus) return null;
-    const isOnline = userStatus.status === 1;
-    const platform = userStatus.platformIDs?.[0];
+    const isOnline = userStatus ? userStatus.status === 1 : false;
+    const platform = userStatus?.platformIDs?.[0];
     let platformStr = "";
     if (isOnline) {
       switch (platform) {
