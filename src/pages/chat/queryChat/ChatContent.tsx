@@ -1,4 +1,4 @@
-import { SessionType } from "@openim/wasm-client-sdk";
+import { MessageItem, SessionType } from "@openim/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -9,12 +9,9 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import emitter from "@/utils/events";
 
-import MessageItem from "./MessageItem";
+import MessageItemComponent from "./MessageItem";
 import NotificationMessage from "./NotificationMessage";
-import {
-  updateOneMessage,
-  useHistoryMessageList,
-} from "./useHistoryMessageList";
+import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
 
 const ChatContent = () => {
   const virtuoso = useRef<VirtuosoHandle>(null);
@@ -23,13 +20,16 @@ const ChatContent = () => {
   const [atBottom, setAtBottom] = useState(true);
 
   const scrollToBottom = useCallback((behavior: "auto" | "smooth" = "auto") => {
-    setTimeout(() => {
-      virtuoso.current?.scrollToIndex({
-        index: 99999,
-        align: "end",
-        behavior,
-      });
-    });
+    setTimeout(
+      () => {
+        virtuoso.current?.scrollToIndex({
+          index: 99999,
+          align: "end",
+          behavior,
+        });
+      },
+      behavior === "smooth" ? 50 : 0,
+    );
   }, []);
 
   const {
@@ -48,7 +48,7 @@ const ChatContent = () => {
   useEffect(() => {
     if (conversationID) {
       IMSDK.markConversationMessageAsRead(conversationID).then(() => {
-        latestLoadState.current.messageList.forEach((msg) => {
+        latestLoadState.current?.messageList.forEach((msg) => {
           if (!msg.isRead && msg.sendID !== selfUserID) {
             updateOneMessage({
               clientMsgID: msg.clientMsgID,
@@ -66,11 +66,23 @@ const ChatContent = () => {
     if (!conversationID || loadState.messageList.length === 0) return;
 
     const latestMsg = loadState.messageList[loadState.messageList.length - 1];
-    const isSelf = latestMsg.sendID === selfUserID;
+    const latestMsgId = latestMsg.clientMsgID;
+    const isNewMsg = latestMsgId !== lastMsgIdRef.current;
+
+    if (isNewMsg) {
+      const oldId = lastMsgIdRef.current;
+      lastMsgIdRef.current = latestMsgId;
+      if (oldId) {
+        const isSelf = latestMsg.sendID === selfUserID;
+        if (isSelf || atBottom) {
+          scrollToBottom("smooth");
+        }
+      }
+    }
 
     if (atBottom) {
       IMSDK.markConversationMessageAsRead(conversationID).then(() => {
-        latestLoadState.current.messageList.forEach((msg) => {
+        latestLoadState.current?.messageList.forEach((msg) => {
           if (!msg.isRead && msg.sendID !== selfUserID) {
             updateOneMessage({
               clientMsgID: msg.clientMsgID,
@@ -81,7 +93,13 @@ const ChatContent = () => {
         });
       });
     }
-  }, [loadState.messageList.length, conversationID, selfUserID, atBottom]);
+  }, [
+    loadState.messageList.length,
+    conversationID,
+    selfUserID,
+    atBottom,
+    scrollToBottom,
+  ]);
 
   useEffect(() => {
     const scrollHandler = () => scrollToBottom("smooth");
@@ -108,24 +126,8 @@ const ChatContent = () => {
       ) : (
         <Virtuoso
           id="chat-list"
-          className="flex-1 w-full"
-          followOutput={(isAtBottom: boolean) => {
-            const lastMsg = loadState.messageList[loadState.messageList.length - 1];
-            const isSelf = lastMsg?.sendID === selfUserID;
-            const lastMsgId = lastMsg?.clientMsgID;
-
-            const isNewMsg = lastMsgId && lastMsgId !== lastMsgIdRef.current;
-            if (isNewMsg) {
-              const oldId = lastMsgIdRef.current;
-              lastMsgIdRef.current = lastMsgId;
-              if (!oldId) return false;
-            }
-
-            if (isNewMsg && (isAtBottom || isSelf)) {
-              return "smooth";
-            }
-            return false;
-          }}
+          className="w-full flex-1"
+          followOutput={() => false}
           firstItemIndex={loadState.firstItemIndex}
           initialTopMostItemIndex={99999}
           startReached={loadMoreMessage}
@@ -154,7 +156,7 @@ const ChatContent = () => {
               );
             }
             return (
-              <MessageItem
+              <MessageItemComponent
                 key={message.clientMsgID}
                 conversationID={conversationID}
                 message={message}
