@@ -7,6 +7,7 @@ import { useMutation } from "react-query";
 import { errorHandle } from "@/api/errorHandle";
 import { BusinessUserInfo, updateBusinessUserInfo } from "@/api/login";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
+import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 
 const EditSelfInfo: ForwardRefRenderFunction<
@@ -19,9 +20,17 @@ const EditSelfInfo: ForwardRefRenderFunction<
 
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
 
-  const { isLoading, mutate } = useMutation(updateBusinessUserInfo, {
-    onError: errorHandle,
-  });
+  const { isLoading, mutate } = useMutation(
+    async (params: { nickname: string }) => {
+      await IMSDK.setSelfInfo({
+        nickname: params.nickname,
+      });
+      return params;
+    },
+    {
+      onError: errorHandle,
+    },
+  );
 
   const onFinish = (value: BusinessUserInfo & { birth: Dayjs }) => {
     const options = {

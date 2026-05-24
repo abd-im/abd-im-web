@@ -43,7 +43,14 @@ export const useUserStore = create<UserStore>()((set, get) => ({
       .then(({ data }) => {
         set(() => ({ selfInfo: data as unknown as BusinessUserInfo }));
         getBusinessUserInfo([data.userID]).then(({ data: { users } }) =>
-          set((state) => ({ selfInfo: { ...state.selfInfo, ...users[0] } })),
+          set((state) => ({
+            selfInfo: {
+              ...state.selfInfo,
+              ...users[0],
+              nickname: data.nickname,
+              faceURL: data.faceURL,
+            },
+          })),
         );
       })
       .catch((error) => {

@@ -8,6 +8,7 @@ import { UNSAFE_NavigationContext, useResolvedPath } from "react-router-dom";
 
 import { modal } from "@/AntdGlobalComp";
 import { updateBusinessUserInfo } from "@/api/login";
+import { IMSDK } from "../MainContentWrap";
 import contact_icon from "@/assets/images/nav/nav_bar_contact.png";
 import contact_icon_active from "@/assets/images/nav/nav_bar_contact_active.png";
 import message_icon from "@/assets/images/nav/nav_bar_message.png";
@@ -215,7 +216,7 @@ const LeftNavBar = memo(() => {
       const newInfo = {
         faceURL: url,
       };
-      await updateBusinessUserInfo(newInfo);
+      await IMSDK.setSelfInfo(newInfo);
       updateSelfInfo(newInfo);
     } catch (error) {
       feedbackToast({ error: t("toast.updateAvatarFailed") });
