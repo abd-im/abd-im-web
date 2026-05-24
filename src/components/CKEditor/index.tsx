@@ -1,8 +1,8 @@
 import "./index.scss";
 import "ckeditor5/ckeditor5.css";
 
-import { ClassicEditor, Essentials, Paragraph } from "ckeditor5";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
+import { ClassicEditor, Essentials, Paragraph } from "ckeditor5";
 import {
   forwardRef,
   ForwardRefRenderFunction,
@@ -38,6 +38,8 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
   ref,
 ) => {
   const ckEditor = useRef<ClassicEditor | null>(null);
+  const onEnterRef = useRef(onEnter);
+  onEnterRef.current = onEnter;
 
   const focus = (moveToEnd = false) => {
     const editor = ckEditor.current;
@@ -74,7 +76,7 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
         if (data.keyCode === 13 && !data.shiftKey) {
           data.preventDefault();
           evt.stop();
-          onEnter?.();
+          onEnterRef.current?.();
           return;
         }
         if (data.keyCode === keyCodes.backspace || data.keyCode === keyCodes.delete) {
