@@ -1,8 +1,8 @@
 import { MessageStatus } from "@openim/wasm-client-sdk";
 import { Image, Spin } from "antd";
+import clsx from "clsx";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import clsx from "clsx";
 
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
@@ -29,7 +29,9 @@ const MediaMessageRender: FC<IMessageItemProps> = ({ message }) => {
           rootClassName="message-image cursor-pointer"
           className="max-w-[200px] rounded-md"
           src={sourceUrl}
-          preview
+          preview={{
+            src: message.pictureElem!.sourcePicture.url || sourceUrl,
+          }}
           placeholder={
             <div style={minStyle} className="flex items-center justify-center">
               <Spin />
