@@ -71,7 +71,7 @@ export const MyFriends = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-white">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-page-canvas text-foreground">
       <div className="m-5.5 text-base font-extrabold">{t("placeholder.myFriend")}</div>
       {!sectionData ? (
         <Spin />
@@ -90,10 +90,10 @@ export const MyFriends = () => {
             groupCounts={sectionData.groupCounts}
             groupContent={(index) => (
               <div>
-                <div className="bg-white px-3.5 pb-1 text-sm text-[#8E9AB0FF]">
+                <div className="bg-page-canvas text-foreground px-3.5 pb-1 text-sm text-muted-foreground">
                   {sectionData.indexList[index]}
                 </div>
-                <div className="mx-3.5 mb-3 h-px w-full bg-[#E8EAEFFF] bg-white" />
+                <div className="mx-3.5 mb-3 h-px w-full bg-surface-border bg-page-canvas text-foreground" />
               </div>
             )}
             itemContent={(index) => {

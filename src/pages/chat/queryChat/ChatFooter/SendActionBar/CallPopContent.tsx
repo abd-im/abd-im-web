@@ -57,7 +57,7 @@ const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
           onClick={() => prepareCall(item.idx)}
         >
           <img width={20} src={item.icon} alt="call_video" />
-          <div className="ml-3 text-[#515E70]">{item.title}</div>
+          <div className="ml-3 text-foreground">{item.title}</div>
         </div>
       ))}
     </div>

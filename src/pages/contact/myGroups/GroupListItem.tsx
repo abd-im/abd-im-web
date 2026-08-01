@@ -11,13 +11,13 @@ const GroupListItem = ({
 }) => {
   return (
     <div
-      className="flex flex-row rounded-md px-3.5 py-3 transition-colors hover:bg-[var(--primary-active)]"
+      className="flex flex-row rounded-md px-3.5 py-3 transition-colors hover:bg-surface-hover text-foreground cursor-pointer"
       onClick={() => showGroupCard(source)}
     >
       <OIMAvatar src={source?.faceURL} isgroup />
       <div className="ml-3">
         <p className="text-base">{source.groupName}</p>
-        <p className="text-xs text-[#8E9AB0FF]">{source.memberCount}</p>
+        <p className="text-xs text-muted-foreground">{source.memberCount}</p>
       </div>
     </div>
   );

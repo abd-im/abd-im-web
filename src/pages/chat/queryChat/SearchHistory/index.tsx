@@ -110,7 +110,7 @@ const SearchHistory: ForwardRefRenderFunction<
             )}
             {type === "file" && (
               <div
-                className="cursor-pointer text-sm font-medium text-blue-500 hover:underline"
+                className="cursor-pointer text-sm font-medium text-foreground hover:underline"
                 onClick={() => window.open(msg.fileElem?.sourceUrl)}
               >
                 {msg.fileElem?.fileName} ({bytesToSize(msg.fileElem?.fileSize || 0)})

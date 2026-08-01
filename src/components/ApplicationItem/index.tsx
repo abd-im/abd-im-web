@@ -96,7 +96,7 @@ const ApplicationItem = ({
             <p className="pb-2.5 pt-[5px] text-xs ">
               {getApplicationDesc()}
               {(isGroup || (!isGroup && !isRecv)) && (
-                <span className="ml-1 text-xs text-[#0289FAFF]">
+                <span className="ml-1 text-xs text-brand">
                   {source.groupName || source.toNickname}
                 </span>
               )}
@@ -115,7 +115,7 @@ const ApplicationItem = ({
                 block={true}
                 size="small"
                 onClick={() => loadingWrap(false)}
-                className="!h-full !rounded-md border-2 border-[#0089FF] text-[#0089FF]"
+                className="!h-full !rounded-md border-2 border-brand text-brand"
               >
                 {t("application.refuse")}
               </Button>
@@ -125,7 +125,7 @@ const ApplicationItem = ({
                 block={true}
                 size="small"
                 type="primary"
-                className="!h-full !rounded-md bg-[#0289fa]"
+                className="!h-full !rounded-md bg-brand"
                 onClick={() => loadingWrap(true)}
               >
                 {t("application.agree")}

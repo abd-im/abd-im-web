@@ -61,7 +61,7 @@ const GroupSettings = ({
   const hasPermissions = isAdmin || isOwner;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-[#F4F5F7] px-4 py-3">
+    <div className="flex h-full flex-col overflow-y-auto bg-page-canvas px-4 py-3">
       {/* Profile Block */}
       <div className="mb-3 flex items-center rounded-xl bg-white p-4">
         <Upload

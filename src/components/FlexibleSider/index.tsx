@@ -14,7 +14,7 @@ const FlexibleSider = ({
 }) => (
   <aside
     className={clsx(
-      "relative bg-white dark:text-white",
+      "relative bg-app-shell border-r border-surface-border text-foreground",
       { "max-[600px]:hidden": needHidden },
       { "max-[600px]:!max-w-none max-[600px]:!basis-full": !needHidden },
     )}

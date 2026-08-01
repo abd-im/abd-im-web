@@ -1,32 +1,15 @@
-import { Button, Layout } from "antd";
-import { useTranslation } from "react-i18next";
-
-import empty_chat_bg from "@/assets/images/empty_chat_bg.png";
-import { emit } from "@/utils/events";
+import { MessageOutlined } from "@ant-design/icons";
+import { Layout } from "antd";
 
 export const EmptyChat = () => {
-  const { t } = useTranslation();
-  const createNow = () => {
-    emit("OPEN_CHOOSE_MODAL", {
-      type: "CRATE_GROUP",
-    });
-  };
-
   return (
-    <Layout className="no-mobile flex items-center justify-center bg-white">
-      <div>
-        <div className="mb-12 flex flex-col items-center">
-          <div className="mb-3 text-xl font-medium">{t("placeholder.createGroup")}</div>
-          <div className="text-[var(--sub-text)]">
-            {t("placeholder.createGroupToast")}
-          </div>
+    <Layout className="no-mobile flex h-full items-center justify-center bg-page-canvas text-foreground">
+      <div className="flex flex-col items-center justify-center text-center p-8 select-none">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface border border-surface-border shadow-sm text-muted-foreground">
+          <MessageOutlined className="text-2xl" />
         </div>
-        <img src={empty_chat_bg} alt="" width={320} />
-
-        <div className="mt-28 flex justify-center">
-          <Button className="px-8" type="primary" onClick={createNow}>
-            {t("placeholder.createNow")}
-          </Button>
+        <div className="text-sm font-medium text-muted-foreground">
+          选择左侧对话开启沟通
         </div>
       </div>
     </Layout>

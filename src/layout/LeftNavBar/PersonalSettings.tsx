@@ -109,17 +109,17 @@ export const PersonalSettingsContent = ({
   };
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg bg-[#f4f5f7] pb-6">
+    <div className="flex flex-col overflow-hidden rounded-lg bg-page-canvas text-foreground pb-6">
       <BlackList ref={backListRef} />
       <ChangePassword ref={changePasswordRef} />
 
       {/* Header */}
       <div className="app-drag flex items-center justify-between p-6">
-        <span className="text-xl font-bold text-[#0c1c33]">
+        <span className="text-xl font-bold text-foreground">
           {t("placeholder.accountSetting")}
         </span>
         <CloseOutlined
-          className="app-no-drag cursor-pointer text-xl text-[#8e9aaf] hover:text-red-500"
+          className="app-no-drag cursor-pointer text-xl text-muted-foreground hover:text-red-500 transition-colors"
           rev={undefined}
           onClick={closeOverlay}
         />
@@ -127,13 +127,13 @@ export const PersonalSettingsContent = ({
 
       <div className="flex-1 overflow-y-auto px-6">
         {/* Card 1: Core Settings */}
-        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+        <div className="mb-4 text-sm font-bold text-muted-foreground">
           {t("placeholder.personalSetting")}
         </div>
-        <div className="mb-6 rounded-lg bg-white p-5 shadow-sm">
+        <div className="mb-6 rounded-lg bg-surface border border-surface-border p-5 shadow-sm">
           {/* Language Selection */}
           <div className="mb-6">
-            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+            <div className="mb-4 text-sm font-semibold text-foreground">
               {t("placeholder.chooseLanguage")}
             </div>
             <div className="flex gap-12 pl-1">
@@ -154,7 +154,7 @@ export const PersonalSettingsContent = ({
 
           {/* Notification Settings */}
           <div className="mb-6">
-            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+            <div className="mb-4 text-sm font-semibold text-foreground">
               {t("placeholder.messageToast")}
             </div>
             <div className="flex gap-12 pl-1">
@@ -179,7 +179,7 @@ export const PersonalSettingsContent = ({
 
           {/* Add Friend Settings */}
           <div>
-            <div className="mb-4 text-sm font-semibold text-[#0c1c33]">
+            <div className="mb-4 text-sm font-semibold text-foreground">
               {t("placeholder.addFriendsSetting")}
             </div>
             <div className="pl-1">
@@ -198,40 +198,40 @@ export const PersonalSettingsContent = ({
         </div>
 
         {/* Card 2: List Actions */}
-        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+        <div className="mb-4 text-sm font-bold text-muted-foreground">
           {t("placeholder.securitySetting")}
         </div>
-        <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="mb-6 overflow-hidden rounded-lg bg-surface border border-surface-border shadow-sm">
           <div
-            className="flex cursor-pointer items-center justify-between border-b border-[#f4f5f7] px-5 py-5 transition-colors hover:bg-gray-50 active:bg-gray-100"
+            className="flex cursor-pointer items-center justify-between border-b border-surface-border px-5 py-5 transition-colors hover:bg-surface-hover"
             onClick={() => backListRef.current?.openOverlay()}
           >
-            <span className="text-sm font-bold text-[#0c1c33]">
+            <span className="text-sm font-bold text-foreground">
               {t("placeholder.blackList")}
             </span>
-            <RightOutlined className="text-xs text-[#8e9aaf]" rev={undefined} />
+            <RightOutlined className="text-xs text-muted-foreground" rev={undefined} />
           </div>
 
           <div
-            className="flex cursor-pointer items-center justify-between px-5 py-5 transition-colors hover:bg-gray-50 active:bg-gray-100"
+            className="flex cursor-pointer items-center justify-between px-5 py-5 transition-colors hover:bg-surface-hover"
             onClick={() => {
               changePasswordRef.current?.openOverlay();
             }}
           >
-            <span className="text-sm font-bold text-[#0c1c33]">
+            <span className="text-sm font-bold text-foreground">
               {t("placeholder.changePassword")}
             </span>
-            <RightOutlined className="text-xs text-[#8e9aaf]" rev={undefined} />
+            <RightOutlined className="text-xs text-muted-foreground" rev={undefined} />
           </div>
         </div>
 
         {/* Card 3: Danger Action */}
-        <div className="mb-4 text-sm font-bold text-[#8e9aaf]">
+        <div className="mb-4 text-sm font-bold text-muted-foreground">
           {t("placeholder.otherSetting")}
         </div>
-        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="overflow-hidden rounded-lg bg-surface border border-surface-border shadow-sm">
           <div
-            className="flex cursor-pointer items-center justify-center px-5 py-5 transition-colors hover:bg-red-50 active:bg-red-100"
+            className="flex cursor-pointer items-center justify-center px-5 py-5 transition-colors hover:bg-red-50"
             onClick={tryClearAllHistory}
           >
             <span className="text-sm font-bold text-[#ff381f]">

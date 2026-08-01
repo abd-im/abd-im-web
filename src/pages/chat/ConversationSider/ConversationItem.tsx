@@ -56,8 +56,10 @@ const ConversationItem = ({ isActive, conversation }: IConversationProps) => {
     <div
       className={clsx(
         styles["conversation-item"],
-        "border border-transparent",
-        isActive && `bg-[var(--primary-active)]`,
+        "border border-transparent transition-colors rounded-lg px-2 py-2 my-0.5 cursor-pointer",
+        isActive
+          ? "bg-surface-selected shadow-sm text-foreground"
+          : "hover:bg-surface-hover text-foreground",
       )}
       onClick={toSpecifiedConversation}
     >
@@ -71,14 +73,14 @@ const ConversationItem = ({ isActive, conversation }: IConversationProps) => {
 
       <div className="ml-3 flex h-11 flex-1 flex-col justify-between overflow-hidden">
         <div className="flex items-center justify-between">
-          <div className="flex-1 truncate font-medium">{conversation.showName}</div>
-          <div className="ml-2 text-xs text-[var(--sub-text)]">{latestMessageTime}</div>
+          <div className="flex-1 truncate font-medium text-body">{conversation.showName}</div>
+          <div className="ml-2 text-[11px] text-muted-foreground">{latestMessageTime}</div>
         </div>
 
         <div className="flex items-center">
           <div className="flex min-h-[16px] flex-1 items-center overflow-hidden text-xs">
             <div
-              className="truncate text-[rgba(81,94,112,0.5)]"
+              className="truncate text-muted-foreground text-xs"
               dangerouslySetInnerHTML={{
                 __html: latestMessageContent,
               }}

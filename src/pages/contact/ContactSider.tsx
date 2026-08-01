@@ -1,35 +1,37 @@
+import {
+  BellOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { Badge } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import group_notifications from "@/assets/images/contact/group_notifications.png";
-import my_friends from "@/assets/images/contact/my_friends.png";
-import my_groups from "@/assets/images/contact/my_groups.png";
-import new_friends from "@/assets/images/contact/new_friends.png";
 import FlexibleSider from "@/components/FlexibleSider";
 import { useContactStore } from "@/store";
 
 const Links = [
   {
     label: t("placeholder.newFriends"),
-    icon: new_friends,
+    icon: <UserAddOutlined className="text-base text-foreground" />,
     path: "/contact/newFriends",
   },
   {
     label: t("placeholder.groupNotification"),
-    icon: group_notifications,
+    icon: <BellOutlined className="text-base text-foreground" />,
     path: "/contact/groupNotifications",
   },
   {
     label: t("placeholder.myFriend"),
-    icon: my_friends,
+    icon: <UserOutlined className="text-base text-foreground" />,
     path: "/contact",
   },
   {
     label: t("placeholder.myGroup"),
-    icon: my_groups,
+    icon: <TeamOutlined className="text-base text-foreground" />,
     path: "/contact/myGroups",
   },
 ];
@@ -75,8 +77,8 @@ const ContactSider = () => {
 
   return (
     <FlexibleSider needHidden={true}>
-      <div className="h-full bg-white">
-        <div className="pb-3 pl-5.5 pt-5.5 text-base font-extrabold">
+      <div className="h-full bg-app-shell text-foreground">
+        <div className="pb-3 pl-5.5 pt-5.5 text-base font-extrabold text-foreground">
           {t("placeholder.contact")}
         </div>
         <ul>
@@ -85,9 +87,9 @@ const ContactSider = () => {
               <li
                 key={item.path}
                 className={clsx(
-                  "mx-2 flex cursor-pointer items-center rounded-md p-3 text-sm hover:bg-[var(--primary-active)]",
+                  "mx-2 flex cursor-pointer items-center rounded-md p-3 text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-surface-hover",
                   {
-                    "bg-[#f3f8fe]": index === selectIndex,
+                    "!bg-surface-selected !text-foreground font-medium shadow-sm": index === selectIndex,
                   },
                 )}
                 onClick={() => {
@@ -96,13 +98,11 @@ const ContactSider = () => {
                 }}
               >
                 <Badge size="small" count={getBadge(index)}>
-                  <img
-                    alt={item.label}
-                    src={item.icon}
-                    className="mr-3 h-10.5 w-10.5 rounded-md"
-                  />
+                  <div className="mr-3 flex h-7 w-7 items-center justify-center rounded-md bg-surface border border-surface-border shadow-sm text-foreground">
+                    {item.icon}
+                  </div>
                 </Badge>
-                <div className="text-sm">{item.label}</div>
+                <div className="text-sm font-medium">{item.label}</div>
               </li>
             );
           })}

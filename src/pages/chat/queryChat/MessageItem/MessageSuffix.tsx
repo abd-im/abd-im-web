@@ -40,7 +40,7 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
       <span
         className={clsx(
           "select-none text-xs font-normal leading-none",
-          isRead ? "text-[#999]" : "text-[#1d6bed]",
+          isRead ? "text-[#999]" : "text-brand",
         )}
       >
         {isRead ? t("placeholder.isRead") : t("placeholder.unread")}

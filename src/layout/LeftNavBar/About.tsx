@@ -135,13 +135,13 @@ export const AboutContent = ({ closeOverlay }: { closeOverlay?: () => void }) =>
         <div className="app-drag flex items-center justify-between bg-[var(--gap-text)] p-5">
           <span className="text-base font-medium">{t("placeholder.about")}</span>
           <CloseOutlined
-            className="app-no-drag cursor-pointer text-[#8e9aaf]"
+            className="app-no-drag cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
             rev={undefined}
             onClick={closeOverlay}
           />
         </div>
         <div className="flex flex-col items-center justify-center">
-          <MessageFilled className="text-5xl text-[#3072ff] mb-2 mt-7" rev={undefined} />
+          <MessageFilled className="text-5xl text-brand mb-2 mt-7" rev={undefined} />
           <div
             className="mb-5 flex cursor-pointer flex-col items-center"
             onClick={handleCopy}

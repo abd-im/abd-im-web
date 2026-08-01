@@ -11,7 +11,7 @@ const FriendListItem = ({
 }) => {
   return (
     <div
-      className="flex items-center rounded-md px-3.5 pb-3 pt-2.5 transition-colors hover:bg-[var(--primary-active)]"
+      className="flex items-center rounded-md px-3.5 pb-3 pt-2.5 transition-colors hover:bg-surface-hover text-foreground cursor-pointer"
       onClick={() => showUserCard(friend.userID)}
     >
       <OIMAvatar src={friend.faceURL} text={friend.remark || friend.nickname} />

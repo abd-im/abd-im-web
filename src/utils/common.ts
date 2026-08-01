@@ -142,19 +142,21 @@ export const getFileType = (name: string) => {
 };
 
 export const generateAvatar = (str: string, size = 40) => {
-  str = !str ? t("placeholder.unknown") : str.split("")[0];
-  let colors = ["#0072E3"];
+  const firstLetter = !str ? t("placeholder.unknown") : str.trim().charAt(0).toUpperCase();
   let cvs = document.createElement("canvas");
   cvs.setAttribute("width", size as unknown as string);
   cvs.setAttribute("height", size as unknown as string);
   let ctx = cvs.getContext("2d");
-  ctx!.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+  ctx!.fillStyle = "#ffffff";
   ctx!.fillRect(0, 0, size, size);
-  ctx!.fillStyle = "rgb(255,255,255)";
-  ctx!.font = size * 0.4 + "px Arial";
+  ctx!.strokeStyle = "#e4e4e7";
+  ctx!.lineWidth = 2;
+  ctx!.strokeRect(0, 0, size, size);
+  ctx!.fillStyle = "#09090b";
+  ctx!.font = `bold italic ${size * 0.5}px Georgia, serif`;
   ctx!.textBaseline = "middle";
   ctx!.textAlign = "center";
-  ctx!.fillText(str, size / 2, size / 2);
+  ctx!.fillText(firstLetter, size / 2, size / 2);
   return cvs.toDataURL("image/png", 1);
 };
 

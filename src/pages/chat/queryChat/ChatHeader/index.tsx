@@ -144,7 +144,7 @@ const ChatHeader = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <Layout.Header className="relative border-b border-b-[var(--gap-text)] !bg-white !px-3">
+    <Layout.Header className="relative border-b border-surface-border !bg-surface text-foreground !px-3 shadow-sm">
       <div className="flex h-full items-center leading-none">
         <div className="flex flex-1 items-center overflow-hidden">
           <OIMAvatar

@@ -12,6 +12,8 @@ import { useConversationStore, useUserStore } from "@/store";
 import ConversationItemComp from "./ConversationItem";
 import styles from "./index.module.scss";
 
+import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
+
 const ConnectBar = () => {
   const userStore = useUserStore();
   const showLoading =
@@ -34,19 +36,15 @@ const ConnectBar = () => {
   return (
     <>
       {showLoading && (
-        <div className="flex h-6 items-center justify-center bg-[#0089FF] bg-opacity-10">
-          <img
-            src={sync}
-            alt="sync"
-            className={clsx("mr-1 h-3 w-3 ", styles.loading)}
-          />
-          <span className=" text-xs text-[#0089FF]">{loadingTip}</span>
+        <div className="flex h-7 items-center justify-center bg-surface border-b border-surface-border text-foreground px-2">
+          <SyncOutlined spin className="mr-1.5 text-xs text-foreground" />
+          <span className="text-xs font-medium text-foreground">{loadingTip}</span>
         </div>
       )}
       {showFailed && (
-        <div className="flex h-6 items-center justify-center bg-[#FF381F] bg-opacity-15">
-          <img src={sync_error} alt="sync" className="mr-1 h-3 w-3" />
-          <span className=" text-xs text-[#FF381F]">{errorTip}</span>
+        <div className="flex h-7 items-center justify-center bg-red-500/10 border-b border-red-500/20 text-red-600 px-2">
+          <WarningOutlined className="mr-1.5 text-xs text-red-600" />
+          <span className="text-xs font-medium text-red-600">{errorTip}</span>
         </div>
       )}
     </>

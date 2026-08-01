@@ -1,22 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#60a5fa" />
-      <stop offset="40%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </linearGradient>
     <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.15" />
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.08" />
     </filter>
   </defs>
-  <!-- Squircle rounded background with premium blue gradient -->
-  <rect x="32" y="32" width="448" height="448" rx="108" fill="url(#brandGrad)" />
-  <!-- Elegant white chat bubble icon with smooth curves and drop shadow -->
-  <g filter="url(#subtleShadow)">
-    <path d="M368 144H144c-22.1 0-40 17.9-40 40v128c0 22.1 17.9 40 40 40h16v48c0 8.9 10.8 13.4 17.1 7.1L241 352h127c22.1 0 40-17.9 40-40V184c0-22.1-17.9-40-40-40z" fill="#ffffff" />
-    <!-- Three sleek message dots inside the bubble for chat representation -->
-    <circle cx="200" cy="248" r="16" fill="#3b82f6" opacity="0.85" />
-    <circle cx="256" cy="248" r="16" fill="#3b82f6" opacity="0.85" />
-    <circle cx="312" cy="248" r="16" fill="#3b82f6" opacity="0.85" />
-  </g>
+  <!-- Pure White Squircle Badge with Border -->
+  <rect x="24" y="24" width="464" height="464" rx="120" fill="#ffffff" stroke="#e4e4e7" stroke-width="12" filter="url(#subtleShadow)" />
+  
+  <!-- Sleek Artistic Serif 'A' Monogram (Center Stage & Ultra Legible at 16x16) -->
+  <text x="256" y="348" font-family="Georgia, 'Times New Roman', Didot, serif" font-size="330" font-weight="bold" font-style="italic" fill="#09090b" text-anchor="middle">A</text>
+  
+  <!-- Contemporary Tech Accent Dot -->
+  <circle cx="390" cy="135" r="22" fill="#09090b" />
 </svg>

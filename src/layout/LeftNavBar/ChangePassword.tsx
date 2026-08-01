@@ -83,12 +83,12 @@ export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => v
   };
 
   return (
-    <div className="flex flex-col bg-[#f4f5f7] rounded-lg overflow-hidden pb-6">
+    <div className="flex flex-col bg-page-canvas rounded-lg overflow-hidden pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-5 border-b border-[#f4f5f7]">
-        <span className="text-base font-bold text-[#0c1c33]">{t("placeholder.changePassword")}</span>
+      <div className="flex items-center justify-between bg-white p-5 border-b border-surface-border">
+        <span className="text-base font-bold text-foreground">{t("placeholder.changePassword")}</span>
         <CloseOutlined
-          className="app-no-drag cursor-pointer text-[#8e9aaf] hover:text-red-500 text-lg"
+          className="app-no-drag cursor-pointer text-muted-foreground hover:text-red-500 text-lg"
           rev={undefined}
           onClick={closeOverlay}
         />
@@ -105,34 +105,34 @@ export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => v
           <div className="mb-4 rounded-lg bg-white p-5 shadow-sm">
             <Form.Item
               name="oldPassword"
-              label={<span className="text-xs font-semibold text-[#8e9aaf]">{t("placeholder.oldPassword")}</span>}
+              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.oldPassword")}</span>}
               rules={[{ required: true, message: t("toast.inputOldPassword") }]}
             >
               <Input.Password
                 placeholder={t("toast.inputOldPassword")}
-                className="h-10 rounded-md border-[#e8ecf0] hover:border-[#3072ff] focus:border-[#3072ff]"
+                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
               />
             </Form.Item>
 
             <Form.Item
               name="newPassword"
-              label={<span className="text-xs font-semibold text-[#8e9aaf]">{t("placeholder.newPassword")}</span>}
+              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.newPassword")}</span>}
               rules={[{ required: true, message: t("toast.inputPassword") }]}
             >
               <Input.Password
                 placeholder={t("toast.passwordRules")}
-                className="h-10 rounded-md border-[#e8ecf0] hover:border-[#3072ff] focus:border-[#3072ff]"
+                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
               />
             </Form.Item>
 
             <Form.Item
               name="confirmPassword"
-              label={<span className="text-xs font-semibold text-[#8e9aaf]">{t("placeholder.confirmPassword")}</span>}
+              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.confirmPassword")}</span>}
               rules={[{ required: true, message: t("toast.reconfirmPassword") }]}
             >
               <Input.Password
                 placeholder={t("toast.reconfirmPassword")}
-                className="h-10 rounded-md border-[#e8ecf0] hover:border-[#3072ff] focus:border-[#3072ff]"
+                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
               />
             </Form.Item>
           </div>
@@ -142,7 +142,7 @@ export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => v
               type="primary"
               htmlType="submit"
               loading={loading}
-              className="w-full h-10 bg-[#3072ff] hover:bg-[#1a5eff] border-none rounded-md text-sm font-bold shadow-md shadow-blue-100"
+              className="w-full h-10 bg-brand hover:bg-brand/90 border-none rounded-md text-sm font-bold shadow-md shadow-sm"
             >
               {t("confirm")}
             </Button>

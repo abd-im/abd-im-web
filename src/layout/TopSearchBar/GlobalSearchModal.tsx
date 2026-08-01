@@ -165,7 +165,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   ];
 
   const renderSectionHeader = (title: string) => (
-    <div className="px-5 py-2.5 text-xs font-bold text-[#8e9aaf] bg-gray-50 border-y border-gray-100">
+    <div className="px-5 py-2.5 text-xs font-bold text-muted-foreground bg-surface border-y border-gray-100">
       {title}
     </div>
   );
@@ -173,13 +173,13 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderFriendItem = (friend: any) => (
     <div
       key={friend.userID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100"
+      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
       onClick={() => handleItemClick("contact", friend)}
     >
       <OIMAvatar src={friend.faceURL} text={friend.nickname} size={38} />
       <div className="ml-3">
-        <div className="text-sm font-bold text-[#0c1c33]">{friend.nickname}</div>
-        {friend.remark && <div className="text-xs text-[#8e9aaf]">备注: {friend.remark}</div>}
+        <div className="text-sm font-bold text-foreground">{friend.nickname}</div>
+        {friend.remark && <div className="text-xs text-muted-foreground">备注: {friend.remark}</div>}
       </div>
     </div>
   );
@@ -187,13 +187,13 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderGroupItem = (group: any) => (
     <div
       key={group.groupID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100"
+      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
       onClick={() => handleItemClick("group", group)}
     >
       <OIMAvatar src={group.faceURL} text={group.groupName} isgroup size={38} />
       <div className="ml-3">
-        <div className="text-sm font-bold text-[#0c1c33]">{group.groupName}</div>
-        <div className="text-xs text-[#8e9aaf]">ID: {group.groupID}</div>
+        <div className="text-sm font-bold text-foreground">{group.groupName}</div>
+        <div className="text-xs text-muted-foreground">ID: {group.groupID}</div>
       </div>
     </div>
   );
@@ -201,7 +201,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderMessageItem = (msgItem: any) => (
     <div
       key={msgItem.conversationID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100"
+      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
       onClick={() => handleItemClick("message", msgItem)}
     >
       <OIMAvatar
@@ -211,8 +211,8 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
         size={38}
       />
       <div className="ml-3 flex-1 overflow-hidden">
-        <div className="text-sm font-bold text-[#0c1c33]">{msgItem.showName}</div>
-        <div className="text-xs text-[#8e9aaf] truncate mt-0.5">
+        <div className="text-sm font-bold text-foreground">{msgItem.showName}</div>
+        <div className="text-xs text-muted-foreground truncate mt-0.5">
           {msgItem.messageCount} 条相关聊天记录
         </div>
       </div>
@@ -227,15 +227,15 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
     return (
       <div
         key={fileItem.conversationID}
-        className="flex items-center px-6 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100"
+        className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
         onClick={() => handleItemClick("message", fileItem)}
       >
-        <div className="flex h-[38px] w-[38px] items-center justify-center rounded bg-blue-50 text-blue-500 text-lg">
+        <div className="flex h-[38px] w-[38px] items-center justify-center rounded-lg bg-surface border border-surface-border shadow-sm text-foreground text-lg">
           <FileTextOutlined rev={undefined} />
         </div>
         <div className="ml-3 flex-1 overflow-hidden">
-          <div className="text-sm font-bold text-[#0c1c33] truncate">{fileName}</div>
-          <div className="text-xs text-[#8e9aaf] mt-0.5">
+          <div className="text-sm font-bold text-foreground truncate">{fileName}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
             {fileSize ? `${fileSize} • ` : ""}来自 {fileItem.showName}
           </div>
         </div>
@@ -344,7 +344,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-100 px-6 pt-3 gap-8 text-xs text-[#8e9aaf] bg-white">
+      <div className="flex border-b border-gray-100 px-6 pt-3 gap-8 text-xs text-muted-foreground bg-white">
         {tabList.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -352,7 +352,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`cursor-pointer pb-2.5 font-bold transition-all border-b-2 ${
-                active ? "border-[#3072ff] text-[#3072ff]" : "border-transparent hover:text-[#0c1c33]"
+                active ? "border-brand text-brand" : "border-transparent hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -362,9 +362,9 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 bg-[#f8f9fa] overflow-y-auto">
+      <div className="flex-1 bg-page-canvas overflow-y-auto">
         {!keyword.trim() ? (
-          <div className="flex flex-col items-center justify-center h-full text-[#8e9aaf] p-10">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-10">
             <SearchOutlined rev={undefined} className="text-4xl mb-3 text-gray-200" />
             <div className="text-sm font-medium">输入关键词搜索联系人、我的群组、聊天记录和文档</div>
           </div>

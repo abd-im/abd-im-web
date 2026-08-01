@@ -25,7 +25,14 @@ function App() {
       autoInsertSpaceInButton={false}
       locale={locale === "zh-CN" ? zhCN : enUS}
       theme={{
-        token: { colorPrimary: "#0089FF" },
+        token: {
+          colorPrimary: "#27272a",
+          colorPrimaryHover: "#3f3f46",
+          colorPrimaryActive: "#18181b",
+          colorLink: "#27272a",
+          colorLinkHover: "#3f3f46",
+          colorLinkActive: "#18181b",
+        },
       }}
     >
       <QueryClientProvider client={queryClient}>

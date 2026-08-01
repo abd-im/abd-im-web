@@ -79,7 +79,7 @@ export const NewFriends = () => {
   );
 
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className="flex h-full w-full flex-col bg-page-canvas text-foreground">
       <p className="m-5.5 text-base font-extrabold">{t("placeholder.newFriends")}</p>
       <div className="flex-1 pb-3">
         <Virtuoso

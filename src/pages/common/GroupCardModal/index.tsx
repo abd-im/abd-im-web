@@ -153,7 +153,7 @@ const GroupCardModal: ForwardRefRenderFunction<
             </div>
           </div>
         ) : (
-          <div className="bg-[#F2F8FF] p-5.5">
+          <div className="bg-surface border border-surface-border rounded-lg p-5.5">
             <div className="mb-3">{`${t("placeholder.groupMember")}：${
               groupData?.memberCount
             }`}</div>

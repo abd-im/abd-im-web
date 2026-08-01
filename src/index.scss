@@ -2,6 +2,8 @@
 @use "./styles/antd.scss";
 @use "./styles/svg.scss";
 
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

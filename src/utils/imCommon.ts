@@ -4,7 +4,6 @@ import calendar from "dayjs/plugin/calendar";
 import relativeTime from "dayjs/plugin/relativeTime";
 import updateLocale from "dayjs/plugin/updateLocale";
 import { t } from "i18next";
-import default_group from "@/assets/images/contact/my_groups.png";
 import { v4 as uuidv4 } from "uuid";
 
 import { GroupSessionTypes, SystemMessageTypes } from "@/constants/im";
@@ -194,11 +193,11 @@ export const notificationMessageFormat = (msg: MessageItem) => {
           const isSelf = revokeDetails.revokerID === selfID;
           const revokerName = isSelf ? t("you") : (revokeDetails.revokerNickname || msg.senderNickname);
           return t("messageDescription.revokeMessage", {
-            revoker: `<span class="text-[#1d6bed] mx-1">${revokerName}</span>`,
+            revoker: `<span class="text-brand font-medium mx-1">${revokerName}</span>`,
           });
         } catch (e) {
           return t("messageDescription.revokeMessage", {
-            revoker: `<span class="text-[#1d6bed] mx-1">${msg.senderNickname}</span>`,
+            revoker: `<span class="text-brand font-medium mx-1">${msg.senderNickname}</span>`,
           });
         }
       default:

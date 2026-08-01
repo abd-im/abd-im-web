@@ -80,7 +80,7 @@ export const GroupNotifications = () => {
   );
 
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className="flex h-full w-full flex-col bg-page-canvas text-foreground">
       <p className="m-5.5 text-base font-extrabold">
         {t("placeholder.groupNotification")}
       </p>

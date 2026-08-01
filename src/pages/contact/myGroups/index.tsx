@@ -39,7 +39,7 @@ export const MyGroups = () => {
   }, []);
 
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className="flex h-full w-full flex-col bg-page-canvas text-foreground">
       <div className="m-5.5 flex flex-row justify-between">
         <p className="text-base font-extrabold">{t("placeholder.myGroup")}</p>
         <Select

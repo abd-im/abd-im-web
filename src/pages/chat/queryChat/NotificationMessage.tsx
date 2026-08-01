@@ -30,11 +30,11 @@ const NotificationMessage: FC<{
           ? t("you")
           : detail.revokerNickname || msg.senderNickname;
         return t("messageDescription.revokeMessage", {
-          revoker: `<span class="text-[#1d6bed] mx-1">${revokerName}</span>`,
+          revoker: `<span class="text-brand font-medium mx-1">${revokerName}</span>`,
         });
       } catch (e) {
         return t("messageDescription.revokeMessage", {
-          revoker: `<span class="text-[#1d6bed] mx-1">${msg.senderNickname}</span>`,
+          revoker: `<span class="text-brand font-medium mx-1">${msg.senderNickname}</span>`,
         });
       }
     }

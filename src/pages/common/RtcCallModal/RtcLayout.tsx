@@ -86,8 +86,8 @@ export const RtcLayout = ({
       >
         <div
           className={clsx(
-            "flex h-full flex-col items-center justify-between bg-[#262729]",
-            { "!bg-[#F2F8FF]": isWaiting },
+            "flex h-full flex-col items-center justify-between bg-app-shell",
+            { "!bg-surface": isWaiting },
           )}
         >
           {renderContent()}

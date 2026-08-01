@@ -84,7 +84,7 @@ export const BlackListContent = ({ closeOverlay }: { closeOverlay?: () => void }
       <div className="flex items-center justify-between bg-[var(--gap-text)] p-5">
         <span className="text-base font-medium">{t("placeholder.blackList")}</span>
         <CloseOutlined
-          className="app-no-drag cursor-pointer text-[#8e9aaf]"
+          className="app-no-drag cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           rev={undefined}
           onClick={closeOverlay}
         />

@@ -1,5 +1,5 @@
 import { CbEvents, MessageType } from "@openim/wasm-client-sdk";
-import { SearchOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   GroupItem,
   MessageItem,
@@ -147,14 +147,14 @@ const TopSearchBar = () => {
   }, []);
 
   return (
-    <div className="no-mobile app-drag flex h-10 min-h-[40px] items-center bg-[var(--top-search-bar)] dark:bg-[#141414]">
+    <div className="no-mobile app-drag flex h-10 min-h-[40px] items-center bg-app-shell border-b border-surface-border text-foreground px-4">
       <div className="flex w-full items-center justify-center">
         <div
-          className="app-no-drag flex h-[26px] w-1/3 cursor-pointer items-center justify-center rounded-md bg-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.35)] transition-colors gap-2 text-white/80"
+          className="app-no-drag flex h-7 w-2/5 max-w-sm cursor-pointer items-center justify-center rounded-md bg-surface border border-surface-border shadow-sm hover:border-brand/40 hover:bg-surface-hover transition-all gap-2 text-muted-foreground hover:text-foreground px-3"
           onClick={() => globalSearchRef.current?.openOverlay()}
         >
-          <SearchOutlined rev={undefined} className="text-xs" />
-          <span className="text-xs">{t("placeholder.search")}</span>
+          <SearchOutlined rev={undefined} className="text-xs text-muted-foreground" />
+          <span className="text-xs text-muted-foreground font-medium">{t("placeholder.search")}</span>
         </div>
         <Popover
           content={<ActionPopContent actionClick={actionClick} />}
@@ -165,12 +165,9 @@ const TopSearchBar = () => {
           open={actionVisible}
           onOpenChange={(vis) => setActionVisible(vis)}
         >
-          <img
-            className="app-no-drag ml-8 cursor-pointer"
-            width={20}
-            src={show_more}
-            alt=""
-          />
+          <div className="app-no-drag ml-4 flex h-7 w-7 items-center justify-center rounded-md cursor-pointer text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors">
+            <PlusOutlined rev={undefined} className="text-sm" />
+          </div>
         </Popover>
       </div>
       <WindowControlBar />
@@ -220,7 +217,7 @@ const ActionPopContent = ({ actionClick }: { actionClick: (idx: number) => void 
     <div className="p-1">
       {actionMenuList.map((action) => (
         <div
-          className="flex cursor-pointer items-center rounded px-3 py-2 text-xs hover:bg-[var(--primary-active)]"
+          className="flex cursor-pointer items-center rounded-md px-3 py-2 text-xs text-foreground transition-colors hover:bg-surface-hover"
           key={action.idx}
           onClick={() => actionClick?.(action.idx)}
         >

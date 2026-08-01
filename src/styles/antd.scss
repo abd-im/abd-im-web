@@ -6,8 +6,12 @@
   z-index: 1;
 }
 
+.ant-spin-dot-item {
+  background-color: #27272a !important;
+}
+
 .ant-spin-text {
-  color: var(--primary);
+  color: var(--foreground) !important;
 }
 
 .ant-empty-description {
@@ -73,13 +77,13 @@
   margin-top: var(--searchbar-height);
 
   .ant-drawer-content-wrapper {
-    box-shadow: -7px 0px 7px 1px rgba(30, 116, 222, 0.05);
+    box-shadow: var(--floating-shadow);
     min-width: 460px;
   }
 
   .ant-drawer-header {
     padding: 0 24px;
-    background-color: #e8eaef;
+    background-color: var(--app-shell);
     border: none;
 
     .ant-drawer-header-title {
@@ -101,7 +105,7 @@
 
   .anticon-close,
   .anticon-right {
-    color: #8e9ab0;
+    color: var(--muted-foreground);
   }
 }
 
@@ -203,12 +207,33 @@
 }
 
 .ant-btn-primary {
-  background-color: var(--primary);
+  background-color: #27272a;
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  &:hover, &:focus, &:active {
+    background-color: #3f3f46 !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+  }
 
   &:disabled {
     opacity: 0.5;
     color: #fff;
-    background-color: var(--primary);
+    background-color: #27272a;
+  }
+}
+
+.ant-btn-default {
+  border-color: var(--surface-border);
+  color: var(--foreground);
+  background-color: var(--surface);
+
+  &:hover, &:focus, &:active {
+    border-color: #a1a1aa !important;
+    color: var(--foreground) !important;
+    background-color: var(--surface-hover) !important;
   }
 }
 

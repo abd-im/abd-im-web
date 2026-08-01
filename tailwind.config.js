@@ -24,6 +24,23 @@ module.exports = {
       height: {
         10.5: "2.625rem",
       },
+      colors: {
+        'app-shell': 'var(--app-shell)',
+        'page-canvas': 'var(--page-canvas)',
+        'surface': 'var(--surface)',
+        'surface-hover': 'var(--surface-hover)',
+        'surface-selected': 'var(--surface-selected)',
+        'surface-raised': 'var(--surface-raised)',
+        'surface-border': 'var(--surface-border)',
+        'foreground': 'var(--foreground)',
+        'muted-foreground': 'var(--muted-foreground)',
+        'faint-foreground': 'var(--faint-foreground)',
+        'brand': 'var(--brand)',
+      },
+      boxShadow: {
+        'surface': 'var(--surface-shadow)',
+        'floating': 'var(--floating-shadow)',
+      },
     },
   },
   darkMode: "class",

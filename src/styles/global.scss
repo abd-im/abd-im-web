@@ -1,13 +1,13 @@
 :root {
   --full-height: 100%;
-  --chat-bubble: #f4f5f7;
-  --chat-bubble-sender: #cce7fe;
-  --base-black: #0c1c33;
-  --primary: #0089ff;
-  --primary-active: #f3f8ff;
-  --top-search-bar: #0289fa;
-  --sub-text: #8e9ab0;
-  --gap-text: #e8eaef;
+  --chat-bubble: var(--surface);
+  --chat-bubble-sender: var(--brand);
+  --base-black: var(--foreground);
+  --primary: var(--brand);
+  --primary-active: var(--surface-selected);
+  --top-search-bar: var(--app-shell);
+  --sub-text: var(--muted-foreground);
+  --gap-text: var(--surface-border);
   --warn-text: #ff381f;
   --moment-text: #6085b1;
   --searchbar-height: 2.5rem;

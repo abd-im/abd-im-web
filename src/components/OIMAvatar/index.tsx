@@ -1,9 +1,9 @@
+import { TeamOutlined, UserOutlined } from "@ant-design/icons";
 import { Avatar as AntdAvatar, AvatarProps } from "antd";
 import clsx from "clsx";
 import * as React from "react";
 import { useMemo } from "react";
 
-import default_group from "@/assets/images/contact/group.png";
 import { avatarList, getDefaultAvatar } from "@/utils/avatar";
 
 const default_avatars = avatarList.map((item) => item.name);
@@ -17,46 +17,57 @@ interface IOIMAvatarProps extends AvatarProps {
   size?: number;
 }
 
+// Artistic White-Background Black-Text Avatar Style
+const MONOCHROME_AVATAR_BG = "#ffffff";
+
 const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
   const {
     src,
     text,
     size = 42,
-    color = "#fff",
-    bgColor = "#0289FA",
+    color = "#09090b",
+    bgColor,
     isgroup = false,
     isnotification,
   } = props;
-  const [errorHolder, setErrorHolder] = React.useState<string>();
+  const [hasError, setHasError] = React.useState(false);
+
+  const firstLetter = useMemo(() => {
+    if (!text) return "";
+    const trimmed = text.trim();
+    return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "";
+  }, [text]);
+
+  const computedBgColor = useMemo(() => {
+    return MONOCHROME_AVATAR_BG;
+  }, []);
 
   const getAvatarUrl = useMemo(() => {
-    if (src) {
+    if (src && !hasError) {
       if (default_avatars.includes(src as string))
         return getDefaultAvatar(src as string);
 
       return src;
     }
-    return isgroup ? default_group : undefined;
-  }, [src, isgroup, isnotification]);
+    return undefined;
+  }, [src, hasError]);
 
   const avatarProps = { ...props, isgroup: undefined, isnotification: undefined };
 
   React.useEffect(() => {
-    if (!isgroup) {
-      setErrorHolder(undefined);
-    }
-  }, [isgroup]);
+    setHasError(false);
+  }, [src]);
 
-  const errorHandler = () => {
-    if (isgroup) {
-      setErrorHolder(default_group);
-    }
-  };
+  const fallbackIcon = useMemo(() => {
+    if (isgroup) return <TeamOutlined className="text-lg text-foreground" />;
+    if (firstLetter) return firstLetter;
+    return <UserOutlined className="text-lg text-foreground" />;
+  }, [firstLetter, isgroup]);
 
   return (
     <AntdAvatar
       style={{
-        backgroundColor: bgColor,
+        backgroundColor: computedBgColor,
         minWidth: `${size}px`,
         minHeight: `${size}px`,
         lineHeight: `${size - 2}px`,
@@ -65,15 +76,19 @@ const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
       shape="square"
       {...avatarProps}
       className={clsx(
+        "rounded-lg font-serif italic font-bold shadow-sm border border-surface-border select-none flex items-center justify-center",
         {
           "cursor-pointer": Boolean(props.onClick),
         },
         props.className,
       )}
-      src={errorHolder ?? getAvatarUrl}
-      onError={errorHandler as any}
+      src={getAvatarUrl}
+      onError={() => {
+        setHasError(true);
+        return true;
+      }}
     >
-      {text}
+      {fallbackIcon}
     </AntdAvatar>
   );
 };

@@ -1,4 +1,10 @@
-import { RightOutlined } from "@ant-design/icons";
+import {
+  ContactsFilled,
+  ContactsOutlined,
+  MessageFilled,
+  MessageOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
 import { Badge, Divider, Layout, Popover, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
@@ -8,11 +14,6 @@ import { UNSAFE_NavigationContext, useResolvedPath } from "react-router-dom";
 
 import { modal } from "@/AntdGlobalComp";
 import { updateBusinessUserInfo } from "@/api/login";
-import { IMSDK } from "../MainContentWrap";
-import contact_icon from "@/assets/images/nav/nav_bar_contact.png";
-import contact_icon_active from "@/assets/images/nav/nav_bar_contact_active.png";
-import message_icon from "@/assets/images/nav/nav_bar_message.png";
-import message_icon_active from "@/assets/images/nav/nav_bar_message_active.png";
 import change_avatar from "@/assets/images/profile/change_avatar.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
@@ -21,6 +22,7 @@ import { emit } from "@/utils/events";
 import { uploadFile } from "@/utils/imCommon";
 
 import { OverlayVisibleHandle } from "../../hooks/useOverlayVisible";
+import { IMSDK } from "../MainContentWrap";
 import About from "./About";
 import styles from "./left-nav-bar.module.scss";
 import PersonalSettings from "./PersonalSettings";
@@ -29,14 +31,14 @@ const { Sider } = Layout;
 
 const NavList = [
   {
-    icon: message_icon,
-    icon_active: message_icon_active,
+    icon: <MessageOutlined className="text-lg text-muted-foreground" />,
+    icon_active: <MessageFilled className="text-lg text-foreground" />,
     title: t("placeholder.chat"),
     path: "/chat",
   },
   {
-    icon: contact_icon,
-    icon_active: contact_icon_active,
+    icon: <ContactsOutlined className="text-lg text-muted-foreground" />,
+    icon_active: <ContactsFilled className="text-lg text-foreground" />,
     title: t("placeholder.contact"),
     path: "/contact",
   },
@@ -115,13 +117,15 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
     <Badge size="small" count={getBadge()}>
       <div
         className={clsx(
-          "mb-3 flex h-[52px] w-12 cursor-pointer flex-col items-center justify-center rounded-md",
-          { "bg-[#e9e9eb]": isActive },
+          "mb-3 flex h-[52px] w-12 cursor-pointer flex-col items-center justify-center rounded-lg transition-colors",
+          isActive ? "bg-surface-selected shadow-sm" : "hover:bg-surface-hover",
         )}
         onClick={tryNavigate}
       >
-        <img width={20} src={isActive ? icon_active : icon} alt="" />
-        <div className="mt-1 text-xs text-gray-500">{title}</div>
+        <div className="flex h-5 items-center justify-center">
+          {isActive ? icon_active : icon}
+        </div>
+        <div className={clsx("mt-1 text-[11px]", isActive ? "text-foreground font-medium" : "text-muted-foreground")}>{title}</div>
       </div>
     </Badge>
   );
@@ -263,7 +267,7 @@ const LeftNavBar = memo(() => {
 
   return (
     <Sider
-      className="no-mobile border-r border-gray-200 !bg-[#F4F4F4] dark:border-gray-800 dark:!bg-[#141414]"
+      className="no-mobile border-r border-surface-border !bg-app-shell text-foreground"
       width={60}
       theme="light"
     >

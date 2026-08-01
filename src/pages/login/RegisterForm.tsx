@@ -212,7 +212,7 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
       </div>
       <div className="mt-4 tracking-wider text-gray-400" hidden={registerForm !== 1}>
         <span>{t("placeholder.pleaseEnterSendTo")}</span>
-        <span className=" text-blue-600">{receiver}</span>
+        <span className="text-foreground font-semibold mx-1">{receiver}</span>
         <span>{t("placeholder.verifyValidity")}</span>
       </div>
       <Form
@@ -264,12 +264,12 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
           <div className="mt-4 text-gray-400">
             {countdown > 0 ? (
               <>
-                <span className=" text-blue-500">{countdown}s </span>
+                <span className="text-foreground font-semibold">{countdown}s </span>
                 <span>{t("placeholder.regain") + t("placeholder.verifyCode")}</span>
               </>
             ) : (
               <>
-                <span onClick={sendSmsHandle} className="cursor-pointer text-blue-500">
+                <span onClick={sendSmsHandle} className="cursor-pointer text-foreground font-semibold hover:underline">
                   {t("placeholder.regain")}
                 </span>
                 <span>{t("placeholder.verifyCode")}</span>

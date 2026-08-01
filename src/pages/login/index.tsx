@@ -2,7 +2,6 @@ import { t } from "i18next";
 import { useCallback, useEffect, useState } from "react";
 import { useCopyToClipboard } from "react-use";
 
-import login_bg from "@/assets/images/login/login_bg.png";
 import WindowControlBar from "@/components/WindowControlBar";
 import { APP_NAME, APP_VERSION, SDK_VERSION } from "@/config";
 import { feedbackToast } from "@/utils/common";
@@ -33,15 +32,14 @@ export const Login = () => {
   };
 
   return (
-    <div className="relative flex h-full flex-col">
-      <div className="app-drag relative h-10 bg-[var(--top-search-bar)]">
+    <div className="relative flex h-full flex-col bg-page-canvas text-foreground">
+      <div className="app-drag relative h-10 bg-app-shell border-b border-surface-border">
         <WindowControlBar />
       </div>
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center p-6">
         <LeftBar />
         <div
-          className={`${styles.login} mr-14 h-[450px] w-[350px] rounded-md p-11`}
-          style={{ boxShadow: "0 0 30px rgba(0,0,0,.1)" }}
+          className={`${styles.login} h-[450px] w-[360px] rounded-xl bg-surface border border-surface-border p-9 shadow-lg`}
         >
           {formType === 0 && (
             <LoginForm
@@ -64,11 +62,12 @@ export const Login = () => {
 
 const LeftBar = () => {
   return (
-    <div className="flex min-h-[420]">
-      <div className="mr-14 text-center">
-        <div className="text-2xl">{t("placeholder.title")}</div>
-        <span className="text-sm  text-gray-400">{t("placeholder.subTitle")}</span>
-        <img src={login_bg} alt="login_bg" />
+    <div className="mr-16 flex max-w-sm flex-col justify-center">
+      <div className="text-3xl font-extrabold text-foreground tracking-tight mb-3">
+        {t("placeholder.title")}
+      </div>
+      <div className="text-base text-muted-foreground leading-relaxed">
+        {t("placeholder.subTitle")}
       </div>
     </div>
   );

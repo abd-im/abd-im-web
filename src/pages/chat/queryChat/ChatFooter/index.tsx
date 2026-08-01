@@ -42,8 +42,8 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   };
 
   return (
-    <footer className="relative h-full bg-white py-px">
-      <div className="flex h-full flex-col border-t border-t-[var(--gap-text)]">
+    <footer className="relative h-full bg-surface text-foreground py-px">
+      <div className="flex h-full flex-col border-t border-surface-border">
         <SendActionBar
           sendMessage={sendMessage}
           getImageMessage={getImageMessage}

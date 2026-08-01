@@ -5,7 +5,7 @@ import ContactSider from "@/pages/contact/ContactSider";
 
 export const Contact = () => {
   return (
-    <Layout className="relative z-0 flex-row">
+    <Layout className="relative z-0 flex-row bg-page-canvas">
       <ContactSider />
       <Outlet />
     </Layout>

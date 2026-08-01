@@ -40,7 +40,7 @@ const SettingRow: FC<ISettingRowProps> = ({
       <div className="font-medium">{title}</div>
       {children ?? (
         <Switch
-          className="bg-[#8e9aaf]"
+          className="bg-muted-foreground"
           loading={loading}
           checked={value}
           onClick={onClick}

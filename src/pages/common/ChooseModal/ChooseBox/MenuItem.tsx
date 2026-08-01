@@ -1,4 +1,4 @@
-import { RightOutlined } from "@ant-design/icons";
+import { RightOutlined, UserOutlined } from "@ant-design/icons";
 
 import { ChooseMenuItem } from ".";
 
@@ -10,15 +10,17 @@ const MenuItem = ({
   menuClick: (idx: number) => void;
 }) => (
   <div
-    className="mx-2 flex items-center justify-between rounded-md px-3.5 py-2.5 hover:bg-[var(--primary-active)]"
+    className="mx-2 flex items-center justify-between rounded-md px-3.5 py-2.5 hover:bg-surface-hover cursor-pointer text-foreground"
     key={menu.idx}
     onClick={() => menuClick(menu.idx)}
   >
     <div className="flex items-center">
-      <img width={42} src={menu.icon} alt="" />
-      <div className="ml-3.5">{menu.title}</div>
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface border border-surface-border shadow-sm text-foreground">
+        <UserOutlined className="text-lg" />
+      </div>
+      <div className="ml-3.5 font-medium">{menu.title}</div>
     </div>
-    <RightOutlined className="text-[var(--sub-text)]" rev={undefined} />
+    <RightOutlined className="text-muted-foreground text-xs" rev={undefined} />
   </div>
 );
 

@@ -168,13 +168,13 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
 
         <div className="mb-10 flex flex-row justify-between">
           <span
-            className="cursor-pointer text-sm text-gray-400"
+            className="cursor-pointer text-sm text-zinc-500 transition-colors hover:text-zinc-900 hover:underline"
             onClick={() => setFormType(1)}
           >
             {t("placeholder.forgetPassword")}
           </span>
           <span
-            className="cursor-pointer text-sm text-[var(--primary)]"
+            className="cursor-pointer text-sm text-zinc-500 font-medium transition-colors hover:text-zinc-900 hover:underline"
             onClick={() =>
               setLoginType(
                 loginType === LoginType.Password
@@ -198,11 +198,11 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         </Form.Item>
 
         <div className="flex flex-row items-center justify-center">
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-zinc-400">
             {t("placeholder.registerToast")}
           </span>
           <span
-            className="cursor-pointer text-sm text-blue-500"
+            className="cursor-pointer text-sm text-zinc-600 font-semibold transition-colors hover:text-zinc-900 hover:underline ml-1"
             onClick={() => setFormType(2)}
           >
             {t("placeholder.toRegister")}
