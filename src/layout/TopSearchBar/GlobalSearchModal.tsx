@@ -1,5 +1,5 @@
 import { CloseOutlined, SearchOutlined, MessageFilled, FileTextOutlined } from "@ant-design/icons";
-import { MessageType } from "@openim/wasm-client-sdk";
+import { MessageType } from "@abd-im/wasm-client-sdk";
 import { Empty, Input, Modal, Spin, InputRef } from "antd";
 import { forwardRef, ForwardRefRenderFunction, memo, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";

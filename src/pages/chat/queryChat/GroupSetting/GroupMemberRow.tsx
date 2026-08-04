@@ -1,4 +1,4 @@
-import { GroupItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import clsx from "clsx";
 import { t } from "i18next";
 import { memo, useEffect } from "react";

@@ -2,7 +2,7 @@ import type {
   ConversationItem,
   ConversationItem as ConversationItemType,
   MessageItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Badge } from "antd";
 import clsx from "clsx";
 import { t } from "i18next";

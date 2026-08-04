@@ -1,4 +1,4 @@
-import { GroupItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Select } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";

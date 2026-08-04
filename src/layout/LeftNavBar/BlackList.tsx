@@ -1,5 +1,5 @@
 import { CloseOutlined } from "@ant-design/icons";
-import { BlackUserItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { BlackUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Button, Empty, Modal } from "antd";
 import { t } from "i18next";
 import { forwardRef, ForwardRefRenderFunction, memo, useState } from "react";

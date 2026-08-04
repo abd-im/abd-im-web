@@ -1,8 +1,8 @@
-import { ApplicationHandleResult } from "@openim/wasm-client-sdk";
+import { ApplicationHandleResult } from "@abd-im/wasm-client-sdk";
 import {
   FriendApplicationItem,
   GroupApplicationItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Button, Spin } from "antd";
 import { t } from "i18next";
 import { memo, useCallback, useState } from "react";

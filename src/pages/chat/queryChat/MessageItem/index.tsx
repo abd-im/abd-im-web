@@ -2,7 +2,7 @@ import {
   MessageItem as MessageItemType,
   MessageType,
   SessionType,
-} from "@openim/wasm-client-sdk";
+} from "@abd-im/wasm-client-sdk";
 import { Dropdown, MenuProps } from "antd";
 import clsx from "clsx";
 import { FC, memo, useCallback, useMemo, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import MediaMessageRender from "./MediaMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageSuffix from "./MessageSuffix";
+import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
 import VideoMessageRender from "./VideoMessageRender";
 
@@ -35,16 +36,13 @@ export interface IMessageItemProps {
 
 const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.TextMessage]: TextMessageRender,
+  [MessageType.StreamMessage]: StreamMessageRender,
   [MessageType.PictureMessage]: MediaMessageRender,
   [MessageType.VideoMessage]: VideoMessageRender,
   [MessageType.FileMessage]: FileMessageRender,
 };
 
-const MessageItem: FC<IMessageItemProps> = ({
-  message,
-  disabled,
-  conversationID,
-}) => {
+const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID }) => {
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
   const isSender = useMemo(

@@ -1,5 +1,5 @@
 import { CloseOutlined, RightOutlined } from "@ant-design/icons";
-import { AddFriendPermission, MessageReceiveOptType } from "@openim/wasm-client-sdk";
+import { AddFriendPermission, MessageReceiveOptType } from "@abd-im/wasm-client-sdk";
 import { Checkbox, Modal } from "antd";
 import { forwardRef, ForwardRefRenderFunction, memo, useRef } from "react";
 import { useTranslation } from "react-i18next";

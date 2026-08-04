@@ -1,10 +1,10 @@
-import { CbEvents } from "@openim/wasm-client-sdk";
-import { SessionType } from "@openim/wasm-client-sdk";
+import { CbEvents } from "@abd-im/wasm-client-sdk";
+import { SessionType } from "@abd-im/wasm-client-sdk";
 import {
   FriendUserItem,
   GroupMemberItem,
   WSEvent,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { useLatest } from "ahooks";
 import { Button, Divider, Spin } from "antd";
 import dayjs from "dayjs";

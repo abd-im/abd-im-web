@@ -1,4 +1,4 @@
-import { MessageItem, MessageType } from "@openim/wasm-client-sdk";
+import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import { Drawer, Empty, Spin, Tabs } from "antd";
 import { t } from "i18next";
 import { forwardRef, ForwardRefRenderFunction, memo, useEffect, useState } from "react";

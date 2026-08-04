@@ -1,4 +1,4 @@
-import { Platform } from "@openim/wasm-client-sdk";
+import { Platform } from "@abd-im/wasm-client-sdk";
 
 export type DataPath = "public" | "emojiData" | "sdkResources" | "logsPath";
 

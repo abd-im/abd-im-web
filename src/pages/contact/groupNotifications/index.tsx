@@ -1,5 +1,5 @@
-import { ApplicationHandleResult } from "@openim/wasm-client-sdk";
-import { GroupApplicationItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { ApplicationHandleResult } from "@abd-im/wasm-client-sdk";
+import { GroupApplicationItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Virtuoso } from "react-virtuoso";

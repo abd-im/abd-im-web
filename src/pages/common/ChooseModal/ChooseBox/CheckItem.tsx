@@ -1,10 +1,10 @@
 import { CloseOutlined, RightOutlined } from "@ant-design/icons";
-import { SessionType } from "@openim/wasm-client-sdk";
+import { SessionType } from "@abd-im/wasm-client-sdk";
 import {
   ConversationItem,
   FriendUserItem,
   GroupItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Checkbox } from "antd";
 import clsx from "clsx";
 import { FC, memo } from "react";

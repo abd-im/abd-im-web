@@ -8,7 +8,7 @@ import {
   GroupItem,
   GroupMemberItem,
   MessageItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 
 import { BusinessUserInfo } from "@/api/login";
 

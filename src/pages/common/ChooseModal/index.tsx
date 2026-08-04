@@ -1,5 +1,5 @@
 import { CloseOutlined } from "@ant-design/icons";
-import { GroupType, SessionType } from "@openim/wasm-client-sdk";
+import { GroupType, SessionType } from "@abd-im/wasm-client-sdk";
 import { Button, Input, Modal, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";

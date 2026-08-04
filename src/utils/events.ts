@@ -4,7 +4,7 @@ import mitt from "mitt";
 import {
   GroupItem,
   MessageItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { InviteData } from "@/pages/common/RtcCallModal/data";
 
 type EmitterEvents = {

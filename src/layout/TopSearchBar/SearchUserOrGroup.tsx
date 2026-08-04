@@ -1,5 +1,5 @@
 import { CloseOutlined } from "@ant-design/icons";
-import { GroupItem, WSEvent } from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupItem, WSEvent } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Button, Input, InputRef } from "antd";
 import { t } from "i18next";
 import {

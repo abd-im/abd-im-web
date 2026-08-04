@@ -1,5 +1,5 @@
-import { GroupMemberRole } from "@openim/wasm-client-sdk";
-import { GroupMemberItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupMemberRole } from "@abd-im/wasm-client-sdk";
+import { GroupMemberItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Empty, Spin } from "antd";
 import { t } from "i18next";
 import { FC, memo, useEffect } from "react";

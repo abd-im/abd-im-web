@@ -1,4 +1,4 @@
-import { MessageItem } from "@openim/wasm-client-sdk";
+import { MessageItem } from "@abd-im/wasm-client-sdk";
 import { Popover, PopoverProps, Upload } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
 import clsx from "clsx";

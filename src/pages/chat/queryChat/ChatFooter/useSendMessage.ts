@@ -3,7 +3,7 @@ import {
   MessageStatus,
   MessageType,
   SessionType,
-} from "@openim/wasm-client-sdk";
+} from "@abd-im/wasm-client-sdk";
 import { t } from "i18next";
 import { useCallback } from "react";
 

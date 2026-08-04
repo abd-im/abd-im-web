@@ -1,10 +1,10 @@
-import { MessageType, SessionType } from "@openim/wasm-client-sdk";
+import { MessageType, SessionType } from "@abd-im/wasm-client-sdk";
 import {
   ConversationItem,
   GroupItem,
   GroupMemberItem,
   MessageItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { t } from "i18next";
 import { create } from "zustand";
 

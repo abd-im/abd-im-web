@@ -6,7 +6,7 @@ import {
   useTracks,
   VideoTrack,
 } from "@livekit/components-react";
-import { PublicUserItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { PublicUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Spin } from "antd";
 import clsx from "clsx";
 import {

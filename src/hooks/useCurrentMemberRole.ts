@@ -1,4 +1,4 @@
-import { GroupMemberRole } from "@openim/wasm-client-sdk";
+import { GroupMemberRole } from "@abd-im/wasm-client-sdk";
 
 import { useConversationStore } from "@/store";
 

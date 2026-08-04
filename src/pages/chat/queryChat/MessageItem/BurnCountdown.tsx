@@ -1,4 +1,4 @@
-import { MessageItem } from "@openim/wasm-client-sdk";
+import { MessageItem } from "@abd-im/wasm-client-sdk";
 import { FC, useEffect, useState } from "react";
 
 import { IMSDK } from "@/layout/MainContentWrap";

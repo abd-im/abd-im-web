@@ -1,6 +1,6 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { GroupJoinSource, SessionType } from "@openim/wasm-client-sdk";
-import { GroupItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { GroupJoinSource, SessionType } from "@abd-im/wasm-client-sdk";
+import { GroupItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { useRequest } from "ahooks";
 import { Button, Input } from "antd";
 import dayjs from "dayjs";

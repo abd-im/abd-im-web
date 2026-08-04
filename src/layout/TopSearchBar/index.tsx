@@ -1,11 +1,11 @@
-import { CbEvents, MessageType } from "@openim/wasm-client-sdk";
+import { CbEvents, MessageType } from "@abd-im/wasm-client-sdk";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   GroupItem,
   MessageItem,
   RtcInvite,
   WSEvent,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Popover } from "antd";
 import i18n, { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";

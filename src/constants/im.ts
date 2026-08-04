@@ -1,4 +1,4 @@
-import { MessageType, SessionType } from "@openim/wasm-client-sdk";
+import { MessageType, SessionType } from "@abd-im/wasm-client-sdk";
 
 export const GroupSessionTypes = [SessionType.Group, SessionType.WorkingGroup];
 

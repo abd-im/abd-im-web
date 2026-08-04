@@ -3,7 +3,7 @@ import {
   GroupMemberItem,
   PublicUserItem,
   RtcInvite,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 
 export interface InviteData {
   invitation?: RtcInvite;

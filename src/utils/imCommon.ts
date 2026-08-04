@@ -16,12 +16,12 @@ import {
   ConversationItem,
   MessageItem,
   PublicUserItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
-import { MessageType, SessionType } from "@openim/wasm-client-sdk";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { MessageType, SessionType } from "@abd-im/wasm-client-sdk";
 import { isThisYear } from "date-fns";
 import { FileWithPath } from "@/pages/chat/queryChat/ChatFooter/SendActionBar/useFileMessage";
 import { IMSDK } from "@/layout/MainContentWrap";
-import { UploadFileParams } from "@openim/wasm-client-sdk/lib/types/params";
+import { UploadFileParams } from "@abd-im/wasm-client-sdk/lib/types/params";
 dayjs.extend(calendar);
 dayjs.extend(relativeTime);
 dayjs.extend(updateLocale);
@@ -257,6 +257,11 @@ export const formatMessageByType = (message?: MessageItem): string => {
     switch (message.contentType) {
       case MessageType.TextMessage:
         return message.textElem!.content;
+      case MessageType.StreamMessage:
+        return (
+          (message.streamElem?.content ?? "") +
+          (message.streamElem?.packets ?? []).join("")
+        );
       case MessageType.PictureMessage:
         return t("messageDescription.imageMessage");
       case MessageType.FriendAdded:

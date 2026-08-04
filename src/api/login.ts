@@ -1,4 +1,4 @@
-import type { MessageReceiveOptType } from "@openim/wasm-client-sdk";
+import type { MessageReceiveOptType } from "@abd-im/wasm-client-sdk";
 import { useMutation } from "react-query";
 import { v4 as uuidv4 } from "uuid";
 

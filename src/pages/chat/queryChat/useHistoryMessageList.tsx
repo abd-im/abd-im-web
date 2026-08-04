@@ -1,4 +1,4 @@
-import { MessageItem, ViewType } from "@openim/wasm-client-sdk";
+import { MessageItem, ViewType } from "@abd-im/wasm-client-sdk";
 import { useLatest, useRequest } from "ahooks";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -33,17 +33,28 @@ export function useHistoryMessageList() {
 
   useEffect(() => {
     const pushNewMessage = (message: MessageItem) => {
-      if (
-        latestLoadState.current.messageList.find(
+      setLoadState((preState) => {
+        const idx = preState.messageList.findIndex(
           (item) => item.clientMsgID === message.clientMsgID,
-        )
-      ) {
-        return;
-      }
-      setLoadState((preState) => ({
-        ...preState,
-        messageList: [...preState.messageList, message],
-      }));
+        );
+        if (idx < 0) {
+          return {
+            ...preState,
+            messageList: [...preState.messageList, message],
+          };
+        }
+
+        const messageList = [...preState.messageList];
+        messageList[idx] = {
+          ...messageList[idx],
+          ...message,
+          attachedInfoElem: {
+            ...messageList[idx].attachedInfoElem,
+            ...message.attachedInfoElem,
+          },
+        };
+        return { ...preState, messageList };
+      });
     };
     const updateOneMessage = (message: MessageItem) => {
       setLoadState((preState) => {

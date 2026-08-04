@@ -1,4 +1,4 @@
-import { Platform } from "@openim/wasm-client-sdk";
+import { Platform } from "@abd-im/wasm-client-sdk";
 import { useKeyPress } from "ahooks";
 
 import win_close from "@/assets/images/topSearchBar/win_close.png";

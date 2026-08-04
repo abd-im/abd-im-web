@@ -1,4 +1,4 @@
-import { MessageStatus } from "@openim/wasm-client-sdk";
+import { MessageStatus } from "@abd-im/wasm-client-sdk";
 import { Image, Spin } from "antd";
 import clsx from "clsx";
 import { FC } from "react";

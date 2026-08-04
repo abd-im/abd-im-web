@@ -1,5 +1,5 @@
 import { InfoCircleOutlined } from "@ant-design/icons";
-import { SessionType } from "@openim/wasm-client-sdk";
+import { SessionType } from "@abd-im/wasm-client-sdk";
 import { useUnmount } from "ahooks";
 import { Layout } from "antd";
 import { t } from "i18next";

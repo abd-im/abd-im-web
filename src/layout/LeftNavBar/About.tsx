@@ -1,6 +1,6 @@
 import { CloseOutlined, RightOutlined, MessageFilled } from "@ant-design/icons";
-import { CbEvents } from "@openim/wasm-client-sdk";
-import { WSEvent } from "@openim/wasm-client-sdk/lib/types/entity";
+import { CbEvents } from "@abd-im/wasm-client-sdk";
+import { WSEvent } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { useRequest } from "ahooks";
 import { App, Button, Divider, Form, Input, Modal, Space, Spin } from "antd";
 import { t } from "i18next";

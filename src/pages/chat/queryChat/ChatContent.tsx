@@ -1,4 +1,4 @@
-import { MessageItem, SessionType } from "@openim/wasm-client-sdk";
+import { MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";

@@ -1,4 +1,4 @@
-import { SessionType } from "@openim/wasm-client-sdk";
+import { SessionType } from "@abd-im/wasm-client-sdk";
 import { Layout, Tooltip } from "antd";
 import clsx from "clsx";
 import { memo, useEffect, useRef } from "react";

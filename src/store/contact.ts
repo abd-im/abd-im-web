@@ -1,11 +1,11 @@
-import { ApplicationHandleResult } from "@openim/wasm-client-sdk";
+import { ApplicationHandleResult } from "@abd-im/wasm-client-sdk";
 import {
   BlackUserItem,
   FriendApplicationItem,
   FriendUserItem,
   GroupApplicationItem,
   GroupItem,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { t } from "i18next";
 import { create } from "zustand";
 

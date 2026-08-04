@@ -1,5 +1,4 @@
-import { CbEvents, LogLevel } from "@openim/wasm-client-sdk";
-import { MessageType, SessionType } from "@openim/wasm-client-sdk";
+import { CbEvents, LogLevel, MessageType, SessionType } from "@abd-im/wasm-client-sdk";
 import {
   BlackUserItem,
   ConversationItem,
@@ -14,11 +13,12 @@ import {
   SelfUserInfo,
   WSEvent,
   WsResponse,
-} from "@openim/wasm-client-sdk/lib/types/entity";
+} from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { t } from "i18next";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { CustomType } from "@/constants";
 import {
@@ -32,7 +32,6 @@ import { feedbackToast } from "@/utils/common";
 import { initStore } from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
-import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { IMSDK } from "./MainContentWrap";
 
 export function useGlobalEvent() {
@@ -185,7 +184,8 @@ export function useGlobalEvent() {
     IMSDK.on(CbEvents.OnSyncServerFinish, syncFinishHandler);
     IMSDK.on(CbEvents.OnSyncServerFailed, syncFailedHandler);
     // message
-    IMSDK.on(CbEvents.OnRecvNewMessages, newMessageHandler);
+    IMSDK.on(CbEvents.OnRecvNewMessage, newMessageHandler);
+    IMSDK.on(CbEvents.OnRecvNewMessages, newMessagesHandler);
     IMSDK.on(CbEvents.OnNewRecvMessageRevoked, revokedMessageHandler);
     IMSDK.on(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
     IMSDK.on(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
@@ -269,11 +269,18 @@ export function useGlobalEvent() {
   };
 
   // message
-  const newMessageHandler = ({ data }: WSEvent<MessageItem[]>) => {
+  const newMessageHandler = ({ data }: WSEvent<MessageItem>) => {
     if (useUserStore.getState().syncState === "loading" || resume.current) {
       return;
     }
-    data.map((message) => handleNewMessage(message));
+    handleNewMessage(data);
+  };
+
+  const newMessagesHandler = ({ data }: WSEvent<MessageItem[]>) => {
+    if (useUserStore.getState().syncState === "loading" || resume.current) {
+      return;
+    }
+    data.forEach(handleNewMessage);
   };
 
   const revokedMessageHandler = ({ data }: WSEvent<RevokedInfo>) => {
@@ -317,7 +324,10 @@ export function useGlobalEvent() {
   };
 
   const handleNewMessage = (newServerMsg: MessageItem) => {
-    if (newServerMsg.sendID !== useUserStore.getState().selfInfo.userID) {
+    if (
+      newServerMsg.contentType !== MessageType.StreamMessage &&
+      newServerMsg.sendID !== useUserStore.getState().selfInfo.userID
+    ) {
       playNewMsgSound();
     }
 
@@ -486,7 +496,8 @@ export function useGlobalEvent() {
     IMSDK.off(CbEvents.OnSyncServerFinish, syncFinishHandler);
     IMSDK.off(CbEvents.OnSyncServerFailed, syncFailedHandler);
     // message
-    IMSDK.off(CbEvents.OnRecvNewMessages, newMessageHandler);
+    IMSDK.off(CbEvents.OnRecvNewMessage, newMessageHandler);
+    IMSDK.off(CbEvents.OnRecvNewMessages, newMessagesHandler);
     IMSDK.off(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
     IMSDK.off(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
     // conversation

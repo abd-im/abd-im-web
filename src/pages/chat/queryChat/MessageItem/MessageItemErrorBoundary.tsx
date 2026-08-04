@@ -1,4 +1,4 @@
-import { MessageItem } from "@openim/wasm-client-sdk/lib/types/entity";
+import { MessageItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Component, ErrorInfo, ReactNode } from "react";
 
 import CatchMessageRender from "./CatchMsgRenderer";

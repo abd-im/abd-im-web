@@ -1,4 +1,4 @@
-import { MessageItem, MessageType } from "@openim/wasm-client-sdk";
+import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import clsx from "clsx";
 import { t } from "i18next";
 import { FC, memo, useRef } from "react";
