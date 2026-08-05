@@ -1,11 +1,9 @@
 import { ChooseModalState } from "@/pages/common/ChooseModal";
 import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import mitt from "mitt";
-import {
-  GroupItem,
-  MessageItem,
-} from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { GroupItem, MessageItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { InviteData } from "@/pages/common/RtcCallModal/data";
+import type { MessageReactionUpdatedEvent } from "@/api/messageReaction";
 
 type EmitterEvents = {
   OPEN_USER_CARD: OpenUserCardParams;
@@ -16,6 +14,8 @@ type EmitterEvents = {
   // message store
   PUSH_NEW_MSG: MessageItem;
   UPDATE_ONE_MSG: MessageItem;
+  MESSAGE_REACTION_UPDATED: MessageReactionUpdatedEvent;
+  MESSAGE_REACTIONS_REFRESH: void;
 
   SELECT_USER: SelectUserParams;
 };

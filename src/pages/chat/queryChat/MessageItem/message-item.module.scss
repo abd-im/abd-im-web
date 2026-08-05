@@ -9,15 +9,43 @@
     }
 
     .bubble {
-      @apply w-fit rounded-lg p-2.5 shadow-sm border border-surface-border;
+      @apply w-fit rounded-lg border border-surface-border p-2.5 shadow-sm;
       background-color: var(--surface);
       color: var(--foreground);
       word-break: break-all;
     }
 
     .message-content-group {
-      @apply flex flex-col;
+      @apply relative flex flex-col;
+      width: fit-content;
       max-width: 80%;
+    }
+
+    .message-bubble-wrap {
+      position: relative;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .message-bubble-wrap-reaction-shell .bubble {
+      width: 100%;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .message-bubble-wrap-reaction-shell {
+      display: inline-flex;
+      flex-direction: column;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--surface-shadow);
+    }
+
+    .message-bubble-wrap-with-reactions .bubble {
+      padding-bottom: 0;
     }
 
     .message-status-wrapper {
@@ -58,6 +86,12 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
       }
 
+      .message-bubble-wrap-reaction-shell {
+        border-color: transparent;
+        background: #27272a;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+
       .message-content-group {
         @apply items-end;
       }
@@ -66,6 +100,245 @@
         @apply flex-row-reverse;
       }
     }
+  }
+}
+
+.reaction-wrapper {
+  display: contents;
+}
+
+.reaction-wrapper-sender {
+  @apply self-end;
+}
+
+.reaction-actions {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: calc(100% + 7px);
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  opacity: 0;
+  background: var(--surface-raised);
+  box-shadow: var(--surface-shadow);
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.reaction-wrapper-sender .reaction-actions {
+  right: calc(100% + 7px);
+  left: auto;
+}
+
+.message-content-group:hover .reaction-actions,
+.message-content-group:focus-within .reaction-actions,
+.reaction-actions-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.reaction-action {
+  display: inline-grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.reaction-action:hover,
+.reaction-action:focus-visible {
+  color: var(--foreground);
+  background: var(--surface-hover);
+}
+
+.reaction-action:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.reaction-add-icon {
+  position: relative;
+  display: inline-grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  font-size: 15px;
+}
+
+.reaction-add-plus {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  font-size: 8px;
+}
+
+.reaction-picker {
+  position: absolute;
+  z-index: 8;
+  top: 27px;
+  left: calc(100% + 7px);
+  display: flex;
+  gap: 1px;
+  padding: 4px;
+  border: 1px solid var(--surface-border);
+  border-radius: 7px;
+  opacity: 0;
+  background: var(--surface-raised);
+  box-shadow: var(--floating-shadow);
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+  visibility: hidden;
+}
+
+.reaction-wrapper-sender .reaction-picker {
+  right: calc(100% + 7px);
+  left: auto;
+}
+
+.reaction-picker-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.reaction-picker-option {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.12s ease;
+}
+
+.reaction-picker-option:hover,
+.reaction-picker-option:focus-visible {
+  background: var(--surface-hover);
+}
+
+.reaction-picker-option:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.reaction-selected {
+  background: var(--surface-selected);
+}
+
+.reaction-bar {
+  display: flex;
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 7px 10px 10px;
+}
+
+.reaction-wrapper-sender .reaction-bar {
+  align-self: flex-end;
+  justify-content: flex-end;
+}
+
+.reaction-chip {
+  display: inline-flex;
+  min-width: 34px;
+  height: 23px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--surface-border);
+  border-radius: 5px;
+  color: var(--muted-foreground);
+  background: var(--surface-raised);
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.reaction-chip:hover,
+.reaction-chip:focus-visible {
+  color: var(--foreground);
+  background: var(--surface-hover);
+}
+
+.reaction-chip:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.reaction-chip-selected {
+  border-color: #b8c5d1;
+  color: var(--foreground);
+  background: #f0f3f5;
+}
+
+.reaction-wrapper-sender .reaction-chip {
+  border-color: rgb(255 255 255 / 0.2);
+  color: #fff;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.reaction-wrapper-sender .reaction-chip-selected {
+  border-color: rgb(255 255 255 / 0.38);
+  background: rgb(255 255 255 / 0.18);
+}
+
+.reaction-emoji {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.reaction-count {
+  overflow: hidden;
+  max-width: 4ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: none), (max-width: 600px) {
+  .reaction-actions {
+    position: static;
+    width: max-content;
+    margin-top: 4px;
+    margin-left: auto;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .reaction-wrapper-sender .reaction-actions {
+    margin-right: 0;
+  }
+
+  .reaction-picker,
+  .reaction-wrapper-sender .reaction-picker {
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    display: none;
+    width: max-content;
+    margin-top: 4px;
+    margin-left: auto;
+  }
+
+  .reaction-picker-open {
+    display: flex;
   }
 }
 

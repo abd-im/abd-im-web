@@ -1,14 +1,16 @@
 import {
   MessageItem as MessageItemType,
+  MessageStatus,
   MessageType,
   SessionType,
 } from "@abd-im/wasm-client-sdk";
-import { Dropdown, MenuProps } from "antd";
+import type { MenuProps } from "antd";
 import clsx from "clsx";
-import { FC, memo, useCallback, useMemo, useRef, useState } from "react";
+import { FC, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { message as antMessage } from "@/AntdGlobalComp";
+import type { MessageReactionSummary } from "@/api/messageReaction";
 import OIMAvatar from "@/components/OIMAvatar";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
@@ -21,6 +23,7 @@ import FileMessageRender from "./FileMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
+import MessageReactionBar from "./MessageReactionBar";
 import MessageSuffix from "./MessageSuffix";
 import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
@@ -32,6 +35,9 @@ export interface IMessageItemProps {
   disabled?: boolean;
   conversationID?: string;
   messageUpdateFlag?: string;
+  reactionSummary?: MessageReactionSummary;
+  isReactionPending?: (emoji: string) => boolean;
+  onToggleReaction?: (emoji: string, reactedByMe: boolean) => void;
 }
 
 const components: Record<number, FC<IMessageItemProps>> = {
@@ -42,7 +48,14 @@ const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.FileMessage]: FileMessageRender,
 };
 
-const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID }) => {
+const MessageItem: FC<IMessageItemProps> = ({
+  message,
+  disabled,
+  conversationID,
+  reactionSummary,
+  isReactionPending,
+  onToggleReaction,
+}) => {
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
   const isSender = useMemo(
@@ -50,15 +63,15 @@ const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID 
     [selfUserID, message.sendID],
   );
 
-  const messageWrapRef = useRef<HTMLDivElement>(null);
-  const [showMessageMenu, setShowMessageMenu] = useState(false);
   const MessageRenderComponent = components[message.contentType] || CatchMessageRender;
 
-  const closeMessageMenu = useCallback(() => {
-    setShowMessageMenu(false);
-  }, []);
-
   const isPrivate = message.attachedInfoElem?.isPrivateChat;
+  const canReact =
+    Boolean(onToggleReaction && isReactionPending) &&
+    message.status === MessageStatus.Succeed &&
+    Boolean(message.serverMsgID) &&
+    !isPrivate;
+  const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
 
   const menuItems = useMemo(() => {
     if (isPrivate) {
@@ -88,7 +101,7 @@ const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID 
     return items;
   }, [message, isSender, isPrivate, t]);
 
-  const onMenuClick: MenuProps["onClick"] = async ({ key }) => {
+  const handleMenuAction = async (key: string) => {
     switch (key) {
       case "copy":
         try {
@@ -125,7 +138,10 @@ const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID 
         // Placeholder for future implementation
         break;
     }
-    closeMessageMenu();
+  };
+
+  const onMenuClick: MenuProps["onClick"] = ({ key }) => {
+    void handleMenuAction(key);
   };
 
   return (
@@ -150,7 +166,7 @@ const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID 
             text={message.senderNickname}
           />
 
-          <div className={styles["message-wrap"]} ref={messageWrapRef}>
+          <div className={styles["message-wrap"]}>
             <div className={styles["message-profile"]}>
               <div
                 title={message.senderNickname}
@@ -173,21 +189,32 @@ const MessageItem: FC<IMessageItemProps> = ({ message, disabled, conversationID 
                     <BurnCountdown message={message} conversationID={conversationID} />
                   </div>
                 )}
-                <Dropdown
-                  menu={{ items: menuItems, onClick: onMenuClick }}
-                  trigger={["contextMenu"]}
-                  disabled={disabled}
+                <div
+                  className={clsx(
+                    styles["message-bubble-wrap"],
+                    canReact && styles["message-bubble-wrap-reaction-shell"],
+                    hasReactions && styles["message-bubble-wrap-with-reactions"],
+                  )}
                 >
-                  <div>
-                    <MessageItemErrorBoundary message={message}>
-                      <MessageRenderComponent
-                        message={message}
-                        isSender={isSender}
-                        disabled={disabled}
-                      />
-                    </MessageItemErrorBoundary>
-                  </div>
-                </Dropdown>
+                  <MessageItemErrorBoundary message={message}>
+                    <MessageRenderComponent
+                      message={message}
+                      isSender={isSender}
+                      disabled={disabled}
+                    />
+                  </MessageItemErrorBoundary>
+                  <MessageReactionBar
+                    summary={reactionSummary}
+                    isSender={isSender}
+                    canReact={canReact}
+                    isPending={isReactionPending}
+                    onToggle={onToggleReaction}
+                    onReply={() => void handleMenuAction("reply")}
+                    menuItems={menuItems}
+                    onMenuClick={onMenuClick}
+                    actionsDisabled={disabled}
+                  />
+                </div>
                 {!isSender && (
                   <div className="ml-2">
                     <BurnCountdown message={message} conversationID={conversationID} />

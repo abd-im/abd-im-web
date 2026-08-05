@@ -1,22 +1,47 @@
-import { MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
+import {
+  MessageItem,
+  MessageStatus,
+  MessageType,
+  SessionType,
+} from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { SystemMessageTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
-import { useUserStore } from "@/store";
+import { useConversationStore, useUserStore } from "@/store";
 import emitter from "@/utils/events";
 
 import MessageItemComponent from "./MessageItem";
 import NotificationMessage from "./NotificationMessage";
 import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
+import { useMessageReactions } from "./useMessageReactions";
+
+const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
+  MessageType.TextMessage,
+  MessageType.PictureMessage,
+  MessageType.VoiceMessage,
+  MessageType.VideoMessage,
+  MessageType.FileMessage,
+  MessageType.AtTextMessage,
+  MessageType.MergeMessage,
+  MessageType.CardMessage,
+  MessageType.LocationMessage,
+  MessageType.CustomMessage,
+  MessageType.QuoteMessage,
+]);
 
 const ChatContent = () => {
   const virtuoso = useRef<VirtuosoHandle>(null);
   const lastMsgIdRef = useRef<string>("");
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
+  const connectState = useUserStore((state) => state.connectState);
+  const syncState = useUserStore((state) => state.syncState);
+  const currentConversation = useConversationStore(
+    (state) => state.currentConversation,
+  );
   const [atBottom, setAtBottom] = useState(true);
 
   const scrollToBottom = useCallback((behavior: "auto" | "smooth" = "auto") => {
@@ -40,6 +65,35 @@ const ChatContent = () => {
     moreOldLoading,
     getMoreOldMessages,
   } = useHistoryMessageList();
+
+  const reactionsEnabled =
+    !window.electronAPI &&
+    currentConversation?.conversationID === conversationID &&
+    !currentConversation?.isPrivateChat &&
+    !currentConversation?.isMsgDestruct;
+  const reactableMessages = useMemo(
+    () =>
+      reactionsEnabled
+        ? loadState.messageList.filter(
+            (message) =>
+              REACTABLE_MESSAGE_TYPES.has(message.contentType) &&
+              message.status === MessageStatus.Succeed &&
+              Boolean(message.serverMsgID) &&
+              !message.attachedInfoElem?.isPrivateChat,
+          )
+        : [],
+    [loadState.messageList, reactionsEnabled],
+  );
+  const reactableMessageIDs = useMemo(
+    () => new Set(reactableMessages.map((message) => message.clientMsgID)),
+    [reactableMessages],
+  );
+  const { summaries, isPending, toggleReaction } = useMessageReactions(
+    reactionsEnabled ? conversationID : undefined,
+    reactableMessages,
+    selfUserID,
+    connectState === "success" && syncState === "success",
+  );
 
   useEffect(() => {
     lastMsgIdRef.current = "";
@@ -134,6 +188,7 @@ const ChatContent = () => {
           atBottomStateChange={setAtBottom}
           ref={virtuoso}
           data={loadState.messageList}
+          context={summaries}
           increaseViewportBy={500}
           components={{
             Header: () =>
@@ -149,17 +204,30 @@ const ChatContent = () => {
               ) : null,
           }}
           computeItemKey={(_, item) => item.clientMsgID}
-          itemContent={(_, message) => {
+          itemContent={(_, message, reactionSummaries) => {
             if (SystemMessageTypes.includes(message.contentType)) {
               return (
                 <NotificationMessage key={message.clientMsgID} message={message} />
               );
             }
+            const canReact = reactableMessageIDs.has(message.clientMsgID);
             return (
               <MessageItemComponent
                 key={message.clientMsgID}
                 conversationID={conversationID}
                 message={message}
+                reactionSummary={reactionSummaries[message.clientMsgID]}
+                isReactionPending={
+                  canReact
+                    ? (emoji) => isPending(message.clientMsgID, emoji)
+                    : undefined
+                }
+                onToggleReaction={
+                  canReact
+                    ? (emoji, reactedByMe) =>
+                        toggleReaction(message.clientMsgID, emoji, reactedByMe)
+                    : undefined
+                }
                 messageUpdateFlag={
                   message.senderNickname +
                   message.senderFaceUrl +

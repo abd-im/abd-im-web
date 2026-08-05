@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { CustomType } from "@/constants";
+import { parseReactionUpdatedEvent } from "@/pages/chat/queryChat/messageReactionState";
 import {
   pushNewMessage,
   updateOneMessage,
@@ -29,6 +30,7 @@ import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
 import { UserStatusItem } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
+import { emit } from "@/utils/events";
 import { initStore } from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
@@ -189,6 +191,7 @@ export function useGlobalEvent() {
     IMSDK.on(CbEvents.OnNewRecvMessageRevoked, revokedMessageHandler);
     IMSDK.on(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
     IMSDK.on(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
+    IMSDK.on(CbEvents.OnRecvCustomBusinessMessage, customBusinessMessageHandler);
     // conversation
     IMSDK.on(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.on(CbEvents.OnNewConversation, newConversationHandler);
@@ -234,6 +237,7 @@ export function useGlobalEvent() {
   };
   const connectSuccessHandler = () => {
     updateConnectState("success");
+    emit("MESSAGE_REACTIONS_REFRESH");
     console.log("connect success...");
   };
   const kickHandler = () => tryOut(t("toast.accountKicked"));
@@ -258,6 +262,7 @@ export function useGlobalEvent() {
   };
   const syncFinishHandler = () => {
     updateSyncState("success");
+    emit("MESSAGE_REACTIONS_REFRESH");
     getFriendListByReq();
     getGroupListByReq();
     getConversationListByReq(false);
@@ -309,6 +314,13 @@ export function useGlobalEvent() {
         } as MessageItem);
       });
     });
+  };
+
+  const customBusinessMessageHandler = ({ data }: WSEvent<unknown>) => {
+    const event = parseReactionUpdatedEvent(data);
+    if (event) {
+      emit("MESSAGE_REACTION_UPDATED", event);
+    }
   };
 
   const notPushType = [MessageType.TypingMessage, MessageType.RevokeMessage];
@@ -500,6 +512,7 @@ export function useGlobalEvent() {
     IMSDK.off(CbEvents.OnRecvNewMessages, newMessagesHandler);
     IMSDK.off(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
     IMSDK.off(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
+    IMSDK.off(CbEvents.OnRecvCustomBusinessMessage, customBusinessMessageHandler);
     // conversation
     IMSDK.off(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.off(CbEvents.OnNewConversation, newConversationHandler);
