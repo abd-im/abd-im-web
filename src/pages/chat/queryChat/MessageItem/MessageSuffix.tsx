@@ -1,5 +1,5 @@
+import { MessageStatus, SessionType } from "@abd-im/wasm-client-sdk";
 import { ExclamationCircleFilled, LoadingOutlined } from "@ant-design/icons";
-import { MessageStatus } from "@abd-im/wasm-client-sdk";
 import { Spin } from "antd";
 import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
@@ -29,8 +29,11 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
 
   const isSelf = message.sendID === selfID;
   const isRead = message.isRead;
+  const showReadStatus = message.sessionType === SessionType.Single;
 
-  if (!isSelf) return null;
+  if (!isSelf || (!showReadStatus && message.status === MessageStatus.Succeed)) {
+    return null;
+  }
 
   return (
     <div
@@ -40,6 +43,7 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
       <span
         className={clsx(
           "select-none text-xs font-normal leading-none",
+          !showReadStatus && "hidden",
           isRead ? "text-[#999]" : "text-brand",
         )}
       >
