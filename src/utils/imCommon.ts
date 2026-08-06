@@ -262,6 +262,8 @@ export const formatMessageByType = (message?: MessageItem): string => {
           (message.streamElem?.content ?? "") +
           (message.streamElem?.packets ?? []).join("")
         );
+      case MessageType.QuoteMessage:
+        return message.quoteElem?.text || t("messageDescription.quoteMessage");
       case MessageType.PictureMessage:
         return t("messageDescription.imageMessage");
       case MessageType.FriendAdded:

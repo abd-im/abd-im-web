@@ -20,6 +20,7 @@ const CONVERSATION_SPLIT_COUNT = 500;
 export const useConversationStore = create<ConversationStore>()((set, get) => ({
   conversationList: [],
   currentConversation: undefined,
+  quoteMessage: undefined,
   unReadCount: 0,
   currentGroupInfo: undefined,
   currentMemberInGroup: undefined,
@@ -104,7 +105,13 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       get().getCurrentGroupInfoByReq(conversation.groupID);
       await get().getCurrentMemberInGroupByReq(conversation.groupID);
     }
-    set(() => ({ currentConversation: { ...conversation } }));
+    set(() => ({
+      currentConversation: { ...conversation },
+      ...(toggleNewConversation ? { quoteMessage: undefined } : {}),
+    }));
+  },
+  updateQuoteMessage: (message?: MessageItem) => {
+    set(() => ({ quoteMessage: message }));
   },
   getUnReadCountByReq: async () => {
     try {

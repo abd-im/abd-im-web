@@ -13,7 +13,7 @@ import { message as antMessage } from "@/AntdGlobalComp";
 import type { MessageReactionSummary } from "@/api/messageReaction";
 import OIMAvatar from "@/components/OIMAvatar";
 import { IMSDK } from "@/layout/MainContentWrap";
-import { useUserStore } from "@/store";
+import { useConversationStore, useUserStore } from "@/store";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { deleteMessage } from "../useHistoryMessageList";
@@ -25,6 +25,7 @@ import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageReactionBar from "./MessageReactionBar";
 import MessageSuffix from "./MessageSuffix";
+import QuoteMessageRender from "./QuoteMessageRender";
 import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
 import VideoMessageRender from "./VideoMessageRender";
@@ -46,6 +47,7 @@ const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.PictureMessage]: MediaMessageRender,
   [MessageType.VideoMessage]: VideoMessageRender,
   [MessageType.FileMessage]: FileMessageRender,
+  [MessageType.QuoteMessage]: QuoteMessageRender,
 };
 
 const MessageItem: FC<IMessageItemProps> = ({
@@ -58,6 +60,7 @@ const MessageItem: FC<IMessageItemProps> = ({
 }) => {
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
+  const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
   const isSender = useMemo(
     () => selfUserID === message.sendID,
     [selfUserID, message.sendID],
@@ -70,6 +73,10 @@ const MessageItem: FC<IMessageItemProps> = ({
     Boolean(onToggleReaction && isReactionPending) &&
     message.status === MessageStatus.Succeed &&
     Boolean(message.serverMsgID) &&
+    !isPrivate;
+  const canReply =
+    message.status === MessageStatus.Succeed &&
+    Boolean(message.clientMsgID) &&
     !isPrivate;
   const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
 
@@ -84,10 +91,10 @@ const MessageItem: FC<IMessageItemProps> = ({
     if (message.contentType === MessageType.TextMessage) {
       items.push({ key: "copy", label: t("placeholder.copy") });
     }
-    items.push(
-      { key: "check", label: t("placeholder.check") },
-      { key: "reply", label: t("placeholder.reply") },
-    );
+    items.push({ key: "check", label: t("placeholder.check") });
+    if (canReply) {
+      items.push({ key: "reply", label: t("placeholder.reply") });
+    }
 
     // Normalize sendTime to milliseconds
     const sendTimeMs =
@@ -99,7 +106,7 @@ const MessageItem: FC<IMessageItemProps> = ({
     }
     items.push({ key: "delete", label: t("placeholder.delete") });
     return items;
-  }, [message, isSender, isPrivate, t]);
+  }, [canReply, message, isSender, isPrivate, t]);
 
   const handleMenuAction = async (key: string) => {
     switch (key) {
@@ -134,8 +141,10 @@ const MessageItem: FC<IMessageItemProps> = ({
         break;
       case "forward":
       case "check":
-      case "reply":
         // Placeholder for future implementation
+        break;
+      case "reply":
+        updateQuoteMessage(message);
         break;
     }
   };
@@ -149,9 +158,9 @@ const MessageItem: FC<IMessageItemProps> = ({
       <div
         id={`chat_${message.clientMsgID}`}
         className={clsx(
-          "relative flex select-text px-5 py-3",
+          "relative flex select-text justify-center py-3",
+          styles["message-row"],
           isPrivate && "!select-none",
-          isSender && "justify-end",
         )}
       >
         <div
@@ -183,7 +192,7 @@ const MessageItem: FC<IMessageItemProps> = ({
             </div>
 
             <div className={styles["message-content-group"]}>
-              <div className="flex items-center">
+              <div className={styles["message-content-row"]}>
                 {isSender && (
                   <div className="mr-2">
                     <BurnCountdown message={message} conversationID={conversationID} />
@@ -209,7 +218,9 @@ const MessageItem: FC<IMessageItemProps> = ({
                     canReact={canReact}
                     isPending={isReactionPending}
                     onToggle={onToggleReaction}
-                    onReply={() => void handleMenuAction("reply")}
+                    onReply={
+                      canReply ? () => void handleMenuAction("reply") : undefined
+                    }
                     menuItems={menuItems}
                     onMenuClick={onMenuClick}
                     actionsDisabled={disabled}

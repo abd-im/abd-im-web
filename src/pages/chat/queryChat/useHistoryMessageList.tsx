@@ -1,10 +1,12 @@
 import { MessageItem, ViewType } from "@abd-im/wasm-client-sdk";
 import { useLatest, useRequest } from "ahooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { IMSDK } from "@/layout/MainContentWrap";
 import emitter, { emit } from "@/utils/events";
+
+import { mergeHistoryMessages } from "./historyMessageState";
 
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
@@ -18,6 +20,8 @@ export function useHistoryMessageList() {
     firstItemIndex: START_INDEX,
   });
   const latestLoadState = useLatest(loadState);
+  const latestConversationID = useLatest(conversationID);
+  const pendingRequests = useRef(new Set<string>());
 
   useEffect(() => {
     loadHistoryMessages();
@@ -109,43 +113,63 @@ export function useHistoryMessageList() {
 
   const loadHistoryMessages = () => getMoreOldMessages(false);
 
-  const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest(
+  const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest<
+    void,
+    [loadMore?: boolean]
+  >(
     async (loadMore = true) => {
       const reqConversationID = conversationID;
-      const { data } = await IMSDK.getAdvancedHistoryMessageList({
-        count: SPLIT_COUNT,
-        startClientMsgID: loadMore
-          ? latestLoadState.current.messageList[0]?.clientMsgID
-          : "",
-        conversationID: conversationID ?? "",
-        viewType: ViewType.History,
-      });
-      if (conversationID !== reqConversationID) return;
+      const startClientMsgID = loadMore
+        ? latestLoadState.current.messageList[0]?.clientMsgID ?? ""
+        : "";
+      const requestKey = `${reqConversationID ?? ""}:${startClientMsgID}`;
+      if (pendingRequests.current.has(requestKey)) return;
+      pendingRequests.current.add(requestKey);
 
-      const filteredMessages = data.messageList.filter((msg: MessageItem) => {
-        if (!msg.attachedInfoElem) return true;
-        const { isPrivateChat, burnDuration, hasReadTime } = msg.attachedInfoElem;
-        if (isPrivateChat && msg.isRead && hasReadTime) {
-          const now = Date.now();
-          const diff = Math.floor((now - hasReadTime) / 1000);
-          if (diff >= burnDuration) {
-            IMSDK.deleteMessageFromLocalStorage({
-              conversationID: reqConversationID!,
-              clientMsgID: msg.clientMsgID,
-            });
-            return false;
+      try {
+        const { data } = await IMSDK.getAdvancedHistoryMessageList({
+          count: SPLIT_COUNT,
+          startClientMsgID,
+          conversationID: reqConversationID ?? "",
+          viewType: ViewType.History,
+        });
+        if (latestConversationID.current !== reqConversationID) return;
+
+        const filteredMessages = data.messageList.filter((msg: MessageItem) => {
+          if (!msg.attachedInfoElem) return true;
+          const { isPrivateChat, burnDuration, hasReadTime } = msg.attachedInfoElem;
+          if (isPrivateChat && msg.isRead && hasReadTime) {
+            const now = Date.now();
+            const diff = Math.floor((now - hasReadTime) / 1000);
+            if (diff >= burnDuration) {
+              IMSDK.deleteMessageFromLocalStorage({
+                conversationID: reqConversationID ?? "",
+                clientMsgID: msg.clientMsgID,
+              });
+              return false;
+            }
           }
-        }
-        return true;
-      });
+          return true;
+        });
 
-      setLoadState((preState) => ({
-        ...preState,
-        initLoading: false,
-        hasMoreOld: !data.isEnd,
-        messageList: [...filteredMessages, ...(loadMore ? preState.messageList : [])],
-        firstItemIndex: preState.firstItemIndex - filteredMessages.length,
-      }));
+        setLoadState((preState) => {
+          const { messageList, prependedCount } = mergeHistoryMessages(
+            preState.messageList,
+            filteredMessages,
+            loadMore,
+          );
+          return {
+            ...preState,
+            initLoading: false,
+            hasMoreOld: !data.isEnd && (!loadMore || prependedCount > 0),
+            messageList,
+            firstItemIndex:
+              (loadMore ? preState.firstItemIndex : START_INDEX) - prependedCount,
+          };
+        });
+      } finally {
+        pendingRequests.current.delete(requestKey);
+      }
     },
     {
       manual: true,

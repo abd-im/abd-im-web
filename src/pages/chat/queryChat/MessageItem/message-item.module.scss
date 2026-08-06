@@ -1,5 +1,11 @@
+.message-row {
+  padding-inline: 0;
+}
+
 .message-container {
-  @apply flex flex-1 overflow-hidden;
+  @apply flex overflow-hidden;
+  width: 80%;
+  min-width: 0;
 
   .message-wrap {
     @apply ml-3 flex flex-1 flex-col overflow-hidden;
@@ -15,16 +21,59 @@
       word-break: break-all;
     }
 
+    .message-quote {
+      overflow: hidden;
+      margin-bottom: 7px;
+      padding-left: 8px;
+      border-left: 2px solid #aeb6bf;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      line-height: 1.45;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .message-quote-label {
+      font-weight: 600;
+    }
+
+    .message-quote-text {
+      font-weight: 400;
+    }
+
+    .quote-message-text {
+      color: inherit;
+      white-space: pre-wrap;
+    }
+
+    .message-mention {
+      color: #1467b8;
+      font-weight: 600;
+    }
+
     .message-content-group {
       @apply relative flex flex-col;
       width: fit-content;
-      max-width: 80%;
+      max-width: 65%;
+    }
+
+    .message-content-row {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      align-items: center;
     }
 
     .message-bubble-wrap {
       position: relative;
       width: fit-content;
+      min-width: 0;
       max-width: 100%;
+    }
+
+    .message-bubble-wrap > .bubble {
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .message-bubble-wrap-reaction-shell .bubble {
@@ -84,6 +133,15 @@
         color: #ffffff;
         border-color: transparent;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+
+      .message-quote {
+        border-left-color: rgb(255 255 255 / 0.45);
+        color: rgb(255 255 255 / 0.68);
+      }
+
+      .message-mention {
+        color: #9fcfff;
       }
 
       .message-bubble-wrap-reaction-shell {
@@ -312,6 +370,18 @@
 }
 
 @media (hover: none), (max-width: 600px) {
+  .message-row {
+    padding-inline: 5%;
+  }
+
+  .message-container {
+    width: 100%;
+  }
+
+  .message-container .message-wrap .message-content-group {
+    max-width: 82%;
+  }
+
   .reaction-actions {
     position: static;
     width: max-content;

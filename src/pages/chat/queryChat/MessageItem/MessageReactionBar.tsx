@@ -184,7 +184,7 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
           className={styles["reaction-action"]}
           title={t("placeholder.reply")}
           aria-label={t("placeholder.reply")}
-          disabled={actionsDisabled}
+          disabled={actionsDisabled || !onReply}
           onClick={onReply}
         >
           <RollbackOutlined />
