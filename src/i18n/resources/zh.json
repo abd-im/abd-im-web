@@ -25,6 +25,70 @@
     "connecting": "连接中",
     "connectFailed": "连接失败"
   },
+  "agent": {
+    "settings": {
+      "user": "Agent 用户",
+      "selectUser": "选择 Agent 用户",
+      "changeUser": "更换",
+      "notSelected": "未选择",
+      "notConfigured": "请先在账号设置中选择 Agent 用户"
+    }
+  },
+  "agentWorkspace": {
+    "agent": "Agent",
+    "title": "Agent",
+    "newConversation": "新对话",
+    "selectAgent": "选择 Agent 好友",
+    "search": "搜索对话",
+    "selectConversation": "选择或创建一个 Agent 对话",
+    "rename": "重命名",
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "pinned": "置顶",
+    "recent": "最近",
+    "share": "分享会话",
+    "copy": "复制",
+    "fork": "分叉会话",
+    "edit": "编辑",
+    "archive": "归档",
+    "archiveUnavailable": "归档功能暂未开放",
+    "workspaceLabel": "Agent 工作区",
+    "emptyTitle": "今天想问什么？",
+    "emptySubtitle": "Agent 工作区已就绪",
+    "composerPlaceholder": "询问任何问题",
+    "loadMore": "加载更早的记录",
+    "activity": "运行活动",
+    "workedFor": "已用 {{duration}}",
+    "processSteps": "{{count}} 个执行步骤",
+    "seconds": "{{count}} 秒",
+    "minutesSeconds": "{{minutes}} 分 {{seconds}} 秒",
+    "toolUsed": "已使用 {{tool}}",
+    "permissionRequest": "已请求权限",
+    "approvalAccepted": "已接受",
+    "tools": {
+      "shell": "终端",
+      "file_change": "文件编辑",
+      "mcp": "MCP 工具",
+      "web_search": "网页搜索",
+      "image_view": "查看图片"
+    },
+    "unsupportedRun": "不支持的运行记录",
+    "cancelRun": "停止当前运行",
+    "attachmentsUnavailable": "首发暂不支持附件",
+    "runStatus": {
+      "queued": "排队中",
+      "running": "正在处理",
+      "waiting_approval": "等待审批",
+      "completed": "已完成",
+      "failed": "运行失败",
+      "cancelled": "已取消"
+    },
+    "starters": {
+      "explain": "解释这道题",
+      "answer": "回答一个日常问题",
+      "handleChat": "帮我处理聊天"
+    }
+  },
   "toast": {
     "accessSuccess": "操作成功！",
     "accessFailed": "操作失败！",
@@ -434,8 +498,8 @@
     "cancelSingleMuteMessage": "{{name}}被{{operator}}取消了禁言",
     "burnReadStatus": "已{{status}}阅后即焚",
     "privateMessage": "私密消息"
-    },
-    "date": {
+  },
+  "date": {
     "day": "天",
     "week": "周",
     "month": "月",

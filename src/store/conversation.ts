@@ -8,6 +8,10 @@ import {
 import { t } from "i18next";
 import { create } from "zustand";
 
+import {
+  conversationKind,
+  workspaceKindUpdates,
+} from "@/features/agentWorkspace/metadata";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { feedbackToast } from "@/utils/common";
 import { conversationSort, isGroupSession } from "@/utils/imCommon";
@@ -16,9 +20,12 @@ import { ConversationListUpdateType, ConversationStore } from "./type";
 import { useUserStore } from "./user";
 
 const CONVERSATION_SPLIT_COUNT = 500;
+const GROUP_INFO_BATCH_COUNT = 100;
 
 export const useConversationStore = create<ConversationStore>()((set, get) => ({
   conversationList: [],
+  conversationListLoaded: false,
+  conversationKinds: {},
   currentConversation: undefined,
   quoteMessage: undefined,
   unReadCount: 0,
@@ -34,14 +41,18 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       tmpConversationList = data;
     } catch (error) {
       feedbackToast({ error, msg: t("toast.getConversationFailed") });
+      if (!isOffset) set(() => ({ conversationListLoaded: true }));
       return true;
     }
-    set((state) => ({
-      conversationList: [
-        ...(isOffset ? state.conversationList : []),
-        ...tmpConversationList,
-      ],
-    }));
+    if (isOffset) {
+      get().updateConversationList(tmpConversationList, "filter");
+    } else {
+      set(() => ({
+        conversationList: tmpConversationList,
+        conversationListLoaded: true,
+      }));
+      void get().loadConversationKinds(tmpConversationList);
+    }
     return tmpConversationList.length === CONVERSATION_SPLIT_COUNT;
   },
   updateConversationList: (
@@ -53,22 +64,24 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     );
     if (idx > -1) get().updateCurrentConversation(list[idx]);
 
-    if (type === "filter") {
-      set((state) => ({
-        conversationList: conversationSort(
-          [...list, ...state.conversationList],
-          state.conversationList,
-        ),
-      }));
-      return;
-    }
-    let filterArr: ConversationItem[] = [];
-    const chids = list.map((ch) => ch.conversationID);
-    filterArr = get().conversationList.filter(
-      (tc) => !chids.includes(tc.conversationID),
-    );
-
-    set(() => ({ conversationList: conversationSort([...list, ...filterArr]) }));
+    const currentList = get().conversationList;
+    const nextList =
+      type === "filter"
+        ? conversationSort([...list, ...currentList], currentList)
+        : conversationSort([
+            ...list,
+            ...currentList.filter(
+              (conversation) =>
+                !list.some(
+                  (item) => item.conversationID === conversation.conversationID,
+                ),
+            ),
+          ]);
+    set((state) => ({
+      conversationList: nextList,
+      conversationKinds: state.conversationKinds,
+    }));
+    void get().loadConversationKinds(nextList);
   },
   updateCurrentConversation: async (
     conversation?: ConversationItem,
@@ -135,10 +148,59 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       feedbackToast({ error, msg: t("toast.getGroupInfoFailed") });
       return;
     }
-    set(() => ({ currentGroupInfo: { ...groupInfo } }));
+    set((state) => ({
+      currentGroupInfo: { ...groupInfo },
+      conversationKinds: {
+        ...state.conversationKinds,
+        [groupID]: conversationKind(groupInfo.ex),
+      },
+    }));
   },
   updateCurrentGroupInfo: (groupInfo: GroupItem) => {
-    set(() => ({ currentGroupInfo: { ...groupInfo } }));
+    set((state) => ({
+      currentGroupInfo: { ...groupInfo },
+      conversationKinds: {
+        ...state.conversationKinds,
+        [groupInfo.groupID]: conversationKind(groupInfo.ex),
+      },
+    }));
+  },
+  updateConversationGroupInfo: (groupInfo: GroupItem) => {
+    set((state) => ({
+      conversationKinds: {
+        ...state.conversationKinds,
+        [groupInfo.groupID]: conversationKind(groupInfo.ex),
+      },
+    }));
+  },
+  loadConversationKinds: async (list: ConversationItem[]) => {
+    const knownKinds = get().conversationKinds;
+    const groupIDs = [
+      ...new Set(
+        list
+          .filter((item) => isGroupSession(item.conversationType))
+          .map((item) => item.groupID)
+          .filter(
+            (groupID) => !Object.prototype.hasOwnProperty.call(knownKinds, groupID),
+          ),
+      ),
+    ].filter(Boolean);
+    if (!groupIDs.length) return;
+    try {
+      const groups: GroupItem[] = [];
+      for (let index = 0; index < groupIDs.length; index += GROUP_INFO_BATCH_COUNT) {
+        const { data } = await IMSDK.getSpecifiedGroupsInfo(
+          groupIDs.slice(index, index + GROUP_INFO_BATCH_COUNT),
+        );
+        groups.push(...data);
+      }
+      const updates = workspaceKindUpdates(groups);
+      set((state) => ({
+        conversationKinds: { ...state.conversationKinds, ...updates },
+      }));
+    } catch (error) {
+      console.error("failed to load conversation group metadata", error);
+    }
   },
   getCurrentMemberInGroupByReq: async (groupID: string) => {
     let memberInfo: GroupMemberItem;
@@ -171,6 +233,8 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
   clearConversationStore: () => {
     set(() => ({
       conversationList: [],
+      conversationListLoaded: false,
+      conversationKinds: {},
       currentConversation: undefined,
       unReadCount: 0,
       currentGroupInfo: undefined,

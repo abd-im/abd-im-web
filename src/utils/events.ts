@@ -17,6 +17,7 @@ type EmitterEvents = {
   MESSAGE_REACTION_UPDATED: MessageReactionUpdatedEvent;
   MESSAGE_REACTIONS_REFRESH: void;
 
+  AGENT_USER_SELECTED: CheckListItem;
   SELECT_USER: SelectUserParams;
 };
 

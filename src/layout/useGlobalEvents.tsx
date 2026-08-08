@@ -61,6 +61,9 @@ export function useGlobalEvent() {
   const updateCurrentGroupInfo = useConversationStore(
     (state) => state.updateCurrentGroupInfo,
   );
+  const updateConversationGroupInfo = useConversationStore(
+    (state) => state.updateConversationGroupInfo,
+  );
   const getCurrentGroupInfoByReq = useConversationStore(
     (state) => state.getCurrentGroupInfoByReq,
   );
@@ -426,6 +429,7 @@ export function useGlobalEvent() {
 
   // group
   const joinedGroupAddedHandler = ({ data }: WSEvent<GroupItem>) => {
+    updateConversationGroupInfo(data);
     if (data.groupID === useConversationStore.getState().currentConversation?.groupID) {
       updateCurrentGroupInfo(data);
       getCurrentMemberInGroupByReq(data.groupID);
@@ -445,6 +449,7 @@ export function useGlobalEvent() {
     }
   };
   const groupInfoChangedHandler = ({ data }: WSEvent<GroupItem>) => {
+    updateConversationGroupInfo(data);
     updateGroup(data);
     if (data.groupID === useConversationStore.getState().currentConversation?.groupID) {
       updateCurrentGroupInfo(data);

@@ -2,10 +2,13 @@ import { createHashRouter } from "react-router-dom";
 
 import { MainContentLayout } from "@/layout/MainContentLayout";
 import { MainContentWrap } from "@/layout/MainContentWrap";
+import { Agent, EmptyAgent } from "@/pages/agent";
+import AgentWorkspaceContent from "@/pages/agent/AgentWorkspaceContent";
 import { EmptyChat } from "@/pages/chat/EmptyChat";
 import { QueryChat } from "@/pages/chat/queryChat";
 
 import contactRoutes from "./ContactRoutes";
+import { ConversationKindRoute } from "./ConversationKindRoute";
 import GlobalErrorElement from "./GlobalErrorElement";
 
 const router = createHashRouter([
@@ -31,7 +34,26 @@ const router = createHashRouter([
               },
               {
                 path: ":conversationID",
-                element: <QueryChat />,
+                element: (
+                  <ConversationKindRoute kind="chat">
+                    <QueryChat />
+                  </ConversationKindRoute>
+                ),
+              },
+            ],
+          },
+          {
+            path: "/agent",
+            element: <Agent />,
+            children: [
+              { index: true, element: <EmptyAgent /> },
+              {
+                path: ":conversationID",
+                element: (
+                  <ConversationKindRoute kind="agent_workspace">
+                    <AgentWorkspaceContent />
+                  </ConversationKindRoute>
+                ),
               },
             ],
           },

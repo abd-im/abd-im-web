@@ -11,6 +11,7 @@ import {
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
 
 import { BusinessUserInfo } from "@/api/login";
+import type { ConversationKind } from "@/features/agentWorkspace/metadata";
 
 export type IMConnectState = "success" | "loading" | "failed";
 
@@ -45,6 +46,8 @@ export type ConversationListUpdateType = "push" | "filter";
 
 export interface ConversationStore {
   conversationList: ConversationItem[];
+  conversationListLoaded: boolean;
+  conversationKinds: Record<string, ConversationKind | undefined>;
   currentConversation?: ConversationItem;
   quoteMessage?: MessageItem;
   unReadCount: number;
@@ -64,6 +67,8 @@ export interface ConversationStore {
   updateUnReadCount: (count: number) => void;
   getCurrentGroupInfoByReq: (groupID: string) => Promise<void>;
   updateCurrentGroupInfo: (groupInfo: GroupItem) => void;
+  updateConversationGroupInfo: (groupInfo: GroupItem) => void;
+  loadConversationKinds: (list: ConversationItem[]) => Promise<void>;
   getCurrentMemberInGroupByReq: (groupID: string) => Promise<void>;
   setCurrentMemberInGroup: (memberInfo?: GroupMemberItem) => void;
   tryUpdateCurrentMemberInGroup: (member: GroupMemberItem) => void;

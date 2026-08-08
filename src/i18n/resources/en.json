@@ -25,6 +25,70 @@
     "connecting": "Connecting",
     "connectFailed": "Connect Failed"
   },
+  "agent": {
+    "settings": {
+      "user": "Agent user",
+      "selectUser": "Select Agent user",
+      "changeUser": "Change",
+      "notSelected": "Not selected",
+      "notConfigured": "Select an Agent user in Account Settings first"
+    }
+  },
+  "agentWorkspace": {
+    "agent": "Agent",
+    "title": "Agent",
+    "newConversation": "New conversation",
+    "selectAgent": "Select an Agent friend",
+    "search": "Search conversations",
+    "selectConversation": "Select or create an Agent conversation",
+    "rename": "Rename",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinned": "Pinned",
+    "recent": "Recent",
+    "share": "Share conversation",
+    "copy": "Copy",
+    "fork": "Fork conversation",
+    "edit": "Edit",
+    "archive": "Archive",
+    "archiveUnavailable": "Archive is not available yet",
+    "workspaceLabel": "Agent workspace",
+    "emptyTitle": "What would you like to ask?",
+    "emptySubtitle": "Agent workspace is ready",
+    "composerPlaceholder": "Ask anything",
+    "loadMore": "Load earlier activity",
+    "activity": "Run activity",
+    "workedFor": "Worked for {{duration}}",
+    "processSteps": "{{count}} execution steps",
+    "seconds": "{{count}}s",
+    "minutesSeconds": "{{minutes}}m {{seconds}}s",
+    "toolUsed": "Used {{tool}}",
+    "permissionRequest": "Requested permission",
+    "approvalAccepted": "Accepted",
+    "tools": {
+      "shell": "Terminal",
+      "file_change": "File changes",
+      "mcp": "MCP tool",
+      "web_search": "Web search",
+      "image_view": "Image viewer"
+    },
+    "unsupportedRun": "Unsupported run record",
+    "cancelRun": "Stop current run",
+    "attachmentsUnavailable": "Attachments are not available in this release",
+    "runStatus": {
+      "queued": "Queued",
+      "running": "Working",
+      "waiting_approval": "Waiting for approval",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "starters": {
+      "explain": "Explain this problem",
+      "answer": "Answer an everyday question",
+      "handleChat": "Help with my messages"
+    }
+  },
   "toast": {
     "accessSuccess": "Operation successful!",
     "accessFailed": "Operation failed!",
@@ -433,8 +497,8 @@
     "cancelSingleMuteMessage": "{{name}} had their mute canceled by {{operator}}",
     "burnReadStatus": "Burn after reading is {{status}}",
     "privateMessage": "Private Message"
-    },
-    "date": {
+  },
+  "date": {
     "day": "Day",
     "week": "Week",
     "month": "Month",

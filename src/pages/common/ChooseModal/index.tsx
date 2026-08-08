@@ -1,5 +1,5 @@
-import { CloseOutlined } from "@ant-design/icons";
 import { GroupType, SessionType } from "@abd-im/wasm-client-sdk";
+import { CloseOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
@@ -28,6 +28,7 @@ import { CheckListItem } from "./ChooseBox/CheckItem";
 
 export type ChooseModalType =
   | "CRATE_GROUP"
+  | "SELECT_AGENT_USER"
   | "INVITE_TO_GROUP"
   | "KICK_FORM_GROUP"
   | "TRANSFER_IN_GROUP"
@@ -49,6 +50,7 @@ interface IChooseModalProps {
 
 const titleMap = {
   CRATE_GROUP: t("placeholder.createGroup"),
+  SELECT_AGENT_USER: t("agent.settings.selectUser"),
   INVITE_TO_GROUP: t("placeholder.invitation"),
   KICK_FORM_GROUP: t("placeholder.kickMember"),
   TRANSFER_IN_GROUP: t("placeholder.transferGroup"),
@@ -57,13 +59,14 @@ const titleMap = {
 
 i18n.on("languageChanged", () => {
   titleMap.CRATE_GROUP = t("placeholder.createGroup");
+  titleMap.SELECT_AGENT_USER = t("agent.settings.selectUser");
   titleMap.INVITE_TO_GROUP = t("placeholder.invitation");
   titleMap.KICK_FORM_GROUP = t("placeholder.kickMember");
   titleMap.TRANSFER_IN_GROUP = t("placeholder.transferGroup");
   titleMap.SELECT_USER = t("placeholder.selectUser");
 });
 
-const onlyOneTypes = ["TRANSFER_IN_GROUP"];
+const onlyOneTypes = ["TRANSFER_IN_GROUP", "SELECT_AGENT_USER"];
 const onlyMemberTypes = ["KICK_FORM_GROUP", "TRANSFER_IN_GROUP"];
 
 const ChooseModal: ForwardRefRenderFunction<OverlayVisibleHandle, IChooseModalProps> = (
@@ -155,6 +158,9 @@ export const ChooseContact: FC<ChooseContactProps> = ({
     setLoading(true);
     try {
       switch (type) {
+        case "SELECT_AGENT_USER":
+          emit("AGENT_USER_SELECTED", choosedList[0]);
+          break;
         case "CRATE_GROUP":
           if (choosedList.length === 1) {
             toSpecifiedConversation({

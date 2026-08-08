@@ -1,12 +1,13 @@
 import {
+  ConversationItem,
   MessageItem,
   MessageStatus,
   MessageType,
-  SessionType,
 } from "@abd-im/wasm-client-sdk";
 import { t } from "i18next";
 import { useCallback } from "react";
 
+import { GroupSessionTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 
@@ -14,6 +15,7 @@ import { pushNewMessage, updateOneMessage } from "../useHistoryMessageList";
 
 export interface SendMessageParams {
   message: MessageItem;
+  conversation?: ConversationItem;
 }
 
 const getPushDesc = (message: MessageItem): string => {
@@ -58,25 +60,26 @@ export function useSendMessage() {
   const selfInfo = useUserStore((state) => state.selfInfo);
 
   const sendMessage = useCallback(
-    async ({ message }: SendMessageParams) => {
-      if (!currentConversation) return;
+    async ({ message, conversation }: SendMessageParams) => {
+      const targetConversation = conversation ?? currentConversation;
+      if (!targetConversation) return;
 
-      const isGroup = currentConversation.conversationType === SessionType.Group;
-      const recvID = isGroup ? "" : currentConversation.userID ?? "";
-      const groupID = isGroup ? currentConversation.groupID ?? "" : "";
+      const isGroup = GroupSessionTypes.includes(targetConversation.conversationType);
+      const recvID = isGroup ? "" : targetConversation.userID ?? "";
+      const groupID = isGroup ? targetConversation.groupID ?? "" : "";
 
       message.sendID = selfInfo.userID;
       message.senderNickname = selfInfo.nickname;
       message.senderFaceUrl = selfInfo.faceURL;
       message.status = MessageStatus.Sending;
       message.sendTime = Date.now();
-      message.sessionType = currentConversation.conversationType;
+      message.sessionType = targetConversation.conversationType;
 
       pushNewMessage(message);
 
       try {
         const offlinePushInfo = {
-          title: isGroup ? currentConversation.showName : selfInfo.nickname,
+          title: isGroup ? targetConversation.showName : selfInfo.nickname,
           desc: getPushDesc(message),
           ex: "",
           iOSPushSound: "+1",

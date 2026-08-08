@@ -21,8 +21,7 @@ export const MainContentLayout = () => {
 
   useMount(() => {
     const isRoot = !matches.find((item) => item.pathname !== "/");
-    const inConversation = matches.some((item) => item.params.conversationID);
-    if (isRoot || inConversation) {
+    if (isRoot) {
       navigate("chat", {
         replace: true,
       });

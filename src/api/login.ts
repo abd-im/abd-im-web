@@ -157,6 +157,7 @@ export interface BusinessUserInfo {
   email: string;
   nickname: string;
   faceURL: string;
+  ex: string;
   gender: number;
   level: number;
   birth: number;

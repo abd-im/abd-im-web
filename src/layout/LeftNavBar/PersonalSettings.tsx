@@ -1,15 +1,25 @@
 import { CloseOutlined, RightOutlined } from "@ant-design/icons";
 import { AddFriendPermission, MessageReceiveOptType } from "@abd-im/wasm-client-sdk";
 import { Checkbox, Modal } from "antd";
-import { forwardRef, ForwardRefRenderFunction, memo, useRef } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import { modal } from "@/AntdGlobalComp";
+import { agentUserEx, agentUserIDFromEx } from "@/features/agent/config";
 import i18n from "@/i18n";
 import { IMSDK } from "@/layout/MainContentWrap";
+import type { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import { useUserStore } from "@/store";
 import { LocaleString } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
+import emitter, { emit } from "@/utils/events";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
 import BlackList from "./BlackList";
@@ -58,6 +68,7 @@ export const PersonalSettingsContent = ({
   const allowBeep = useUserStore((state) => state.appSettings.allowBeep);
   const updateAppSettings = useUserStore((state) => state.updateAppSettings);
   const updateSelfInfo = useUserStore((state) => state.updateSelfInfo);
+  const agentUserID = agentUserIDFromEx(selfInfo.ex);
 
   const backListRef = useRef<OverlayVisibleHandle>(null);
   const changePasswordRef = useRef<OverlayVisibleHandle>(null);
@@ -92,6 +103,26 @@ export const PersonalSettingsContent = ({
       feedbackToast({ error });
     }
   };
+
+  const updateAgentUser = useCallback(
+    async (agent: CheckListItem) => {
+      if (!agent.userID) return;
+      try {
+        const ex = agentUserEx(selfInfo.ex, agent.userID);
+        await IMSDK.setSelfInfo({ ex });
+        updateSelfInfo({ ex });
+      } catch (error) {
+        feedbackToast({ error });
+      }
+    },
+    [selfInfo.ex, updateSelfInfo],
+  );
+
+  useEffect(() => {
+    const handler = (agent: CheckListItem) => void updateAgentUser(agent);
+    emitter.on("AGENT_USER_SELECTED", handler);
+    return () => emitter.off("AGENT_USER_SELECTED", handler);
+  }, [updateAgentUser]);
 
   const tryClearAllHistory = () => {
     modal.confirm({
@@ -178,7 +209,7 @@ export const PersonalSettingsContent = ({
           </div>
 
           {/* Add Friend Settings */}
-          <div>
+          <div className="mb-6">
             <div className="mb-4 text-sm font-semibold text-foreground">
               {t("placeholder.addFriendsSetting")}
             </div>
@@ -193,6 +224,26 @@ export const PersonalSettingsContent = ({
                   {t("placeholder.refuseAddFriend")}
                 </span>
               </Checkbox>
+            </div>
+          </div>
+
+          <div className="border-t border-surface-border pt-6">
+            <div className="mb-1 text-sm font-semibold text-foreground">
+              {t("agent.settings.user")}
+            </div>
+            <div className="flex items-center justify-between gap-4 pl-1">
+              <span className="min-w-0 truncate text-sm text-muted-foreground">
+                {agentUserID || t("agent.settings.notSelected")}
+              </span>
+              <button
+                className="shrink-0 text-sm font-medium text-primary hover:opacity-80"
+                type="button"
+                onClick={() => emit("OPEN_CHOOSE_MODAL", { type: "SELECT_AGENT_USER" })}
+              >
+                {agentUserID
+                  ? t("agent.settings.changeUser")
+                  : t("agent.settings.selectUser")}
+              </button>
             </div>
           </div>
         </div>

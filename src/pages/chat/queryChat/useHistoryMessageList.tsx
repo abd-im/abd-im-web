@@ -11,7 +11,7 @@ import { mergeHistoryMessages } from "./historyMessageState";
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
 
-export function useHistoryMessageList() {
+export function useHistoryMessageList(enabled = true) {
   const { conversationID } = useParams();
   const [loadState, setLoadState] = useState({
     initLoading: true,
@@ -22,18 +22,6 @@ export function useHistoryMessageList() {
   const latestLoadState = useLatest(loadState);
   const latestConversationID = useLatest(conversationID);
   const pendingRequests = useRef(new Set<string>());
-
-  useEffect(() => {
-    loadHistoryMessages();
-    return () => {
-      setLoadState(() => ({
-        initLoading: true,
-        hasMoreOld: true,
-        messageList: [] as MessageItem[],
-        firstItemIndex: START_INDEX,
-      }));
-    };
-  }, [conversationID]);
 
   useEffect(() => {
     const pushNewMessage = (message: MessageItem) => {
@@ -111,8 +99,6 @@ export function useHistoryMessageList() {
     };
   }, []);
 
-  const loadHistoryMessages = () => getMoreOldMessages(false);
-
   const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest<
     void,
     [loadMore?: boolean]
@@ -175,6 +161,27 @@ export function useHistoryMessageList() {
       manual: true,
     },
   );
+
+  useEffect(() => {
+    if (!enabled) {
+      setLoadState({
+        initLoading: false,
+        hasMoreOld: false,
+        messageList: [],
+        firstItemIndex: START_INDEX,
+      });
+      return;
+    }
+    void getMoreOldMessages(false);
+    return () => {
+      setLoadState(() => ({
+        initLoading: true,
+        hasMoreOld: true,
+        messageList: [] as MessageItem[],
+        firstItemIndex: START_INDEX,
+      }));
+    };
+  }, [conversationID, enabled, getMoreOldMessages]);
 
   return {
     SPLIT_COUNT,

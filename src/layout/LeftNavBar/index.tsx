@@ -1,14 +1,9 @@
-import {
-  ContactsFilled,
-  ContactsOutlined,
-  MessageFilled,
-  MessageOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { RightOutlined } from "@ant-design/icons";
 import { Badge, Divider, Layout, Popover, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
-import React, { memo, useRef, useState } from "react";
+import { Bot, ContactRound, MessageSquare } from "lucide-react";
+import React, { memo, useMemo, useRef, useState } from "react";
 import ImageResizer from "react-image-file-resizer";
 import { UNSAFE_NavigationContext, useResolvedPath } from "react-router-dom";
 
@@ -16,6 +11,7 @@ import { modal } from "@/AntdGlobalComp";
 import { updateBusinessUserInfo } from "@/api/login";
 import change_avatar from "@/assets/images/profile/change_avatar.png";
 import OIMAvatar from "@/components/OIMAvatar";
+import { splitConversationList } from "@/features/agentWorkspace/conversationLists";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
@@ -31,16 +27,38 @@ const { Sider } = Layout;
 
 const NavList = [
   {
-    icon: <MessageOutlined className="text-lg text-muted-foreground" />,
-    icon_active: <MessageFilled className="text-lg text-foreground" />,
+    icon: (
+      <MessageSquare
+        className="h-[18px] w-[18px] text-muted-foreground"
+        strokeWidth={1.8}
+      />
+    ),
+    icon_active: (
+      <MessageSquare className="h-[18px] w-[18px] text-foreground" strokeWidth={1.8} />
+    ),
     title: t("placeholder.chat"),
     path: "/chat",
   },
   {
-    icon: <ContactsOutlined className="text-lg text-muted-foreground" />,
-    icon_active: <ContactsFilled className="text-lg text-foreground" />,
+    icon: (
+      <ContactRound
+        className="h-[18px] w-[18px] text-muted-foreground"
+        strokeWidth={1.8}
+      />
+    ),
+    icon_active: (
+      <ContactRound className="h-[18px] w-[18px] text-foreground" strokeWidth={1.8} />
+    ),
     title: t("placeholder.contact"),
     path: "/contact",
+  },
+  {
+    icon: <Bot className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />,
+    icon_active: (
+      <Bot className="h-[18px] w-[18px] text-foreground" strokeWidth={1.8} />
+    ),
+    title: "Agent",
+    path: "/agent",
   },
 ];
 
@@ -82,7 +100,12 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
 
   const [showConversationMenu, setShowConversationMenu] = useState(false);
 
-  const unReadCount = useConversationStore((state) => state.unReadCount);
+  const conversationList = useConversationStore((state) => state.conversationList);
+  const conversationKinds = useConversationStore((state) => state.conversationKinds);
+  const splitConversations = useMemo(
+    () => splitConversationList(conversationList, conversationKinds),
+    [conversationKinds, conversationList],
+  );
   const unHandleFriendApplicationCount = useContactStore(
     (state) => state.unHandleFriendApplicationCount,
   );
@@ -105,7 +128,16 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
 
   const getBadge = () => {
     if (path === "/chat") {
-      return unReadCount;
+      return splitConversations.chat.reduce(
+        (total, conversation) => total + conversation.unreadCount,
+        0,
+      );
+    }
+    if (path === "/agent") {
+      return splitConversations.agent.reduce(
+        (total, conversation) => total + conversation.unreadCount,
+        0,
+      );
     }
     if (path === "/contact") {
       return unHandleFriendApplicationCount + unHandleGroupApplicationCount;
@@ -116,6 +148,7 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
   return (
     <Badge size="small" count={getBadge()}>
       <div
+        data-testid={`nav-${path.slice(1)}`}
         className={clsx(
           "mb-3 flex h-[52px] w-12 cursor-pointer flex-col items-center justify-center rounded-lg transition-colors",
           isActive ? "bg-surface-selected shadow-sm" : "hover:bg-surface-hover",
@@ -125,7 +158,14 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
         <div className="flex h-5 items-center justify-center">
           {isActive ? icon_active : icon}
         </div>
-        <div className={clsx("mt-1 text-[11px]", isActive ? "text-foreground font-medium" : "text-muted-foreground")}>{title}</div>
+        <div
+          className={clsx(
+            "mt-1 text-[11px]",
+            isActive ? "font-medium text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {title}
+        </div>
       </div>
     </Badge>
   );

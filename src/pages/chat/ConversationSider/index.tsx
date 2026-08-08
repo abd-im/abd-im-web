@@ -1,18 +1,18 @@
+import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import clsx from "clsx";
 import { t } from "i18next";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import sync from "@/assets/images/common/sync.png";
 import sync_error from "@/assets/images/common/sync_error.png";
 import FlexibleSider from "@/components/FlexibleSider";
+import { splitConversationList } from "@/features/agentWorkspace/conversationLists";
 import { useConversationStore, useUserStore } from "@/store";
 
 import ConversationItemComp from "./ConversationItem";
 import styles from "./index.module.scss";
-
-import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 
 const ConnectBar = () => {
   const userStore = useUserStore();
@@ -36,13 +36,13 @@ const ConnectBar = () => {
   return (
     <>
       {showLoading && (
-        <div className="flex h-7 items-center justify-center bg-surface border-b border-surface-border text-foreground px-2">
+        <div className="flex h-7 items-center justify-center border-b border-surface-border bg-surface px-2 text-foreground">
           <SyncOutlined spin className="mr-1.5 text-xs text-foreground" />
           <span className="text-xs font-medium text-foreground">{loadingTip}</span>
         </div>
       )}
       {showFailed && (
-        <div className="flex h-7 items-center justify-center bg-red-500/10 border-b border-red-500/20 text-red-600 px-2">
+        <div className="flex h-7 items-center justify-center border-b border-red-500/20 bg-red-500/10 px-2 text-red-600">
           <WarningOutlined className="mr-1.5 text-xs text-red-600" />
           <span className="text-xs font-medium text-red-600">{errorTip}</span>
         </div>
@@ -54,6 +54,11 @@ const ConnectBar = () => {
 const ConversationSider = () => {
   const { conversationID } = useParams();
   const conversationList = useConversationStore((state) => state.conversationList);
+  const conversationKinds = useConversationStore((state) => state.conversationKinds);
+  const chatConversationList = useMemo(
+    () => splitConversationList(conversationList, conversationKinds).chat,
+    [conversationKinds, conversationList],
+  );
   const getConversationListByReq = useConversationStore(
     (state) => state.getConversationListByReq,
   );
@@ -77,7 +82,7 @@ const ConversationSider = () => {
       >
         <Virtuoso
           className="flex-1"
-          data={conversationList}
+          data={chatConversationList}
           ref={virtuoso}
           endReached={endReached}
           computeItemKey={(_, item) => item.conversationID}
