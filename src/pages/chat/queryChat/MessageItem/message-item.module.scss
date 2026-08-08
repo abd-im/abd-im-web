@@ -2,6 +2,35 @@
   padding-inline: 0;
 }
 
+.message-row-selection-mode {
+  padding-inline: 46px 12px;
+}
+
+.message-row-selected {
+  background: var(--surface-hover);
+}
+
+.message-select-toggle {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  color: #ffffff;
+  background: var(--surface-raised);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.message-select-toggle-selected {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
 .message-container {
   @apply flex overflow-hidden;
   width: 80%;
@@ -374,6 +403,10 @@
     padding-inline: 5%;
   }
 
+  .message-row-selection-mode {
+    padding-inline: 42px 5%;
+  }
+
   .message-container {
     width: 100%;
   }
@@ -421,4 +454,79 @@
   word-wrap: break-word;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.merge-message-card {
+  display: flex;
+  width: 260px;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.merge-message-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.merge-message-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.merge-message-summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merge-message-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--surface-border);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.message-container-sender .merge-message-summary,
+.message-container-sender .merge-message-footer {
+  color: rgb(255 255 255 / 0.72);
+}
+
+.message-container-sender .merge-message-footer {
+  border-top-color: rgb(255 255 255 / 0.18);
+}
+
+.merge-record-list {
+  display: flex;
+  max-height: min(60vh, 520px);
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.merge-record-meta {
+  display: flex;
+  gap: 8px;
+  color: var(--sub-text);
+  font-size: 12px;
+}
+
+.merge-record-bubble {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--surface);
+  white-space: pre-wrap;
+  word-break: break-word;
 }

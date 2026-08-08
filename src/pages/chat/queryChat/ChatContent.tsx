@@ -1,20 +1,21 @@
-import {
-  MessageItem,
-  MessageStatus,
-  MessageType,
-  SessionType,
-} from "@abd-im/wasm-client-sdk";
+import { MessageItem, MessageStatus, MessageType } from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { message as antMessage } from "@/AntdGlobalComp";
 import { SystemMessageTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import emitter from "@/utils/events";
 
+import { useSendMessage } from "./ChatFooter/useSendMessage";
+import ForwardSelectionBar from "./forwarding/ForwardSelectionBar";
+import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetModal";
 import MessageItemComponent from "./MessageItem";
+import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
 import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
 import { useMessageReactions } from "./useMessageReactions";
@@ -34,6 +35,7 @@ const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
 ]);
 
 const ChatContent = () => {
+  const { t } = useTranslation();
   const virtuoso = useRef<VirtuosoHandle>(null);
   const lastMsgIdRef = useRef<string>("");
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
@@ -42,7 +44,16 @@ const ChatContent = () => {
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
+  const conversationList = useConversationStore((state) => state.conversationList);
   const [atBottom, setAtBottom] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMessageIDs, setSelectedMessageIDs] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [forwardMode, setForwardMode] = useState<"merge" | "single">("merge");
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [forwardSubmitting, setForwardSubmitting] = useState(false);
+  const { sendMessage } = useSendMessage();
 
   const scrollToBottom = useCallback((behavior: "auto" | "smooth" = "auto") => {
     setTimeout(
@@ -58,13 +69,28 @@ const ChatContent = () => {
   }, []);
 
   const {
-    SPLIT_COUNT,
     conversationID,
     loadState,
     latestLoadState,
     moreOldLoading,
     getMoreOldMessages,
   } = useHistoryMessageList();
+
+  const selectedMessages = useMemo(
+    () =>
+      loadState.messageList.filter((message) =>
+        selectedMessageIDs.has(message.clientMsgID),
+      ),
+    [loadState.messageList, selectedMessageIDs],
+  );
+
+  const isForwardableMessage = useCallback(
+    (message: MessageItem) =>
+      message.status === MessageStatus.Succeed &&
+      Boolean(message.clientMsgID) &&
+      !message.attachedInfoElem?.isPrivateChat,
+    [],
+  );
 
   const reactionsEnabled =
     !window.electronAPI &&
@@ -97,6 +123,9 @@ const ChatContent = () => {
 
   useEffect(() => {
     lastMsgIdRef.current = "";
+    setSelectionMode(false);
+    setSelectedMessageIDs(new Set());
+    setForwardDialogOpen(false);
   }, [conversationID]);
 
   useEffect(() => {
@@ -168,6 +197,118 @@ const ChatContent = () => {
     getMoreOldMessages();
   };
 
+  const closeSelection = () => {
+    setSelectionMode(false);
+    setSelectedMessageIDs(new Set());
+  };
+
+  const enterSelection = (messageID: string) => {
+    setSelectionMode(true);
+    setSelectedMessageIDs(new Set([messageID]));
+  };
+
+  const toggleSelection = (messageID: string) => {
+    setSelectedMessageIDs((current) => {
+      const next = new Set(current);
+      if (next.has(messageID)) {
+        next.delete(messageID);
+      } else {
+        next.add(messageID);
+      }
+      return next;
+    });
+  };
+
+  const openForwardDialog = (mode: "merge" | "single") => {
+    if (!selectedMessages.length) return;
+    setForwardMode(mode);
+    setForwardDialogOpen(true);
+  };
+
+  const openSingleForward = (messageID: string) => {
+    setSelectionMode(true);
+    setSelectedMessageIDs(new Set([messageID]));
+    setForwardMode("single");
+    setForwardDialogOpen(true);
+  };
+
+  const resolveTargetConversation = async (target: ForwardTarget) => {
+    const existing = conversationList.find(
+      (conversation) =>
+        conversation.conversationType === target.sessionType &&
+        (target.isGroup ? conversation.groupID : conversation.userID) ===
+          target.sourceID,
+    );
+    if (existing) return existing;
+
+    return (
+      await IMSDK.getOneConversation({
+        sourceID: target.sourceID,
+        sessionType: target.sessionType,
+      })
+    ).data;
+  };
+
+  const submitForward = async (targets: ForwardTarget[]) => {
+    if (!selectedMessages.length || !currentConversation) return false;
+
+    setForwardSubmitting(true);
+    let successCount = 0;
+    try {
+      for (const target of targets) {
+        try {
+          const targetConversation = await resolveTargetConversation(target);
+          let targetSucceeded = true;
+          if (forwardMode === "merge") {
+            const { data: message } = await IMSDK.createMergerMessage({
+              messageList: selectedMessages.map((item) => ({ ...item })),
+              title: `${currentConversation.showName} ${t(
+                "placeholder.messageHistory",
+              )}`,
+              summaryList: selectedMessages.map(
+                (item) => `${item.senderNickname}: ${getMessagePreview(item)}`,
+              ),
+            });
+            targetSucceeded = await sendMessage({
+              message,
+              conversation: targetConversation,
+            });
+          } else {
+            for (const sourceMessage of selectedMessages) {
+              const { data: message } = await IMSDK.createForwardMessage({
+                ...sourceMessage,
+              });
+              if (!(await sendMessage({ message, conversation: targetConversation }))) {
+                targetSucceeded = false;
+              }
+            }
+          }
+          if (targetSucceeded) successCount += 1;
+        } catch (error) {
+          console.error("Failed to forward messages", error);
+        }
+      }
+    } finally {
+      setForwardSubmitting(false);
+    }
+
+    if (successCount === targets.length) {
+      antMessage.success(t("toast.forwardSuccess", { count: successCount }));
+    } else if (successCount) {
+      antMessage.warning(
+        t("toast.forwardPartialFailed", {
+          success: successCount,
+          failed: targets.length - successCount,
+        }),
+      );
+    } else {
+      antMessage.error(t("toast.forwardFailed"));
+    }
+
+    if (successCount) closeSelection();
+    return successCount > 0;
+  };
+
   return (
     <Layout.Content
       className="relative flex h-full flex-col overflow-hidden !bg-white"
@@ -235,11 +376,33 @@ const ChatContent = () => {
                   String(message.status) +
                   String(message.attachedInfoElem?.hasReadTime)
                 }
+                selectionMode={selectionMode}
+                selected={selectedMessageIDs.has(message.clientMsgID)}
+                selectable={isForwardableMessage(message)}
+                onEnterSelection={enterSelection}
+                onToggleSelection={toggleSelection}
+                onForward={openSingleForward}
               />
             );
           }}
         />
       )}
+      {selectionMode && (
+        <ForwardSelectionBar
+          count={selectedMessages.length}
+          onMergeForward={() => openForwardDialog("merge")}
+          onSingleForward={() => openForwardDialog("single")}
+          onDelete={() => void antMessage.info(t("toast.batchDeleteUnavailable"))}
+          onClose={closeSelection}
+        />
+      )}
+      <ForwardTargetModal
+        open={forwardDialogOpen}
+        messageCount={selectedMessages.length}
+        submitting={forwardSubmitting}
+        onOpenChange={setForwardDialogOpen}
+        onSubmit={submitForward}
+      />
     </Layout.Content>
   );
 };

@@ -62,7 +62,9 @@ export function useSendMessage() {
   const sendMessage = useCallback(
     async ({ message, conversation }: SendMessageParams) => {
       const targetConversation = conversation ?? currentConversation;
-      if (!targetConversation) return;
+      if (!targetConversation) return false;
+      const shouldRenderInCurrentChat =
+        targetConversation.conversationID === currentConversation?.conversationID;
 
       const isGroup = GroupSessionTypes.includes(targetConversation.conversationType);
       const recvID = isGroup ? "" : targetConversation.userID ?? "";
@@ -75,7 +77,9 @@ export function useSendMessage() {
       message.sendTime = Date.now();
       message.sessionType = targetConversation.conversationType;
 
-      pushNewMessage(message);
+      if (shouldRenderInCurrentChat) {
+        pushNewMessage(message);
+      }
 
       try {
         const offlinePushInfo = {
@@ -92,10 +96,16 @@ export function useSendMessage() {
           message,
           offlinePushInfo,
         });
-        updateOneMessage(data);
+        if (shouldRenderInCurrentChat) {
+          updateOneMessage(data);
+        }
+        return true;
       } catch (error) {
         message.status = MessageStatus.Failed;
-        updateOneMessage({ ...message });
+        if (shouldRenderInCurrentChat) {
+          updateOneMessage({ ...message });
+        }
+        return false;
       }
     },
     [currentConversation, selfInfo],

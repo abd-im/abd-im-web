@@ -2,7 +2,6 @@ import {
   MessageItem as MessageItemType,
   MessageStatus,
   MessageType,
-  SessionType,
 } from "@abd-im/wasm-client-sdk";
 import type { MenuProps } from "antd";
 import clsx from "clsx";
@@ -21,6 +20,7 @@ import BurnCountdown from "./BurnCountdown";
 import CatchMessageRender from "./CatchMsgRenderer";
 import FileMessageRender from "./FileMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
+import MergeMessageRender from "./MergeMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageReactionBar from "./MessageReactionBar";
@@ -39,6 +39,12 @@ export interface IMessageItemProps {
   reactionSummary?: MessageReactionSummary;
   isReactionPending?: (emoji: string) => boolean;
   onToggleReaction?: (emoji: string, reactedByMe: boolean) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  selectable?: boolean;
+  onEnterSelection?: (messageID: string) => void;
+  onToggleSelection?: (messageID: string) => void;
+  onForward?: (messageID: string) => void;
 }
 
 const components: Record<number, FC<IMessageItemProps>> = {
@@ -48,6 +54,7 @@ const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.VideoMessage]: VideoMessageRender,
   [MessageType.FileMessage]: FileMessageRender,
   [MessageType.QuoteMessage]: QuoteMessageRender,
+  [MessageType.MergeMessage]: MergeMessageRender,
 };
 
 const MessageItem: FC<IMessageItemProps> = ({
@@ -57,6 +64,12 @@ const MessageItem: FC<IMessageItemProps> = ({
   reactionSummary,
   isReactionPending,
   onToggleReaction,
+  selectionMode,
+  selected,
+  selectable,
+  onEnterSelection,
+  onToggleSelection,
+  onForward,
 }) => {
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
@@ -78,6 +91,11 @@ const MessageItem: FC<IMessageItemProps> = ({
     message.status === MessageStatus.Succeed &&
     Boolean(message.clientMsgID) &&
     !isPrivate;
+  const canForward =
+    selectable ??
+    (message.status === MessageStatus.Succeed &&
+      Boolean(message.clientMsgID) &&
+      !isPrivate);
   const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
 
   const menuItems = useMemo(() => {
@@ -85,13 +103,16 @@ const MessageItem: FC<IMessageItemProps> = ({
       return [{ key: "delete", label: t("placeholder.delete") }];
     }
 
-    const items: MenuProps["items"] = [
-      { key: "forward", label: t("placeholder.forward") },
-    ];
+    const items: MenuProps["items"] = [];
+    if (canForward) {
+      items.push({ key: "forward", label: t("placeholder.forward") });
+    }
     if (message.contentType === MessageType.TextMessage) {
       items.push({ key: "copy", label: t("placeholder.copy") });
     }
-    items.push({ key: "check", label: t("placeholder.check") });
+    if (canForward) {
+      items.push({ key: "check", label: t("placeholder.check") });
+    }
     if (canReply) {
       items.push({ key: "reply", label: t("placeholder.reply") });
     }
@@ -106,7 +127,7 @@ const MessageItem: FC<IMessageItemProps> = ({
     }
     items.push({ key: "delete", label: t("placeholder.delete") });
     return items;
-  }, [canReply, message, isSender, isPrivate, t]);
+  }, [canForward, canReply, message, isSender, isPrivate, t]);
 
   const handleMenuAction = async (key: string) => {
     switch (key) {
@@ -140,8 +161,10 @@ const MessageItem: FC<IMessageItemProps> = ({
         }
         break;
       case "forward":
+        onForward?.(message.clientMsgID);
+        break;
       case "check":
-        // Placeholder for future implementation
+        onEnterSelection?.(message.clientMsgID);
         break;
       case "reply":
         updateQuoteMessage(message);
@@ -160,9 +183,25 @@ const MessageItem: FC<IMessageItemProps> = ({
         className={clsx(
           "relative flex select-text justify-center py-3",
           styles["message-row"],
+          selectionMode && styles["message-row-selection-mode"],
+          selected && styles["message-row-selected"],
           isPrivate && "!select-none",
         )}
       >
+        {selectionMode && selectable && (
+          <button
+            type="button"
+            className={clsx(
+              styles["message-select-toggle"],
+              selected && styles["message-select-toggle-selected"],
+            )}
+            aria-label={t("placeholder.check")}
+            aria-pressed={selected}
+            onClick={() => onToggleSelection?.(message.clientMsgID)}
+          >
+            {selected ? "✓" : ""}
+          </button>
+        )}
         <div
           className={clsx(
             styles["message-container"],
@@ -223,7 +262,7 @@ const MessageItem: FC<IMessageItemProps> = ({
                     }
                     menuItems={menuItems}
                     onMenuClick={onMenuClick}
-                    actionsDisabled={disabled}
+                    actionsDisabled={disabled || selectionMode}
                   />
                 </div>
                 {!isSender && (

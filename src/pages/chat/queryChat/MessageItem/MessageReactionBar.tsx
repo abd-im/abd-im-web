@@ -154,64 +154,66 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
         </div>
       )}
 
-      <div
-        className={clsx(
-          styles["reaction-actions"],
-          (pickerOpen || moreOpen) && styles["reaction-actions-open"],
-        )}
-      >
-        {canReact && (
-          <button
-            type="button"
-            data-testid="add-message-reaction"
-            className={styles["reaction-action"]}
-            title={t("placeholder.addReaction")}
-            aria-label={t("placeholder.addReaction")}
-            aria-haspopup="menu"
-            aria-expanded={pickerOpen}
-            onMouseEnter={openPicker}
-            onMouseLeave={schedulePickerClose}
-            onClick={openPicker}
-          >
-            <span className={styles["reaction-add-icon"]} aria-hidden>
-              <SmileOutlined />
-              <PlusOutlined className={styles["reaction-add-plus"]} />
-            </span>
-          </button>
-        )}
-        <button
-          type="button"
-          className={styles["reaction-action"]}
-          title={t("placeholder.reply")}
-          aria-label={t("placeholder.reply")}
-          disabled={actionsDisabled || !onReply}
-          onClick={onReply}
+      {!actionsDisabled && (
+        <div
+          className={clsx(
+            styles["reaction-actions"],
+            (pickerOpen || moreOpen) && styles["reaction-actions-open"],
+          )}
         >
-          <RollbackOutlined />
-        </button>
-        <Dropdown
-          menu={{ items: menuItems ?? [], onClick: onMenuClick }}
-          trigger={["click"]}
-          disabled={actionsDisabled}
-          open={moreOpen}
-          onOpenChange={(open) => {
-            setMoreOpen(open);
-            if (open) setPickerOpen(false);
-          }}
-        >
+          {canReact && (
+            <button
+              type="button"
+              data-testid="add-message-reaction"
+              className={styles["reaction-action"]}
+              title={t("placeholder.addReaction")}
+              aria-label={t("placeholder.addReaction")}
+              aria-haspopup="menu"
+              aria-expanded={pickerOpen}
+              onMouseEnter={openPicker}
+              onMouseLeave={schedulePickerClose}
+              onClick={openPicker}
+            >
+              <span className={styles["reaction-add-icon"]} aria-hidden>
+                <SmileOutlined />
+                <PlusOutlined className={styles["reaction-add-plus"]} />
+              </span>
+            </button>
+          )}
           <button
             type="button"
             className={styles["reaction-action"]}
-            title={t("placeholder.viewMore")}
-            aria-label={t("placeholder.viewMore")}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
+            title={t("placeholder.reply")}
+            aria-label={t("placeholder.reply")}
+            disabled={actionsDisabled || !onReply}
+            onClick={onReply}
           >
-            <EllipsisOutlined />
+            <RollbackOutlined />
           </button>
-        </Dropdown>
-      </div>
-      {canReact && picker}
+          <Dropdown
+            menu={{ items: menuItems ?? [], onClick: onMenuClick }}
+            trigger={["click"]}
+            disabled={actionsDisabled}
+            open={moreOpen}
+            onOpenChange={(open) => {
+              setMoreOpen(open);
+              if (open) setPickerOpen(false);
+            }}
+          >
+            <button
+              type="button"
+              className={styles["reaction-action"]}
+              title={t("placeholder.viewMore")}
+              aria-label={t("placeholder.viewMore")}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+            >
+              <EllipsisOutlined />
+            </button>
+          </Dropdown>
+        </div>
+      )}
+      {canReact && !actionsDisabled && picker}
     </div>
   );
 };
