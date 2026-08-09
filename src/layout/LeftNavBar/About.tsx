@@ -152,6 +152,16 @@ export const AboutContent = ({ closeOverlay }: { closeOverlay?: () => void }) =>
 
         <Divider className="border-1 m-0 border-[var(--gap-text)]" />
 
+        <a
+          href="https://github.com/abd-im/abd-im-web"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-between border-b border-[var(--gap-text)] px-3 py-2 text-foreground"
+        >
+          <span>{t("placeholder.sourceCode")}</span>
+          <span className="text-xs text-muted-foreground">AGPL-3.0</span>
+        </a>
+
         {window.electronAPI && (
           <>
             <div
