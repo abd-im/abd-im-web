@@ -16,6 +16,7 @@ type EmitterEvents = {
   UPDATE_ONE_MSG: MessageItem;
   MESSAGE_REACTION_UPDATED: MessageReactionUpdatedEvent;
   MESSAGE_REACTIONS_REFRESH: void;
+  SECRETARY_HOSTING_UPDATED: string[];
 
   AGENT_USER_SELECTED: CheckListItem;
   SELECT_USER: SelectUserParams;

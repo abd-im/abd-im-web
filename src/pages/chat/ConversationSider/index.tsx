@@ -1,15 +1,17 @@
 import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import clsx from "clsx";
 import { t } from "i18next";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { getBusinessConnection } from "@/api/secretary";
 import sync from "@/assets/images/common/sync.png";
 import sync_error from "@/assets/images/common/sync_error.png";
 import FlexibleSider from "@/components/FlexibleSider";
 import { splitConversationList } from "@/features/agentWorkspace/conversationLists";
 import { useConversationStore, useUserStore } from "@/store";
+import emitter from "@/utils/events";
 
 import ConversationItemComp from "./ConversationItem";
 import styles from "./index.module.scss";
@@ -53,6 +55,9 @@ const ConnectBar = () => {
 
 const ConversationSider = () => {
   const { conversationID } = useParams();
+  const [hostedConversationIDs, setHostedConversationIDs] = useState<Set<string>>(
+    new Set(),
+  );
   const conversationList = useConversationStore((state) => state.conversationList);
   const conversationKinds = useConversationStore((state) => state.conversationKinds);
   const chatConversationList = useMemo(
@@ -65,6 +70,27 @@ const ConversationSider = () => {
   const virtuoso = useRef<VirtuosoHandle>(null);
   const hasmore = useRef(true);
   const loading = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    const updateHostedConversationIDs = (ids: string[]) => {
+      if (active) setHostedConversationIDs(new Set(ids));
+    };
+    emitter.on("SECRETARY_HOSTING_UPDATED", updateHostedConversationIDs);
+    void getBusinessConnection()
+      .then((connection) =>
+        updateHostedConversationIDs(
+          connection?.chatManagement
+            .filter((item) => item.hostingEnabled)
+            .map((item) => item.conversationID) ?? [],
+        ),
+      )
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      emitter.off("SECRETARY_HOSTING_UPDATED", updateHostedConversationIDs);
+    };
+  }, []);
 
   const endReached = async () => {
     if (!hasmore.current || loading.current) return;
@@ -89,6 +115,7 @@ const ConversationSider = () => {
           itemContent={(_, conversation) => (
             <ConversationItemComp
               isActive={conversationID === conversation.conversationID}
+              isHosted={hostedConversationIDs.has(conversation.conversationID)}
               conversation={conversation}
             />
           )}

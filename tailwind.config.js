@@ -36,6 +36,10 @@ module.exports = {
         'muted-foreground': 'var(--muted-foreground)',
         'faint-foreground': 'var(--faint-foreground)',
         'brand': 'var(--brand)',
+        'trust': 'var(--trust)',
+        'trust-soft': 'var(--trust-soft)',
+        'trust-border': 'var(--trust-border)',
+        'trust-hover': 'var(--trust-hover)',
       },
       boxShadow: {
         'surface': 'var(--surface-shadow)',

@@ -1,16 +1,20 @@
 import { SessionType } from "@abd-im/wasm-client-sdk";
-import { Layout, Tooltip } from "antd";
+import { Layout, Popover, Tooltip } from "antd";
 import clsx from "clsx";
-import { memo, useEffect, useRef } from "react";
+import { Bot, Check, ChevronDown, FileSearch, Settings, UserPlus } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import {
+  type ChatManagement,
+  getBusinessConnection,
+  updateChatManagement,
+} from "@/api/secretary";
 import group_member from "@/assets/images/chatHeader/group_member.png";
-import launch_group from "@/assets/images/chatHeader/launch_group.png";
-import search_history from "@/assets/images/chatHeader/search_history.png";
-import settings from "@/assets/images/chatHeader/settings.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
+import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
 
 import GroupSetting from "../GroupSetting";
@@ -22,6 +26,10 @@ const ChatHeader = () => {
   const singleSettingRef = useRef<OverlayVisibleHandle>(null);
   const groupSettingRef = useRef<OverlayVisibleHandle>(null);
   const searchHistoryRef = useRef<OverlayVisibleHandle>(null);
+  const [management, setManagement] = useState<ChatManagement>();
+  const [instruction, setInstruction] = useState("");
+  const [businessLoading, setBusinessLoading] = useState(false);
+  const [instructionOpen, setInstructionOpen] = useState(false);
 
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
@@ -53,25 +61,75 @@ const ChatHeader = () => {
   const isSingleSession = currentConversation?.conversationType === SessionType.Single;
   const isGroupSession = currentConversation?.conversationType === SessionType.Group;
 
+  useEffect(() => {
+    const conversationID = currentConversation?.conversationID;
+    if (!conversationID || !isSingleSession) {
+      setManagement(undefined);
+      setInstruction("");
+      setInstructionOpen(false);
+      return;
+    }
+    let active = true;
+    void getBusinessConnection()
+      .then((connection) => {
+        if (!active) return;
+        const item = connection?.chatManagement.find(
+          (value) => value.conversationID === conversationID,
+        );
+        setManagement(item);
+        setInstruction(item?.instruction ?? "");
+      })
+      .catch((error: unknown) => feedbackToast({ error }));
+    return () => {
+      active = false;
+    };
+  }, [currentConversation?.conversationID, isSingleSession]);
+
+  const updateBusinessSettings = async (
+    patch: Pick<ChatManagement, "conversationID"> & Partial<ChatManagement>,
+  ) => {
+    setBusinessLoading(true);
+    try {
+      const connection = await updateChatManagement([patch]);
+      const item = connection.chatManagement.find(
+        (value) => value.conversationID === patch.conversationID,
+      );
+      setManagement(item);
+      setInstruction(item?.instruction ?? "");
+      emit(
+        "SECRETARY_HOSTING_UPDATED",
+        connection.chatManagement
+          .filter((value) => value.hostingEnabled)
+          .map((value) => value.conversationID),
+      );
+      return true;
+    } catch (error) {
+      feedbackToast({ error });
+      return false;
+    } finally {
+      setBusinessLoading(false);
+    }
+  };
+
   const menuList = [
     {
       title: t("placeholder.messageHistory"),
-      icon: search_history,
+      icon: FileSearch,
       idx: 3,
     },
     {
       title: t("placeholder.createGroup"),
-      icon: launch_group,
+      icon: UserPlus,
       idx: 0,
     },
     {
       title: t("placeholder.invitation"),
-      icon: launch_group,
+      icon: UserPlus,
       idx: 1,
     },
     {
       title: t("placeholder.setting"),
-      icon: settings,
+      icon: Settings,
       idx: 2,
     },
   ];
@@ -144,7 +202,7 @@ const ChatHeader = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <Layout.Header className="relative border-b border-surface-border !bg-surface text-foreground !px-3 shadow-sm">
+    <Layout.Header className="relative border-b border-surface-border !bg-surface !px-3 text-foreground shadow-sm">
       <div className="flex h-full items-center leading-none">
         <div className="flex flex-1 items-center overflow-hidden">
           <OIMAvatar
@@ -180,6 +238,114 @@ const ChatHeader = () => {
           </div>
         </div>
         <div className="mr-5 flex">
+          {isSingleSession && currentConversation && (
+            <div
+              className={clsx(
+                "mr-1 flex h-8 overflow-hidden rounded-md border",
+                management?.hostingEnabled
+                  ? "border-trust-border bg-trust-soft"
+                  : "border-surface-border bg-surface",
+              )}
+            >
+              <button
+                type="button"
+                className={clsx(
+                  "inline-flex items-center gap-1.5 px-2.5 text-xs font-semibold disabled:opacity-50",
+                  management?.hostingEnabled
+                    ? "text-trust hover:bg-trust-hover"
+                    : "text-muted-foreground hover:bg-surface-hover",
+                )}
+                aria-pressed={Boolean(management?.hostingEnabled)}
+                disabled={businessLoading}
+                onClick={() =>
+                  void updateBusinessSettings({
+                    conversationID: currentConversation.conversationID,
+                    hostingEnabled: !management?.hostingEnabled,
+                  })
+                }
+              >
+                <Bot size={15} strokeWidth={1.8} />
+                {t("secretary.hosting")}
+              </button>
+              <Popover
+                trigger="click"
+                placement="bottomRight"
+                arrow={false}
+                overlayClassName="secretary-instruction-popover"
+                open={instructionOpen}
+                onOpenChange={setInstructionOpen}
+                content={
+                  <div className="w-[300px] p-2.5">
+                    <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                      <strong className="text-[11px] font-semibold text-foreground">
+                        {t("secretary.instruction")}
+                      </strong>
+                      {instruction && (
+                        <button
+                          type="button"
+                          className="text-[10px] text-faint-foreground hover:text-foreground disabled:opacity-50"
+                          disabled={businessLoading}
+                          onClick={() =>
+                            void updateBusinessSettings({
+                              conversationID: currentConversation.conversationID,
+                              instruction: "",
+                            }).then((saved) => saved && setInstructionOpen(false))
+                          }
+                        >
+                          {t("clear")}
+                        </button>
+                      )}
+                    </div>
+                    <form
+                      className="flex items-center gap-1.5"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void updateBusinessSettings({
+                          conversationID: currentConversation.conversationID,
+                          instruction,
+                        }).then((saved) => saved && setInstructionOpen(false));
+                      }}
+                    >
+                      <input
+                        className="h-[34px] min-w-0 flex-1 rounded-md border border-surface-border bg-surface-raised px-2.5 text-xs text-foreground outline-none placeholder:text-faint-foreground focus:border-faint-foreground focus:ring-2 focus:ring-surface-selected"
+                        value={instruction}
+                        maxLength={100}
+                        placeholder={t("secretary.instructionPlaceholder")}
+                        aria-label={t("secretary.instruction")}
+                        onChange={(event) => setInstruction(event.target.value)}
+                      />
+                      <Tooltip title={t("confirm")}>
+                        <button
+                          type="submit"
+                          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-md bg-foreground text-surface hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={businessLoading}
+                          aria-label={t("confirm")}
+                        >
+                          <Check size={15} strokeWidth={2} />
+                        </button>
+                      </Tooltip>
+                    </form>
+                  </div>
+                }
+              >
+                <button
+                  type="button"
+                  className={clsx(
+                    "relative grid w-7 place-items-center border-l",
+                    management?.hostingEnabled
+                      ? "border-trust-border text-trust hover:bg-trust-hover"
+                      : "border-surface-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+                  )}
+                  aria-label={t("secretary.instruction")}
+                >
+                  <ChevronDown size={13} strokeWidth={1.8} />
+                  {instruction.trim() && (
+                    <span className="absolute right-1 top-1 h-1 w-1 rounded-full bg-trust" />
+                  )}
+                </button>
+              </Popover>
+            </div>
+          )}
           {menuList.map((menu) => {
             if (menu.idx === 1 && (isSingleSession || (!inGroup && !isSingleSession))) {
               return null;
@@ -187,16 +353,18 @@ const ChatHeader = () => {
             if (menu.idx === 0 && !isSingleSession) {
               return null;
             }
+            const Icon = menu.icon;
 
             return (
               <Tooltip title={menu.title} key={menu.idx}>
-                <img
-                  className="ml-5 cursor-pointer"
-                  width={20}
-                  src={menu.icon}
-                  alt=""
+                <button
+                  type="button"
+                  className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                  aria-label={menu.title}
                   onClick={() => menuClick(menu.idx)}
-                />
+                >
+                  <Icon size={20} strokeWidth={1.8} />
+                </button>
               </Tooltip>
             );
           })}

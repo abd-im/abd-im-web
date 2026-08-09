@@ -1,6 +1,11 @@
 import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import { t } from "i18next";
 
+import {
+  getMarkdownMessageContent,
+  MARKDOWN_TEXT_MESSAGE_TYPE,
+} from "./markdownMessage";
+
 export const getMessagePreview = (message?: MessageItem): string => {
   if (!message) return t("messageDescription.catchMessage");
 
@@ -12,6 +17,8 @@ export const getMessagePreview = (message?: MessageItem): string => {
         (message.streamElem?.content || "") +
         (message.streamElem?.packets || []).join("")
       );
+    case MARKDOWN_TEXT_MESSAGE_TYPE:
+      return getMarkdownMessageContent(message);
     case MessageType.AtTextMessage:
       return message.atTextElem?.text || "";
     case MessageType.QuoteMessage:

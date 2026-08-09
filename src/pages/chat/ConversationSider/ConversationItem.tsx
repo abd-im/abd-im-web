@@ -6,6 +6,7 @@ import type {
 import { Badge } from "antd";
 import clsx from "clsx";
 import { t } from "i18next";
+import { Bot } from "lucide-react";
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,10 +18,11 @@ import styles from "./conversation-item.module.scss";
 
 interface IConversationProps {
   isActive: boolean;
+  isHosted: boolean;
   conversation: ConversationItemType;
 }
 
-const ConversationItem = ({ isActive, conversation }: IConversationProps) => {
+const ConversationItem = ({ isActive, isHosted, conversation }: IConversationProps) => {
   const navigate = useNavigate();
   const updateCurrentConversation = useConversationStore(
     (state) => state.updateCurrentConversation,
@@ -73,8 +75,23 @@ const ConversationItem = ({ isActive, conversation }: IConversationProps) => {
 
       <div className="ml-3 flex h-11 flex-1 flex-col justify-between overflow-hidden">
         <div className="flex items-center justify-between">
-          <div className="flex-1 truncate font-medium text-body">{conversation.showName}</div>
-          <div className="ml-2 text-[11px] text-muted-foreground">{latestMessageTime}</div>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className="text-body truncate font-medium">
+              {conversation.showName}
+            </div>
+            {isHosted && (
+              <span
+                className="inline-flex h-[17px] shrink-0 items-center gap-0.5 rounded border border-trust-border bg-trust-soft px-1 text-[9px] font-bold leading-none text-trust"
+                title={t("secretary.hosting")}
+              >
+                <Bot size={10} strokeWidth={2} />
+                AI
+              </span>
+            )}
+          </div>
+          <div className="ml-2 text-[11px] text-muted-foreground">
+            {latestMessageTime}
+          </div>
         </div>
 
         <div className="flex items-center">

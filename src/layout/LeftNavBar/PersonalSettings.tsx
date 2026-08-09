@@ -24,6 +24,7 @@ import emitter, { emit } from "@/utils/events";
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
 import BlackList from "./BlackList";
 import ChangePassword from "./ChangePassword";
+import SecretaryAccessSettings from "./SecretaryAccessSettings";
 
 const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
   _,
@@ -245,6 +246,10 @@ export const PersonalSettingsContent = ({
                   : t("agent.settings.selectUser")}
               </button>
             </div>
+          </div>
+
+          <div className="mt-6 border-t border-surface-border pt-6">
+            <SecretaryAccessSettings />
           </div>
         </div>
 

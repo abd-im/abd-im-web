@@ -34,6 +34,17 @@
       "notConfigured": "请先在账号设置中选择 Agent 用户"
     }
   },
+  "secretary": {
+    "historyAccess": "可访问聊天记录",
+    "selectedCount": "已选择 {{count}} 个会话",
+    "enableAll": "全选",
+    "disableAll": "全不选",
+    "noConversations": "暂无会话",
+    "hosting": "AI 托管",
+    "instruction": "会话指令",
+    "instructionPlaceholder": "例如：只处理约时间的消息",
+    "sentByAgent": "由 {{name}} 代发"
+  },
   "agentWorkspace": {
     "agent": "Agent",
     "title": "Agent",

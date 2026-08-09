@@ -3,8 +3,9 @@ import {
   MessageStatus,
   MessageType,
 } from "@abd-im/wasm-client-sdk";
-import type { MenuProps } from "antd";
+import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
+import { Bot } from "lucide-react";
 import { FC, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,10 +16,12 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import { formatMessageTime } from "@/utils/imCommon";
 
+import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
 import { deleteMessage } from "../useHistoryMessageList";
 import BurnCountdown from "./BurnCountdown";
 import CatchMessageRender from "./CatchMsgRenderer";
 import FileMessageRender from "./FileMessageRender";
+import MarkdownMessageRender from "./MarkdownMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
 import MergeMessageRender from "./MergeMessageRender";
 import styles from "./message-item.module.scss";
@@ -55,6 +58,21 @@ const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.FileMessage]: FileMessageRender,
   [MessageType.QuoteMessage]: QuoteMessageRender,
   [MessageType.MergeMessage]: MergeMessageRender,
+  [MARKDOWN_TEXT_MESSAGE_TYPE]: MarkdownMessageRender,
+};
+
+interface AgentAttribution {
+  agentName?: string;
+}
+
+const agentAttributionFromEx = (ex?: string): AgentAttribution | undefined => {
+  if (!ex) return undefined;
+  try {
+    const value = JSON.parse(ex) as { abdAgent?: AgentAttribution };
+    return value.abdAgent;
+  } catch {
+    return undefined;
+  }
 };
 
 const MessageItem: FC<IMessageItemProps> = ({
@@ -77,6 +95,10 @@ const MessageItem: FC<IMessageItemProps> = ({
   const isSender = useMemo(
     () => selfUserID === message.sendID,
     [selfUserID, message.sendID],
+  );
+  const agentAttribution = useMemo(
+    () => agentAttributionFromEx(message.ex),
+    [message.ex],
   );
 
   const MessageRenderComponent = components[message.contentType] || CatchMessageRender;
@@ -228,6 +250,22 @@ const MessageItem: FC<IMessageItemProps> = ({
               <div className="text-[var(--sub-text)]">
                 {formatMessageTime(message.sendTime)}
               </div>
+              {agentAttribution && (
+                <Tooltip
+                  title={t("secretary.sentByAgent", {
+                    name: agentAttribution.agentName || t("agentWorkspace.agent"),
+                  })}
+                >
+                  <span
+                    className="ml-1.5 inline-flex items-center justify-center text-trust"
+                    aria-label={t("secretary.sentByAgent", {
+                      name: agentAttribution.agentName || t("agentWorkspace.agent"),
+                    })}
+                  >
+                    <Bot size={13} strokeWidth={1.9} />
+                  </span>
+                </Tooltip>
+              )}
             </div>
 
             <div className={styles["message-content-group"]}>

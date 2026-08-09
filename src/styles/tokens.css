@@ -17,6 +17,10 @@
   --muted-foreground: oklch(0.505 0.016 285.93);
   --faint-foreground: oklch(0.606 0.016 285.93);
   --brand: oklch(0.550 0.160 255.00);
+  --trust: oklch(0.500 0.094 169.19);
+  --trust-soft: oklch(0.969 0.014 169.25);
+  --trust-border: oklch(0.840 0.033 174.80);
+  --trust-hover: oklch(0.948 0.019 171.50);
 
   /* Shadow Elevation System */
   --surface-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
@@ -46,6 +50,10 @@
   --muted-foreground: oklch(0.705 0.015 286.06);
   --faint-foreground: oklch(0.600 0.015 286.06);
   --brand: oklch(0.650 0.160 255.00);
+  --trust: oklch(0.761 0.104 170.50);
+  --trust-soft: oklch(0.310 0.041 175.05);
+  --trust-border: oklch(0.441 0.062 173.67);
+  --trust-hover: oklch(0.369 0.050 173.25);
 
   --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.20), 0 1px 1px rgb(0 0 0 / 0.16);
   --floating-shadow: 0 20px 48px rgb(0 0 0 / 0.46), 0 4px 12px rgb(0 0 0 / 0.28);

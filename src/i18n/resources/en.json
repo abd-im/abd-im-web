@@ -34,6 +34,17 @@
       "notConfigured": "Select an Agent user in Account Settings first"
     }
   },
+  "secretary": {
+    "historyAccess": "Accessible chat history",
+    "selectedCount": "{{count}} conversations selected",
+    "enableAll": "Select all",
+    "disableAll": "Clear all",
+    "noConversations": "No conversations",
+    "hosting": "AI Management",
+    "instruction": "Conversation instruction",
+    "instructionPlaceholder": "For example: only handle scheduling messages",
+    "sentByAgent": "Sent by {{name}}"
+  },
   "agentWorkspace": {
     "agent": "Agent",
     "title": "Agent",

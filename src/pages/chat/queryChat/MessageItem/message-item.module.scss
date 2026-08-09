@@ -50,6 +50,81 @@
       word-break: break-all;
     }
 
+    .markdown-content {
+      color: inherit;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+
+      > :first-child {
+        margin-top: 0;
+      }
+
+      > :last-child {
+        margin-bottom: 0;
+      }
+
+      p,
+      ul,
+      ol,
+      blockquote,
+      pre,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin: 0 0 0.55em;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-size: 1em;
+        font-weight: 600;
+      }
+
+      ul,
+      ol {
+        padding-left: 1.35em;
+      }
+
+      blockquote {
+        padding-left: 0.75em;
+        border-left: 2px solid currentcolor;
+        opacity: 0.78;
+      }
+
+      code {
+        padding: 0.1em 0.3em;
+        border-radius: 3px;
+        background: rgb(127 127 127 / 0.16);
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.9em;
+      }
+
+      pre {
+        max-width: 100%;
+        padding: 8px;
+        overflow-x: auto;
+        border-radius: 4px;
+        background: rgb(127 127 127 / 0.16);
+
+        code {
+          padding: 0;
+          background: transparent;
+        }
+      }
+
+      a {
+        color: inherit;
+        text-decoration: underline;
+      }
+    }
+
     .message-quote {
       overflow: hidden;
       margin-bottom: 7px;
