@@ -21,14 +21,8 @@ export const getCleanText = (html: string) => {
   return text.trim();
 };
 
-let textAreaDom: HTMLTextAreaElement | null = null;
-const decodeHtmlEntities = (text: string) => {
-  if (!textAreaDom) {
-    textAreaDom = document.createElement("textarea");
-  }
-  textAreaDom.innerHTML = text;
-  return textAreaDom.value;
-};
+const decodeHtmlEntities = (text: string) =>
+  new DOMParser().parseFromString(text, "text/html").documentElement.textContent ?? "";
 
 export const convertChar = (text: string) => text.replace(/&nbsp;/gi, " ");
 

@@ -47,21 +47,14 @@ dayjs.updateLocale("zh-cn", {
   },
 });
 
-const linkWrap = ({
-  userID,
-  groupID,
+const formatMemberName = ({
   name,
-  fromAt,
 }: {
   userID: string;
   groupID: string;
   name: string;
   fromAt?: boolean;
-}) => {
-  return `<span class='link-el${fromAt ? "" : " member-el"
-    } max-w-[200px] truncate inline-block align-bottom' onclick='userClick("${userID}","${groupID ?? ""
-    }")'>${name}</span>`;
-};
+}) => name;
 
 export const notificationMessageFormat = (msg: MessageItem) => {
   const selfID = useUserStore.getState().selfInfo.userID;
@@ -76,7 +69,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const groupCreatedDetail = JSON.parse(msg.notificationElem!.detail);
         const groupCreatedUser = groupCreatedDetail.opUser;
         return t("messageDescription.createGroupMessage", {
-          creator: linkWrap({
+          creator: formatMemberName({
             userID: groupCreatedUser.userID,
             groupID: msg.groupID,
             name: getName(groupCreatedUser),
@@ -86,7 +79,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const groupUpdateDetail = JSON.parse(msg.notificationElem!.detail);
         const groupUpdateUser = groupUpdateDetail.opUser;
         return t("messageDescription.updateGroupInfoMessage", {
-          operator: linkWrap({
+          operator: formatMemberName({
             userID: groupUpdateUser.userID,
             groupID: msg.groupID,
             name: getName(groupUpdateUser),
@@ -97,12 +90,12 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const transferOpUser = transferDetails.opUser;
         const newOwner = transferDetails.newGroupOwner;
         return t("messageDescription.transferGroupMessage", {
-          owner: linkWrap({
+          owner: formatMemberName({
             userID: transferOpUser.userID,
             groupID: msg.groupID,
             name: getName(transferOpUser),
           }),
-          newOwner: linkWrap({
+          newOwner: formatMemberName({
             userID: newOwner.userID,
             groupID: msg.groupID,
             name: getName(newOwner),
@@ -112,7 +105,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const quitDetails = JSON.parse(msg.notificationElem!.detail);
         const quitUser = quitDetails.quitUser;
         return t("messageDescription.quitGroupMessage", {
-          name: linkWrap({
+          name: formatMemberName({
             userID: quitUser.userID,
             groupID: msg.groupID,
             name: getName(quitUser),
@@ -125,7 +118,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         let inviteStr = "";
         invitedUserList.slice(0, 3).map(
           (user: any) =>
-          (inviteStr += `${linkWrap({
+          (inviteStr += `${formatMemberName({
             userID: user.userID,
             groupID: msg.groupID,
             name: getName(user),
@@ -133,7 +126,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         );
         inviteStr = inviteStr.slice(0, -1);
         return t("messageDescription.invitedToGroupMessage", {
-          operator: linkWrap({
+          operator: formatMemberName({
             userID: inviteOpUser.userID,
             groupID: msg.groupID,
             name: getName(inviteOpUser),
@@ -152,7 +145,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         let kickStr = "";
         kickdUserList.slice(0, 3).map(
           (user: any) =>
-          (kickStr += `${linkWrap({
+          (kickStr += `${formatMemberName({
             userID: user.userID,
             groupID: msg.groupID,
             name: getName(user),
@@ -160,7 +153,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         );
         kickStr = kickStr.slice(0, -1);
         return t("messageDescription.kickInGroupMessage", {
-          operator: linkWrap({
+          operator: formatMemberName({
             userID: kickOpUser.userID,
             groupID: msg.groupID,
             name: getName(kickOpUser),
@@ -171,7 +164,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const enterDetails = JSON.parse(msg.notificationElem!.detail);
         const enterUser = enterDetails.entrantUser;
         return t("messageDescription.joinGroupMessage", {
-          name: linkWrap({
+          name: formatMemberName({
             userID: enterUser.userID,
             groupID: msg.groupID,
             name: getName(enterUser),
@@ -181,7 +174,7 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         const dismissDetails = JSON.parse(msg.notificationElem!.detail);
         const dismissUser = dismissDetails.opUser;
         return t("messageDescription.disbanedGroupMessage", {
-          operator: linkWrap({
+          operator: formatMemberName({
             userID: dismissUser.userID,
             groupID: msg.groupID,
             name: getName(dismissUser),
@@ -193,11 +186,11 @@ export const notificationMessageFormat = (msg: MessageItem) => {
           const isSelf = revokeDetails.revokerID === selfID;
           const revokerName = isSelf ? t("you") : (revokeDetails.revokerNickname || msg.senderNickname);
           return t("messageDescription.revokeMessage", {
-            revoker: `<span class="text-brand font-medium mx-1">${revokerName}</span>`,
+            revoker: revokerName,
           });
         } catch (e) {
           return t("messageDescription.revokeMessage", {
-            revoker: `<span class="text-brand font-medium mx-1">${msg.senderNickname}</span>`,
+            revoker: msg.senderNickname,
           });
         }
       default:

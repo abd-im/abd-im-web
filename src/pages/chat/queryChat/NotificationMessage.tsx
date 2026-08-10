@@ -1,7 +1,6 @@
 import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
-import clsx from "clsx";
 import { t } from "i18next";
-import { FC, memo, useRef } from "react";
+import { FC, memo } from "react";
 
 import { useUserStore } from "@/store";
 import { notificationMessageFormat } from "@/utils/imCommon";
@@ -9,7 +8,6 @@ import { notificationMessageFormat } from "@/utils/imCommon";
 const NotificationMessage: FC<{
   message: MessageItem;
 }> = ({ message }) => {
-  const messageWrapRef = useRef<HTMLDivElement>(null);
   const selfID = useUserStore((state) => state.selfInfo.userID);
 
   const getFormatNotification = (msg: MessageItem) => {
@@ -30,11 +28,11 @@ const NotificationMessage: FC<{
           ? t("you")
           : detail.revokerNickname || msg.senderNickname;
         return t("messageDescription.revokeMessage", {
-          revoker: `<span class="text-brand font-medium mx-1">${revokerName}</span>`,
+          revoker: revokerName,
         });
       } catch (e) {
         return t("messageDescription.revokeMessage", {
-          revoker: `<span class="text-brand font-medium mx-1">${msg.senderNickname}</span>`,
+          revoker: msg.senderNickname,
         });
       }
     }
@@ -43,13 +41,9 @@ const NotificationMessage: FC<{
 
   return (
     <div className="relative" id={`chat_${message.clientMsgID}`}>
-      <div
-        ref={messageWrapRef}
-        className={clsx("mx-6 py-3 text-center text-xs text-[var(--sub-text)]")}
-        dangerouslySetInnerHTML={{
-          __html: String(getFormatNotification(message)),
-        }}
-      ></div>
+      <div className="mx-6 py-3 text-center text-xs text-[var(--sub-text)]">
+        {String(getFormatNotification(message))}
+      </div>
     </div>
   );
 };

@@ -134,8 +134,6 @@ export const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-export const formatBr = (str: string) => str.replace(/\n/g, "<br>");
-
 export const getFileType = (name: string) => {
   const idx = name.lastIndexOf(".");
   return name.slice(idx + 1);
