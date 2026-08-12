@@ -157,19 +157,23 @@
 
     .message-content-group {
       @apply relative flex flex-col;
-      width: fit-content;
+      width: max-content;
       max-width: 65%;
     }
 
     .message-content-row {
       display: flex;
-      width: 100%;
+      width: max-content;
+      max-width: 100%;
       min-width: 0;
       align-items: center;
     }
 
     .message-bubble-wrap {
       position: relative;
+      display: inline-flex;
+      flex: 0 1 auto;
+      flex-direction: column;
       width: fit-content;
       min-width: 0;
       max-width: 100%;

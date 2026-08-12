@@ -4,7 +4,7 @@ import { TooltipPlacement } from "antd/es/tooltip";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
 import { UploadRequestOption } from "rc-upload/lib/interface";
-import { memo, ReactNode, useState } from "react";
+import { memo, ReactNode, useEffect, useState } from "react";
 import React from "react";
 
 import card from "@/assets/images/chatFooter/card.png";
@@ -12,7 +12,10 @@ import emoji from "@/assets/images/chatFooter/emoji.png";
 import file from "@/assets/images/chatFooter/file.png";
 import image from "@/assets/images/chatFooter/image.png";
 import video from "@/assets/images/chatFooter/video.png";
-import { useConversationStore } from "@/store";
+import { IMSDK } from "@/layout/MainContentWrap";
+import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
+import { feedbackToast } from "@/utils/common";
+import emitter, { emit } from "@/utils/events";
 
 import { SendMessageParams } from "../useSendMessage";
 import EmojiPicker from "./EmojiPicker";
@@ -75,7 +78,7 @@ const SendActionBar = ({
   getFileMessage,
   onSelectEmoji,
 }: {
-  sendMessage: (params: SendMessageParams) => Promise<void>;
+  sendMessage: (params: SendMessageParams) => Promise<unknown>;
   getImageMessage: (file: File) => Promise<MessageItem>;
   getVideoMessage: (file: File) => Promise<MessageItem>;
   getFileMessage: (file: File) => Promise<MessageItem>;
@@ -84,24 +87,49 @@ const SendActionBar = ({
   const [visibleState, setVisibleState] = useState(false);
   const [activeAction, setActiveAction] = useState("");
 
+  useEffect(() => {
+    const sendCard = async (user: CheckListItem) => {
+      if (!user.userID) return;
+      try {
+        const { data: message } = await IMSDK.createCardMessage({
+          userID: user.userID,
+          nickname: user.remark || user.nickname || user.showName || "",
+          faceURL: user.faceURL || "",
+          ex: "",
+        });
+        await sendMessage({ message });
+      } catch (error) {
+        feedbackToast({ error });
+      }
+    };
+
+    const handleCardSelected = (user: CheckListItem) => {
+      void sendCard(user);
+    };
+    emitter.on("CARD_USER_SELECTED", handleCardSelected);
+    return () => emitter.off("CARD_USER_SELECTED", handleCardSelected);
+  }, [sendMessage]);
+
   const closePop = () => {
     setVisibleState(false);
     setActiveAction("");
   };
 
   const fileHandle = async (options: UploadRequestOption, key: string) => {
-    let message: MessageItem;
-    const file = options.file as File;
-    if (key === "image") {
-      message = await getImageMessage(file);
-    } else if (key === "video") {
-      message = await getVideoMessage(file);
-    } else {
-      message = await getFileMessage(file);
+    try {
+      let message: MessageItem;
+      const file = options.file as File;
+      if (key === "image") {
+        message = await getImageMessage(file);
+      } else if (key === "video") {
+        message = await getVideoMessage(file);
+      } else {
+        message = await getFileMessage(file);
+      }
+      void sendMessage({ message });
+    } catch (error) {
+      feedbackToast({ error });
     }
-    sendMessage({
-      message,
-    });
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -139,18 +167,28 @@ const SendActionBar = ({
 
         return (
           <ActionWrap
-            popProps={popProps}
+            popProps={action.key === "card" ? undefined : popProps}
             key={action.key}
             accept={action.accept}
-            fileHandle={(options) => fileHandle(options, action.key)}
+            fileHandle={(options) => void fileHandle(options, action.key)}
           >
-            <div
-              className={clsx("flex cursor-pointer items-center last:mr-0", {
-                "mr-5": !action.accept,
-              })}
+            <button
+              type="button"
+              className={clsx(
+                "flex cursor-pointer items-center border-0 bg-transparent p-0 last:mr-0",
+                {
+                  "mr-5": !action.accept,
+                },
+              )}
+              aria-label={action.title}
+              onClick={
+                action.key === "card"
+                  ? () => emit("OPEN_CHOOSE_MODAL", { type: "SELECT_CARD" })
+                  : undefined
+              }
             >
               <img src={action.icon} width={20} alt={action.title} />
-            </div>
+            </button>
           </ActionWrap>
         );
       })}
@@ -181,9 +219,11 @@ const ActionWrap = ({
     >
       {children}
     </Upload>
-  ) : (
+  ) : popProps ? (
     <Popover {...popProps} overlayClassName="emoji-popover">
       {children}
     </Popover>
+  ) : (
+    <>{children}</>
   );
 };

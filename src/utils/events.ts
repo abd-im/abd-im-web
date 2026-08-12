@@ -20,6 +20,7 @@ type EmitterEvents = {
 
   AGENT_USER_SELECTED: CheckListItem;
   SELECT_USER: SelectUserParams;
+  CARD_USER_SELECTED: CheckListItem;
 };
 
 export type SelectUserParams = {

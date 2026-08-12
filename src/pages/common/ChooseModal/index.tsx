@@ -32,6 +32,7 @@ export type ChooseModalType =
   | "INVITE_TO_GROUP"
   | "KICK_FORM_GROUP"
   | "TRANSFER_IN_GROUP"
+  | "SELECT_CARD"
   | "SELECT_USER";
 
 export interface SelectUserExtraData {
@@ -54,6 +55,7 @@ const titleMap = {
   INVITE_TO_GROUP: t("placeholder.invitation"),
   KICK_FORM_GROUP: t("placeholder.kickMember"),
   TRANSFER_IN_GROUP: t("placeholder.transferGroup"),
+  SELECT_CARD: t("placeholder.card"),
   SELECT_USER: t("placeholder.selectUser"),
 };
 
@@ -63,10 +65,11 @@ i18n.on("languageChanged", () => {
   titleMap.INVITE_TO_GROUP = t("placeholder.invitation");
   titleMap.KICK_FORM_GROUP = t("placeholder.kickMember");
   titleMap.TRANSFER_IN_GROUP = t("placeholder.transferGroup");
+  titleMap.SELECT_CARD = t("placeholder.card");
   titleMap.SELECT_USER = t("placeholder.selectUser");
 });
 
-const onlyOneTypes = ["TRANSFER_IN_GROUP", "SELECT_AGENT_USER"];
+const onlyOneTypes = ["TRANSFER_IN_GROUP", "SELECT_AGENT_USER", "SELECT_CARD"];
 const onlyMemberTypes = ["KICK_FORM_GROUP", "TRANSFER_IN_GROUP"];
 
 const ChooseModal: ForwardRefRenderFunction<OverlayVisibleHandle, IChooseModalProps> = (
@@ -160,6 +163,9 @@ export const ChooseContact: FC<ChooseContactProps> = ({
       switch (type) {
         case "SELECT_AGENT_USER":
           emit("AGENT_USER_SELECTED", choosedList[0]);
+          break;
+        case "SELECT_CARD":
+          emit("CARD_USER_SELECTED", choosedList[0]);
           break;
         case "CRATE_GROUP":
           if (choosedList.length === 1) {

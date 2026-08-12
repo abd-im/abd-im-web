@@ -12,6 +12,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 
 import { pushNewMessage, updateOneMessage } from "../useHistoryMessageList";
+import { clearMessageRetry } from "./messageRetry";
 
 export interface SendMessageParams {
   message: MessageItem;
@@ -99,6 +100,7 @@ export function useSendMessage() {
         if (shouldRenderInCurrentChat) {
           updateOneMessage(data);
         }
+        clearMessageRetry(message.clientMsgID);
         return true;
       } catch (error) {
         message.status = MessageStatus.Failed;

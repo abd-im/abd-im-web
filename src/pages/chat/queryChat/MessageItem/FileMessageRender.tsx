@@ -1,14 +1,13 @@
-import { FileOutlined } from "@ant-design/icons";
-import clsx from "clsx";
+import { FileText } from "lucide-react";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import { bytesToSize } from "@/utils/common";
 
 import { IMessageItemProps } from ".";
-import styles from "./message-item.module.scss";
 
 const FileMessageRender: FC<IMessageItemProps> = ({ message }) => {
+  const { t } = useTranslation();
   const fileElem = message.fileElem;
   if (!fileElem) return null;
 
@@ -20,18 +19,26 @@ const FileMessageRender: FC<IMessageItemProps> = ({ message }) => {
   };
 
   return (
-    <div
-      className={clsx(styles.bubble, "relative flex min-w-[200px] cursor-pointer items-center")}
+    <button
+      type="button"
+      className="relative flex min-w-[240px] max-w-[300px] items-center gap-3 rounded-lg border border-surface-border bg-surface p-3 text-left text-foreground shadow-surface transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      disabled={!fileElem.sourceUrl && !fileElem.filePath}
       onClick={downloadFile}
     >
-      <FileOutlined style={{ fontSize: 32, marginRight: 12 }} />
-      <div className="flex flex-col overflow-hidden">
-        <div className="max-w-[150px] truncate font-medium">{fileElem.fileName}</div>
-        <div className="text-xs text-[var(--sub-text)]">
-          {bytesToSize(fileElem.fileSize)}
-        </div>
-      </div>
-    </div>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-app-shell text-muted-foreground">
+        <FileText size={25} strokeWidth={1.6} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <strong className="block truncate text-sm font-semibold">
+          {fileElem.fileName}
+        </strong>
+        <span className="mt-1 block text-xs text-muted-foreground">
+          {fileElem.fileSize > 0
+            ? bytesToSize(Number(fileElem.fileSize))
+            : t("placeholder.fileSizeUnknown")}
+        </span>
+      </span>
+    </button>
   );
 };
 

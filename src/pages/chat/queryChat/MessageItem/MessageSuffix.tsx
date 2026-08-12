@@ -1,5 +1,5 @@
 import { MessageStatus, SessionType } from "@abd-im/wasm-client-sdk";
-import { ExclamationCircleFilled, LoadingOutlined } from "@ant-design/icons";
+import { LoadingOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
 import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
@@ -31,7 +31,11 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
   const isRead = message.isRead;
   const showReadStatus = message.sessionType === SessionType.Single;
 
-  if (!isSelf || (!showReadStatus && message.status === MessageStatus.Succeed)) {
+  if (
+    !isSelf ||
+    message.status === MessageStatus.Failed ||
+    (!showReadStatus && message.status === MessageStatus.Succeed)
+  ) {
     return null;
   }
 
@@ -40,25 +44,21 @@ const MessageSuffix: FC<IMessageItemProps> = ({ message }) => {
       className={styles.suffix}
       style={{ minWidth: "40px", minHeight: "16px", display: "flex" }}
     >
-      <span
-        className={clsx(
-          "select-none text-xs font-normal leading-none",
-          !showReadStatus && "hidden",
-          isRead ? "text-[#999]" : "text-brand",
-        )}
-      >
-        {isRead ? t("placeholder.isRead") : t("placeholder.unread")}
-      </span>
+      {message.status === MessageStatus.Succeed && (
+        <span
+          className={clsx(
+            "select-none text-xs font-normal leading-none",
+            !showReadStatus && "hidden",
+            isRead ? "text-[#999]" : "text-brand",
+          )}
+        >
+          {isRead ? t("placeholder.isRead") : t("placeholder.unread")}
+        </span>
+      )}
       {showSending && message.status === MessageStatus.Sending && (
         <Spin
           className="ml-1 flex"
           indicator={<LoadingOutlined style={{ fontSize: 12 }} spin rev={undefined} />}
-        />
-      )}
-      {message.status === MessageStatus.Failed && (
-        <ExclamationCircleFilled
-          className="ml-1 text-sm text-[#ff381f]"
-          rev={undefined}
         />
       )}
     </div>

@@ -11,6 +11,8 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import emitter from "@/utils/events";
 
+import { moveMessageRetry, recreateFailedMessage } from "./ChatFooter/messageRetry";
+import { useFileMessage } from "./ChatFooter/SendActionBar/useFileMessage";
 import { useSendMessage } from "./ChatFooter/useSendMessage";
 import ForwardSelectionBar from "./forwarding/ForwardSelectionBar";
 import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetModal";
@@ -54,6 +56,72 @@ const ChatContent = () => {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardSubmitting, setForwardSubmitting] = useState(false);
   const { sendMessage } = useSendMessage();
+  const {
+    getFileMessage,
+    getImageMessage,
+    getVideoMessage,
+    recreateFileBackedMessage,
+  } = useFileMessage();
+
+  const selectReplacementFile = useCallback((contentType: MessageType) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept =
+      contentType === MessageType.PictureMessage
+        ? "image/*"
+        : contentType === MessageType.VideoMessage
+        ? "video/*"
+        : "*";
+
+    return new Promise<File | undefined>((resolve) => {
+      input.onchange = () => resolve(input.files?.[0]);
+      input.click();
+    });
+  }, []);
+
+  const retryMessage = useCallback(
+    async (message: MessageItem) => {
+      try {
+        let recreated =
+          (await recreateFailedMessage(message.clientMsgID)) ??
+          (await recreateFileBackedMessage(message));
+        const isFileBackedMessage = [
+          MessageType.PictureMessage,
+          MessageType.VideoMessage,
+          MessageType.FileMessage,
+        ].includes(message.contentType);
+        if (!recreated && isFileBackedMessage) {
+          const replacement = await selectReplacementFile(message.contentType);
+          if (!replacement) return;
+          recreated =
+            message.contentType === MessageType.PictureMessage
+              ? await getImageMessage(replacement)
+              : message.contentType === MessageType.VideoMessage
+              ? await getVideoMessage(replacement)
+              : await getFileMessage(replacement);
+        }
+        if (recreated && recreated.clientMsgID !== message.clientMsgID) {
+          moveMessageRetry(recreated.clientMsgID, message.clientMsgID);
+          recreated.clientMsgID = message.clientMsgID;
+        }
+        const sent = await sendMessage({ message: recreated ?? message });
+        if (!sent) {
+          antMessage.error(t("toast.uploadFailed"));
+        }
+      } catch {
+        antMessage.error(t("toast.uploadFailed"));
+      }
+    },
+    [
+      getFileMessage,
+      getImageMessage,
+      getVideoMessage,
+      recreateFileBackedMessage,
+      selectReplacementFile,
+      sendMessage,
+      t,
+    ],
+  );
 
   const scrollToBottom = useCallback((behavior: "auto" | "smooth" = "auto") => {
     setTimeout(
@@ -382,6 +450,7 @@ const ChatContent = () => {
                 onEnterSelection={enterSelection}
                 onToggleSelection={toggleSelection}
                 onForward={openSingleForward}
+                onRetry={() => void retryMessage(message)}
               />
             );
           }}

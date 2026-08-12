@@ -204,6 +204,22 @@
   }
 }
 
+.video-preview-modal {
+  .ant-modal-content {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: #000;
+    box-shadow: var(--floating-shadow);
+  }
+
+  .ant-modal-close {
+    color: #fff;
+    background: rgb(0 0 0 / 0.48);
+  }
+}
+
 .bold-label-form {
   .ant-form-item-label {
     label {

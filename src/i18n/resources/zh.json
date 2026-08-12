@@ -308,6 +308,7 @@
     "man": "男",
     "female": "女",
     "unknown": "未知",
+    "fileSizeUnknown": "大小未知",
     "nickName": "昵称",
     "groupNickName": "群昵称",
     "joinGroupTime": "入群时间",

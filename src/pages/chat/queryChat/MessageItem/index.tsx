@@ -5,7 +5,7 @@ import {
 } from "@abd-im/wasm-client-sdk";
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
-import { Bot } from "lucide-react";
+import { Bot, CircleAlert } from "lucide-react";
 import { FC, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +19,7 @@ import { formatMessageTime } from "@/utils/imCommon";
 import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
 import { deleteMessage } from "../useHistoryMessageList";
 import BurnCountdown from "./BurnCountdown";
+import CardMessageRender from "./CardMessageRender";
 import CatchMessageRender from "./CatchMsgRenderer";
 import FileMessageRender from "./FileMessageRender";
 import MarkdownMessageRender from "./MarkdownMessageRender";
@@ -48,6 +49,7 @@ export interface IMessageItemProps {
   onEnterSelection?: (messageID: string) => void;
   onToggleSelection?: (messageID: string) => void;
   onForward?: (messageID: string) => void;
+  onRetry?: () => void;
 }
 
 const components: Record<number, FC<IMessageItemProps>> = {
@@ -56,6 +58,7 @@ const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.PictureMessage]: MediaMessageRender,
   [MessageType.VideoMessage]: VideoMessageRender,
   [MessageType.FileMessage]: FileMessageRender,
+  [MessageType.CardMessage]: CardMessageRender,
   [MessageType.QuoteMessage]: QuoteMessageRender,
   [MessageType.MergeMessage]: MergeMessageRender,
   [MARKDOWN_TEXT_MESSAGE_TYPE]: MarkdownMessageRender,
@@ -88,6 +91,7 @@ const MessageItem: FC<IMessageItemProps> = ({
   onEnterSelection,
   onToggleSelection,
   onForward,
+  onRetry,
 }) => {
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
@@ -270,6 +274,18 @@ const MessageItem: FC<IMessageItemProps> = ({
 
             <div className={styles["message-content-group"]}>
               <div className={styles["message-content-row"]}>
+                {isSender && message.status === MessageStatus.Failed && (
+                  <Tooltip title={t("retry")}>
+                    <button
+                      type="button"
+                      className="mr-2 grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#ef4444] transition-colors hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]"
+                      aria-label={t("retry")}
+                      onClick={onRetry}
+                    >
+                      <CircleAlert size={18} fill="currentColor" stroke="white" />
+                    </button>
+                  </Tooltip>
+                )}
                 {isSender && (
                   <div className="mr-2">
                     <BurnCountdown message={message} conversationID={conversationID} />
@@ -278,7 +294,7 @@ const MessageItem: FC<IMessageItemProps> = ({
                 <div
                   className={clsx(
                     styles["message-bubble-wrap"],
-                    canReact && styles["message-bubble-wrap-reaction-shell"],
+                    hasReactions && styles["message-bubble-wrap-reaction-shell"],
                     hasReactions && styles["message-bubble-wrap-with-reactions"],
                   )}
                 >

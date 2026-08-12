@@ -1,43 +1,62 @@
 import { MessageStatus } from "@abd-im/wasm-client-sdk";
 import { Image, Spin } from "antd";
-import clsx from "clsx";
-import { FC } from "react";
-import { useTranslation } from "react-i18next";
+import { ImageOff } from "lucide-react";
+import { FC, useEffect, useState } from "react";
 
 import { IMessageItemProps } from ".";
-import styles from "./message-item.module.scss";
-
-const min = (a: number, b: number) => (a > b ? b : a);
+import { getMediaPreviewSize } from "./mediaPreview";
 
 const MediaMessageRender: FC<IMessageItemProps> = ({ message }) => {
-  const imageHeight = message.pictureElem!.sourcePicture.height;
-  const imageWidth = message.pictureElem!.sourcePicture.width;
-  const snapshotMaxHeight = message.pictureElem!.snapshotPicture?.height ?? imageHeight;
-  const minHeight = min(200, imageWidth) * (imageHeight / imageWidth) + 2;
-  const adaptedHight = min(minHeight, snapshotMaxHeight) + 10;
-  const adaptedWidth = min(imageWidth, 200) + 10;
-
+  const [imageFailed, setImageFailed] = useState(false);
+  const pictureElem = message.pictureElem;
   const sourceUrl =
-    message.pictureElem!.snapshotPicture?.url || message.pictureElem!.sourcePicture.url;
+    pictureElem?.snapshotPicture?.url || pictureElem?.sourcePicture.url || "";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [sourceUrl]);
+
+  if (!pictureElem) return null;
+
+  const previewSize = getMediaPreviewSize(
+    pictureElem.sourcePicture.width,
+    pictureElem.sourcePicture.height,
+    160,
+    120,
+  );
+
   const isSending = message.status === MessageStatus.Sending;
-  const minStyle = { minHeight: `${adaptedHight}px`, minWidth: `${adaptedWidth}px` };
+  const sizeStyle = {
+    width: `${imageFailed || !sourceUrl ? 132 : previewSize.width}px`,
+    maxWidth: "100%",
+    aspectRatio:
+      imageFailed || !sourceUrl
+        ? "4 / 3"
+        : `${previewSize.width} / ${previewSize.height}`,
+  };
 
   return (
-    <Spin spinning={isSending}>
-      <div className="relative max-w-[200px]" style={minStyle}>
-        <Image
-          rootClassName="message-image cursor-pointer"
-          className="max-w-[200px] rounded-md"
-          src={sourceUrl}
-          preview={{
-            src: message.pictureElem!.sourcePicture.url || sourceUrl,
-          }}
-          placeholder={
-            <div style={minStyle} className="flex items-center justify-center">
-              <Spin />
-            </div>
-          }
-        />
+    <Spin wrapperClassName="inline-block max-w-full align-top" spinning={isSending}>
+      <div
+        className="relative grid place-items-center overflow-hidden rounded-md border border-surface-border bg-app-shell text-faint-foreground shadow-surface"
+        style={sizeStyle}
+      >
+        {sourceUrl && !imageFailed ? (
+          <Image
+            rootClassName="message-image !block h-full w-full cursor-pointer"
+            className="block !h-full !w-full object-cover"
+            src={sourceUrl}
+            onError={() => setImageFailed(true)}
+            preview={{ src: pictureElem.sourcePicture.url || sourceUrl }}
+            placeholder={
+              <div className="flex h-full w-full items-center justify-center">
+                <Spin />
+              </div>
+            }
+          />
+        ) : (
+          <ImageOff size={25} strokeWidth={1.5} />
+        )}
       </div>
     </Spin>
   );

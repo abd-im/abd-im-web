@@ -10,7 +10,7 @@ import {
   Settings,
   UserPlus,
 } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -249,26 +249,6 @@ const ChatHeader = () => {
         </div>
         <div className="mr-5 flex">
           {isSingleSession && currentConversation && (
-            <Popover
-              arrow={false}
-              content={<CallPopContent closeAllPop={() => setCallMenuOpen(false)} />}
-              open={callMenuOpen}
-              placement="bottomRight"
-              trigger="click"
-              onOpenChange={setCallMenuOpen}
-            >
-              <Tooltip title={t("placeholder.call")}>
-                <button
-                  type="button"
-                  className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                  aria-label={t("placeholder.call")}
-                >
-                  <Phone size={20} strokeWidth={1.8} />
-                </button>
-              </Tooltip>
-            </Popover>
-          )}
-          {isSingleSession && currentConversation && (
             <div
               className={clsx(
                 "mr-1 flex h-8 overflow-hidden rounded-md border",
@@ -386,16 +366,40 @@ const ChatHeader = () => {
             const Icon = menu.icon;
 
             return (
-              <Tooltip title={menu.title} key={menu.idx}>
-                <button
-                  type="button"
-                  className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                  aria-label={menu.title}
-                  onClick={() => menuClick(menu.idx)}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
-                </button>
-              </Tooltip>
+              <Fragment key={menu.idx}>
+                {menu.idx === 0 && (
+                  <Popover
+                    arrow={false}
+                    content={
+                      <CallPopContent closeAllPop={() => setCallMenuOpen(false)} />
+                    }
+                    open={callMenuOpen}
+                    placement="bottomRight"
+                    trigger="click"
+                    onOpenChange={setCallMenuOpen}
+                  >
+                    <Tooltip title={t("placeholder.call")}>
+                      <button
+                        type="button"
+                        className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                        aria-label={t("placeholder.call")}
+                      >
+                        <Phone size={20} strokeWidth={1.8} />
+                      </button>
+                    </Tooltip>
+                  </Popover>
+                )}
+                <Tooltip title={menu.title}>
+                  <button
+                    type="button"
+                    className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                    aria-label={menu.title}
+                    onClick={() => menuClick(menu.idx)}
+                  >
+                    <Icon size={20} strokeWidth={1.8} />
+                  </button>
+                </Tooltip>
+              </Fragment>
             );
           })}
         </div>
