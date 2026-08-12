@@ -13,6 +13,26 @@
   "clear": "Clear",
   "answer": "Answer",
   "hangUp": "Hang up",
+  "rtcCall": {
+    "video": "Video call",
+    "audio": "Audio call",
+    "accepting": "Answering",
+    "phase": {
+      "idle": "Getting ready",
+      "ringing": "Waiting for answer",
+      "outgoing": "Calling",
+      "connecting": "Connecting",
+      "connected": "In call",
+      "failed": "Connection failed"
+    },
+    "error": {
+      "connection": "Unable to connect. Check your network and try again",
+      "permissionDenied": "Microphone or camera access was denied. Allow access in browser settings",
+      "notFound": "No microphone or camera was found",
+      "deviceInUse": "The microphone or camera is being used by another application",
+      "other": "Unable to use the microphone or camera. Check your device settings"
+    }
+  },
   "notStart": "Not started",
   "waitingStart": "Awaiting",
   "alreadyStarted": "Already",

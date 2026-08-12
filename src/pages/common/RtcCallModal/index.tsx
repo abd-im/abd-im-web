@@ -9,6 +9,7 @@ import {
   useEffect,
   useReducer,
   useRef,
+  useState,
 } from "react";
 
 import DraggableModalWrap from "@/components/DraggableModalWrap";
@@ -17,6 +18,7 @@ import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisib
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
+import { getRtcDeviceFailure } from "@/utils/rtcMedia";
 
 import { callReducer, initialCallState } from "./callState";
 import { AuthData, InviteData } from "./data";
@@ -34,6 +36,7 @@ const RtcCallModal: ForwardRefRenderFunction<
   const inviteeUserID = invitation?.inviteeUserIDList[0];
   const inviteTimeout = invitation?.timeout ?? 30;
   const [callState, dispatchCall] = useReducer(callReducer, initialCallState);
+  const [connectionError, setConnectionError] = useState("");
   const selfID = useUserStore((state) => state.selfInfo.userID);
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -84,6 +87,7 @@ const RtcCallModal: ForwardRefRenderFunction<
 
     const roomID = invitation.roomID;
     dispatchCall({ type: "open", roomID, isReceiver: isRecv });
+    setConnectionError("");
 
     if (!isRecv && inviteeUserID) {
       const invite = async () => {
@@ -146,8 +150,19 @@ const RtcCallModal: ForwardRefRenderFunction<
   const connect =
     isCurrentRoom &&
     (callState.phase === "connecting" || callState.phase === "connected");
-  const isConnected = isCurrentRoom && callState.phase === "connected";
   const authData = isCurrentRoom ? callState.authData : initialCallState.authData;
+
+  const failConnection = (errorKey: string) => {
+    if (!invitation?.roomID) return;
+    setConnectionError(errorKey);
+    dispatchCall({ type: "connectionFailed", roomID: invitation.roomID });
+  };
+
+  const retryConnection = () => {
+    if (!invitation?.roomID) return;
+    setConnectionError("");
+    dispatchCall({ type: "retry", roomID: invitation.roomID });
+  };
 
   return (
     <DraggableModalWrap
@@ -184,24 +199,21 @@ const RtcCallModal: ForwardRefRenderFunction<
             onConnected={() =>
               dispatchCall({ type: "connected", roomID: invitation.roomID })
             }
-            onError={(error) => {
-              feedbackToast({ msg: t("toast.rtcConnectFailed"), error });
-              closeCall(invitation.roomID);
-            }}
+            onError={() => failConnection("rtcCall.error.connection")}
             onMediaDeviceFailure={(failure) => {
-              feedbackToast({
-                msg: t("toast.rtcDeviceFailed"),
-                error: failure ?? t("toast.rtcDeviceFailed"),
-              });
-              closeCall(invitation.roomID);
+              failConnection(`rtcCall.error.${getRtcDeviceFailure(failure)}`);
             }}
-            onDisconnected={() => closeCall(invitation.roomID)}
+            onDisconnected={() => {
+              if (callState.phase === "connected") closeCall(invitation.roomID);
+            }}
           >
             <RtcLayout
-              connect={connect}
-              isConnected={isConnected}
+              phase={callState.phase}
               isRecv={isRecv}
               inviteData={inviteData}
+              connectionError={connectionError}
+              retryConnection={retryConnection}
+              setConnectionError={setConnectionError}
               sendCustomSignal={sendCustomSignal}
               acceptIncomingCall={acceptIncomingCall}
               handleRemoteAccepted={handleRemoteAccepted}

@@ -124,4 +124,29 @@ describe("callReducer", () => {
       }),
     ).toBe(connecting);
   });
+
+  it("keeps authentication data available when retrying a failed connection", () => {
+    const ringing = callReducer(initialCallState, {
+      type: "open",
+      roomID: "room-6",
+      isReceiver: true,
+    });
+    const connecting = callReducer(ringing, {
+      type: "localAccept",
+      roomID: "room-6",
+      authData,
+    });
+    const failed = callReducer(connecting, {
+      type: "connectionFailed",
+      roomID: "room-6",
+    });
+    const retrying = callReducer(failed, { type: "retry", roomID: "room-6" });
+
+    expect(failed.phase).toBe("failed");
+    expect(retrying).toEqual({
+      authData,
+      phase: "connecting",
+      roomID: "room-6",
+    });
+  });
 });

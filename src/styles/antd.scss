@@ -192,8 +192,15 @@
 .rtc-single-modal {
   .ant-modal-content {
     padding: 0;
-    border-radius: 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--surface-raised);
+    box-shadow: none;
     overflow: hidden;
+  }
+
+  .ant-modal-body {
+    line-height: normal;
   }
 }
 

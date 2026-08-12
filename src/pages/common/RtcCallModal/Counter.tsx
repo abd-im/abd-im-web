@@ -46,7 +46,9 @@ const Counter: ForwardRefRenderFunction<
 
   return (
     <div className={className}>
-      <div className="text-sm text-white">{secondsToMS(count)}</div>
+      <div className="font-mono text-xs tabular-nums text-muted-foreground">
+        {isConnected ? secondsToMS(count) : "--:--"}
+      </div>
     </div>
   );
 };

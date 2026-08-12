@@ -3,151 +3,203 @@ import {
   RoomAudioRenderer,
   TrackLoop,
   TrackRefContext,
-  useConnectionState,
   useTracks,
   VideoTrack,
 } from "@livekit/components-react";
-import { Spin } from "antd";
 import clsx from "clsx";
-import {
-  ConnectionState,
-  LocalParticipant,
-  Participant,
-  ParticipantEvent,
-  Track,
-} from "livekit-client";
+import { LocalParticipant, Participant, ParticipantEvent, Track } from "livekit-client";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import OIMAvatar from "@/components/OIMAvatar";
 import { CustomType } from "@/constants";
 
+import { CallPhase } from "./callState";
 import { AuthData, InviteData } from "./data";
 import { RtcControl } from "./RtcControl";
 
 const localVideoClasses =
-  "absolute right-3 top-3 !w-[100px] !h-[150px] rounded-md z-10";
-const remoteVideoClasses = "absolute top-0 z-0";
+  "absolute right-3 top-16 z-20 !h-auto !w-[clamp(88px,24%,128px)] aspect-[3/4] rounded-md border border-white/20 bg-black object-cover shadow-floating sm:right-4 sm:top-[72px]";
+const remoteVideoClasses = "absolute inset-0 z-0 !h-full !w-full bg-black object-cover";
 
 interface IRtcLayoutProps {
-  connect: boolean;
-  isConnected: boolean;
+  phase: CallPhase;
   isRecv: boolean;
   inviteData?: InviteData;
+  connectionError: string;
+  retryConnection: () => void;
   closeOverlay: () => void;
   sendCustomSignal: (recvID: string, customType: CustomType) => Promise<void>;
   acceptIncomingCall: (roomID: string, authData: AuthData) => void;
   handleRemoteAccepted: (roomID: string, authData: AuthData) => void;
+  setConnectionError: (error: string) => void;
 }
+
 export const RtcLayout = ({
-  connect,
-  isConnected,
+  phase,
   isRecv,
   inviteData,
+  connectionError,
+  retryConnection,
   acceptIncomingCall,
   handleRemoteAccepted,
   sendCustomSignal,
   closeOverlay,
+  setConnectionError,
 }: IRtcLayoutProps) => {
+  const { t } = useTranslation();
   const isVideoCall = inviteData?.invitation?.mediaType === "video";
+  const isConnected = phase === "connected";
   const tracks = useTracks([Track.Source.Camera]);
-  const remoteParticipant = tracks.find((track) => !isLocal(track.participant));
-  const isWaiting = !connect && !isConnected;
-  const [isRemoteVideoMuted, setIsRemoteVideoMuted] = useState(false);
-
-  const connectState = useConnectionState();
+  const remoteTrack = tracks.find((track) => !isLocal(track.participant));
+  const [isRemoteVideoMuted, setIsRemoteVideoMuted] = useState(true);
 
   useEffect(() => {
-    if (!remoteParticipant?.participant.identity) return;
-    const trackMuteUpdate = () => {
-      setIsRemoteVideoMuted(!remoteParticipant?.participant.isCameraEnabled);
+    const participant = remoteTrack?.participant;
+    if (!participant?.identity) {
+      setIsRemoteVideoMuted(true);
+      return;
+    }
+
+    const updateMutedState = () => setIsRemoteVideoMuted(!participant.isCameraEnabled);
+    participant.on(ParticipantEvent.TrackMuted, updateMutedState);
+    participant.on(ParticipantEvent.TrackUnmuted, updateMutedState);
+    updateMutedState();
+
+    return () => {
+      participant.off(ParticipantEvent.TrackMuted, updateMutedState);
+      participant.off(ParticipantEvent.TrackUnmuted, updateMutedState);
     };
-    remoteParticipant?.participant.on(ParticipantEvent.TrackMuted, trackMuteUpdate);
-    remoteParticipant?.participant.on(ParticipantEvent.TrackUnmuted, trackMuteUpdate);
-    trackMuteUpdate();
-  }, [remoteParticipant?.participant.identity]);
+  }, [remoteTrack?.participant]);
 
-  const renderContent = () => {
-    if (!isWaiting && isVideoCall && !isRemoteVideoMuted) return null;
-
-    return (
-      <SingleProfile
-        isWaiting={isWaiting}
-        userInfo={inviteData?.participant?.userInfo}
-      />
-    );
-  };
+  const showRemoteVideo =
+    isConnected && isVideoCall && Boolean(remoteTrack) && !isRemoteVideoMuted;
+  const callType = isVideoCall ? t("rtcCall.video") : t("rtcCall.audio");
 
   return (
-    <Spin spinning={connectState === ConnectionState.Connecting}>
-      <div
-        className="relative"
-        style={{
-          height: `340px`,
-          width: `480px`,
-        }}
-      >
-        <div
+    <div
+      className={clsx(
+        "relative flex h-[min(620px,calc(100vh-32px))] w-[min(560px,calc(100vw-32px))] overflow-hidden border border-surface-border bg-page-canvas shadow-floating",
+        { "sm:w-[480px]": !isVideoCall },
+      )}
+    >
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header
           className={clsx(
-            "flex h-full flex-col items-center justify-between bg-app-shell",
-            { "!bg-surface": isWaiting },
+            "relative z-30 flex h-16 shrink-0 items-center justify-between border-b border-surface-border bg-surface-raised px-4",
+            { "border-white/10 bg-black/65": showRemoteVideo },
           )}
         >
-          {renderContent()}
-          <RtcControl
-            isWaiting={isWaiting}
-            isRecv={isRecv}
-            isConnected={isConnected}
-            // @ts-ignore
-            invitation={inviteData?.invitation}
-            closeOverlay={closeOverlay}
-            acceptIncomingCall={acceptIncomingCall}
-            handleRemoteAccepted={handleRemoteAccepted}
-            sendCustomSignal={sendCustomSignal}
-          />
-        </div>
-        {isConnected && (
-          <TrackLoop tracks={tracks}>
-            <TrackRefContext.Consumer>
-              {(track) =>
-                track && (
-                  <VideoTrack
-                    {...track}
-                    className={
-                      isLocal(track.participant)
-                        ? localVideoClasses
-                        : `${remoteVideoClasses} ${isRemoteVideoMuted ? "hidden" : ""}`
-                    }
-                  />
-                )
+          <div className="min-w-0">
+            <div
+              className={clsx("truncate text-sm font-medium text-foreground", {
+                "text-white": showRemoteVideo,
+              })}
+            >
+              {inviteData?.participant?.userInfo.nickname || callType}
+            </div>
+            <div
+              className={clsx("mt-0.5 text-xs text-muted-foreground", {
+                "text-white/70": showRemoteVideo,
+              })}
+            >
+              {callType}
+            </div>
+          </div>
+          <div
+            className={clsx("text-xs font-medium text-muted-foreground", {
+              "text-white/80": showRemoteVideo,
+            })}
+            aria-live="polite"
+          >
+            {t(`rtcCall.phase.${phase}`)}
+          </div>
+        </header>
+
+        <main
+          className={clsx(
+            "relative flex min-h-0 flex-1 items-center justify-center bg-page-canvas px-6 pb-24",
+            { "bg-app-shell": isConnected },
+          )}
+        >
+          {!showRemoteVideo && (
+            <SingleProfile
+              userInfo={inviteData?.participant?.userInfo}
+              callType={callType}
+              status={
+                connectionError ? t(connectionError) : t(`rtcCall.phase.${phase}`)
               }
-            </TrackRefContext.Consumer>
-          </TrackLoop>
-        )}
+              hasError={Boolean(connectionError)}
+            />
+          )}
+
+          {isConnected && (
+            <TrackLoop tracks={tracks}>
+              <TrackRefContext.Consumer>
+                {(track) =>
+                  track && (
+                    <VideoTrack
+                      {...track}
+                      className={
+                        isLocal(track.participant)
+                          ? localVideoClasses
+                          : clsx(remoteVideoClasses, { hidden: !showRemoteVideo })
+                      }
+                    />
+                  )
+                }
+              </TrackRefContext.Consumer>
+            </TrackLoop>
+          )}
+        </main>
+
+        <RtcControl
+          phase={phase}
+          isRecv={isRecv}
+          invitation={inviteData?.invitation}
+          connectionError={connectionError}
+          retryConnection={retryConnection}
+          setConnectionError={setConnectionError}
+          closeOverlay={closeOverlay}
+          acceptIncomingCall={acceptIncomingCall}
+          handleRemoteAccepted={handleRemoteAccepted}
+          sendCustomSignal={sendCustomSignal}
+        />
       </div>
       <RoomAudioRenderer />
-    </Spin>
-  );
-};
-
-interface ISingleProfileProps {
-  isWaiting: boolean;
-  userInfo?: PublicUserItem;
-}
-const SingleProfile = ({ isWaiting, userInfo }: ISingleProfileProps) => {
-  return (
-    <div className="absolute top-[10%] flex flex-col items-center">
-      <OIMAvatar size={48} src={userInfo?.faceURL} text={userInfo?.nickname} />
-      <div
-        className={clsx("mt-3 max-w-[120px] truncate text-white", {
-          "!text-[var(--base-black)]": isWaiting,
-        })}
-      >
-        {userInfo?.nickname}
-      </div>
     </div>
   );
 };
 
-const isLocal = (p: Participant) => {
-  return p instanceof LocalParticipant;
-};
+interface ISingleProfileProps {
+  userInfo?: PublicUserItem;
+  callType: string;
+  status: string;
+  hasError: boolean;
+}
+
+const SingleProfile = ({
+  userInfo,
+  callType,
+  status,
+  hasError,
+}: ISingleProfileProps) => (
+  <div className="relative z-10 flex max-w-[320px] flex-col items-center text-center">
+    <div className="rounded-full border border-surface-border bg-surface p-1 shadow-surface">
+      <OIMAvatar size={88} src={userInfo?.faceURL} text={userInfo?.nickname} />
+    </div>
+    <div className="mt-5 max-w-full truncate text-base font-semibold text-foreground">
+      {userInfo?.nickname || callType}
+    </div>
+    <div
+      className={clsx("mt-1.5 text-sm text-muted-foreground", {
+        "text-red-600 dark:text-red-400": hasError,
+      })}
+      role={hasError ? "alert" : undefined}
+    >
+      {status}
+    </div>
+  </div>
+);
+
+const isLocal = (participant: Participant) => participant instanceof LocalParticipant;

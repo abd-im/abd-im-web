@@ -1,6 +1,12 @@
 import { AuthData } from "./data";
 
-export type CallPhase = "idle" | "ringing" | "outgoing" | "connecting" | "connected";
+export type CallPhase =
+  | "idle"
+  | "ringing"
+  | "outgoing"
+  | "connecting"
+  | "connected"
+  | "failed";
 
 export interface CallState {
   authData: AuthData;
@@ -13,6 +19,8 @@ export type CallAction =
   | { type: "localAccept"; roomID: string; authData: AuthData }
   | { type: "remoteAccept"; roomID: string; authData: AuthData }
   | { type: "connected"; roomID: string }
+  | { type: "connectionFailed"; roomID: string }
+  | { type: "retry"; roomID: string }
   | { type: "reset"; roomID?: string };
 
 const emptyAuthData: AuthData = { serverUrl: "", token: "" };
@@ -51,6 +59,17 @@ export const callReducer = (state: CallState, action: CallAction): CallState => 
 
   if (action.type === "connected" && state.phase === "connecting") {
     return { ...state, phase: "connected" };
+  }
+
+  if (
+    action.type === "connectionFailed" &&
+    (state.phase === "connecting" || state.phase === "connected")
+  ) {
+    return { ...state, phase: "failed" };
+  }
+
+  if (action.type === "retry" && state.phase === "failed") {
+    return { ...state, phase: "connecting" };
   }
 
   return state;

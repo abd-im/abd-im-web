@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { checkRtcMediaAccess } from "./rtcMedia";
+import { checkRtcMediaAccess, getRtcDeviceFailure } from "./rtcMedia";
 
 describe("checkRtcMediaAccess", () => {
   afterEach(() => {
@@ -35,5 +35,20 @@ describe("checkRtcMediaAccess", () => {
     await expect(checkRtcMediaAccess("video")).rejects.toThrow(
       "Media devices are unavailable",
     );
+  });
+
+  it.each([
+    ["PermissionDenied", "permissionDenied"],
+    ["NotAllowedError", "permissionDenied"],
+    ["PermissionDeniedError", "permissionDenied"],
+    ["NotFound", "notFound"],
+    ["NotFoundError", "notFound"],
+    ["DevicesNotFoundError", "notFound"],
+    ["DeviceInUse", "deviceInUse"],
+    ["NotReadableError", "deviceInUse"],
+    ["TrackStartError", "deviceInUse"],
+    ["Other", "other"],
+  ])("maps %s to a specific device failure", (failure, expected) => {
+    expect(getRtcDeviceFailure(failure)).toBe(expected);
   });
 });

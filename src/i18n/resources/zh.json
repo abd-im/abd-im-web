@@ -13,6 +13,26 @@
   "clear": "清空",
   "answer": "接听",
   "hangUp": "挂断",
+  "rtcCall": {
+    "video": "视频通话",
+    "audio": "语音通话",
+    "accepting": "接听中",
+    "phase": {
+      "idle": "准备中",
+      "ringing": "等待接听",
+      "outgoing": "正在呼叫",
+      "connecting": "正在连接",
+      "connected": "通话中",
+      "failed": "连接失败"
+    },
+    "error": {
+      "connection": "无法连接通话，请检查网络后重试",
+      "permissionDenied": "麦克风或摄像头权限被拒绝，请在浏览器设置中允许访问",
+      "notFound": "未找到可用的麦克风或摄像头",
+      "deviceInUse": "麦克风或摄像头正被其他应用占用",
+      "other": "无法使用麦克风或摄像头，请检查设备设置"
+    }
+  },
   "notStart": "未开始",
   "waitingStart": "待开始",
   "alreadyStarted": "已开始",
