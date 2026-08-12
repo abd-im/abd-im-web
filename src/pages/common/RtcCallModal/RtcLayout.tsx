@@ -1,3 +1,4 @@
+import { PublicUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import {
   RoomAudioRenderer,
   TrackLoop,
@@ -6,7 +7,6 @@ import {
   useTracks,
   VideoTrack,
 } from "@livekit/components-react";
-import { PublicUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Spin } from "antd";
 import clsx from "clsx";
 import {
@@ -35,14 +35,16 @@ interface IRtcLayoutProps {
   inviteData?: InviteData;
   closeOverlay: () => void;
   sendCustomSignal: (recvID: string, customType: CustomType) => Promise<void>;
-  connectRtc: (data?: AuthData) => void;
+  acceptIncomingCall: (roomID: string, authData: AuthData) => void;
+  handleRemoteAccepted: (roomID: string, authData: AuthData) => void;
 }
 export const RtcLayout = ({
   connect,
   isConnected,
   isRecv,
   inviteData,
-  connectRtc,
+  acceptIncomingCall,
+  handleRemoteAccepted,
   sendCustomSignal,
   closeOverlay,
 }: IRtcLayoutProps) => {
@@ -98,7 +100,8 @@ export const RtcLayout = ({
             // @ts-ignore
             invitation={inviteData?.invitation}
             closeOverlay={closeOverlay}
-            connectRtc={connectRtc}
+            acceptIncomingCall={acceptIncomingCall}
+            handleRemoteAccepted={handleRemoteAccepted}
             sendCustomSignal={sendCustomSignal}
           />
         </div>

@@ -7,7 +7,9 @@ import { v4 as uuidV4 } from "uuid";
 import call_audio from "@/assets/images/chatFooter/call_audio.png";
 import call_video from "@/assets/images/chatFooter/call_video.png";
 import { useConversationStore, useUserStore } from "@/store";
+import { feedbackToast } from "@/utils/common";
 import emitter from "@/utils/events";
+import { checkRtcMediaAccess } from "@/utils/rtcMedia";
 
 const callList = [
   {
@@ -23,9 +25,15 @@ const callList = [
 ];
 
 const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
-  const prepareCall = (idx: number) => {
+  const prepareCall = async (idx: number) => {
     const conversation = useConversationStore.getState().currentConversation!;
     const mediaType = idx ? "audio" : "video";
+    try {
+      await checkRtcMediaAccess(mediaType);
+    } catch (error) {
+      feedbackToast({ msg: t("toast.rtcDeviceFailed"), error });
+      return;
+    }
     emitter.emit("OPEN_RTC_MODAL", {
       invitation: {
         inviterUserID: useUserStore.getState().selfInfo.userID,
@@ -54,7 +62,7 @@ const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
         <div
           className="flex cursor-pointer items-center rounded px-3 py-2 text-xs hover:bg-[var(--primary-active)]"
           key={item.title}
-          onClick={() => prepareCall(item.idx)}
+          onClick={() => void prepareCall(item.idx)}
         >
           <img width={20} src={item.icon} alt="call_video" />
           <div className="ml-3 text-foreground">{item.title}</div>

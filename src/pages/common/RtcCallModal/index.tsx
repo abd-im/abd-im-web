@@ -7,8 +7,8 @@ import {
   ForwardRefRenderFunction,
   useCallback,
   useEffect,
+  useReducer,
   useRef,
-  useState,
 } from "react";
 
 import DraggableModalWrap from "@/components/DraggableModalWrap";
@@ -18,6 +18,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 
+import { callReducer, initialCallState } from "./callState";
 import { AuthData, InviteData } from "./data";
 import { RtcLayout } from "./RtcLayout";
 
@@ -30,41 +31,30 @@ const RtcCallModal: ForwardRefRenderFunction<
   IRtcCallModalProps
 > = ({ inviteData }, ref) => {
   const { invitation } = inviteData;
-  const [connect, setConnect] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [authData, setAuthData] = useState<AuthData>({
-    serverUrl: "",
-    token: "",
-  });
+  const inviteeUserID = invitation?.inviteeUserIDList[0];
+  const inviteTimeout = invitation?.timeout ?? 30;
+  const [callState, dispatchCall] = useReducer(callReducer, initialCallState);
   const selfID = useUserStore((state) => state.selfInfo.userID);
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
-  const timer = useRef<NodeJS.Timeout>();
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const visibleRoomID = isOverlayOpen ? invitation?.roomID : undefined;
+  const visibleRoomIDRef = useRef(visibleRoomID);
+  visibleRoomIDRef.current = visibleRoomID;
 
   const isRecv = selfID !== invitation?.inviterUserID;
 
-  useEffect(() => {
-    if (!isOverlayOpen) return;
-    tryInvite();
-  }, [isOverlayOpen, isRecv]);
-
-  const checkTimeout = () => {
-    if (timer.current) clearTimer();
-    timer.current = setTimeout(() => {
-      clearTimer();
-
-      if (!invitation) return;
-
-      sendCustomSignal(invitation?.inviteeUserIDList[0], CustomType.CallingCancel);
-      closeOverlay();
-    }, (invitation?.timeout ?? 30) * 1000);
-  };
-
   const clearTimer = useCallback(() => clearTimeout(timer.current), []);
 
-  const closeOverlayAndClearTimer = useCallback(() => {
-    clearTimer();
-    closeOverlay();
-  }, []);
+  const closeCall = useCallback(
+    (roomID: string) => {
+      if (visibleRoomIDRef.current !== roomID) return;
+      visibleRoomIDRef.current = undefined;
+      clearTimer();
+      dispatchCall({ type: "reset", roomID });
+      closeOverlay();
+    },
+    [clearTimer, closeOverlay],
+  );
 
   const sendCustomSignal = useCallback(
     async (recvID: string, customType: CustomType) => {
@@ -86,31 +76,78 @@ const RtcCallModal: ForwardRefRenderFunction<
         isOnlineOnly: true,
       });
     },
-    [invitation?.roomID],
+    [invitation],
   );
 
-  const tryInvite = async () => {
-    if (!isRecv) {
-      try {
-        await sendCustomSignal(
-          invitation.inviteeUserIDList[0],
-          CustomType.CallingInvite,
-        );
-        checkTimeout();
-      } catch (error) {
-        feedbackToast({ msg: t("toast.inviteUserFailed"), error });
-        closeOverlay();
-      }
-    }
-  };
+  useEffect(() => {
+    if (!isOverlayOpen || !invitation?.roomID) return;
 
-  const connectRtc = useCallback((data?: AuthData) => {
-    if (data) {
-      setAuthData(data);
+    const roomID = invitation.roomID;
+    dispatchCall({ type: "open", roomID, isReceiver: isRecv });
+
+    if (!isRecv && inviteeUserID) {
+      const invite = async () => {
+        try {
+          await sendCustomSignal(inviteeUserID, CustomType.CallingInvite);
+          if (visibleRoomIDRef.current !== roomID) return;
+          clearTimer();
+          timer.current = setTimeout(() => {
+            if (visibleRoomIDRef.current !== roomID) return;
+            void sendCustomSignal(inviteeUserID, CustomType.CallingCancel);
+            closeCall(roomID);
+          }, inviteTimeout * 1000);
+        } catch (error) {
+          feedbackToast({ msg: t("toast.inviteUserFailed"), error });
+          closeCall(roomID);
+        }
+      };
+
+      void invite();
     }
+  }, [
+    clearTimer,
+    closeCall,
+    invitation?.roomID,
+    inviteeUserID,
+    inviteTimeout,
+    isOverlayOpen,
+    isRecv,
+    sendCustomSignal,
+  ]);
+
+  useEffect(() => {
+    if (isOverlayOpen) return;
+    visibleRoomIDRef.current = undefined;
     clearTimer();
-    setTimeout(() => setConnect(true));
-  }, []);
+    dispatchCall({ type: "reset" });
+  }, [isOverlayOpen, clearTimer]);
+
+  useEffect(() => clearTimer, [clearTimer]);
+
+  const acceptIncomingCall = useCallback(
+    (roomID: string, authData: AuthData) => {
+      if (visibleRoomIDRef.current !== roomID) return;
+      clearTimer();
+      dispatchCall({ type: "localAccept", roomID, authData });
+    },
+    [clearTimer],
+  );
+
+  const handleRemoteAccepted = useCallback(
+    (roomID: string, authData: AuthData) => {
+      if (visibleRoomIDRef.current !== roomID) return;
+      clearTimer();
+      dispatchCall({ type: "remoteAccept", roomID, authData });
+    },
+    [clearTimer],
+  );
+
+  const isCurrentRoom = callState.roomID === invitation?.roomID;
+  const connect =
+    isCurrentRoom &&
+    (callState.phase === "connecting" || callState.phase === "connected");
+  const isConnected = isCurrentRoom && callState.phase === "connected";
+  const authData = isCurrentRoom ? callState.authData : initialCallState.authData;
 
   return (
     <DraggableModalWrap
@@ -123,18 +160,19 @@ const RtcCallModal: ForwardRefRenderFunction<
       mask={false}
       centered
       width="auto"
-      onCancel={closeOverlay}
+      onCancel={() => invitation?.roomID && closeCall(invitation.roomID)}
       destroyOnClose
       ignoreClasses=".ignore-drag, .no-padding-modal, .cursor-pointer"
       className="no-padding-modal rtc-single-modal"
       wrapClassName="pointer-events-none"
     >
       <div>
-        {isOverlayOpen && (
+        {isOverlayOpen && invitation?.roomID && (
           <LiveKitRoom
+            key={invitation.roomID}
             serverUrl={authData.serverUrl}
             token={authData.token}
-            video={invitation?.mediaType === "video"}
+            video={invitation.mediaType === "video"}
             audio={true}
             connect={connect}
             options={{
@@ -143,12 +181,21 @@ const RtcCallModal: ForwardRefRenderFunction<
                 backupCodec: { codec: "vp8" },
               },
             }}
-            onConnected={() => setIsConnected(true)}
-            onDisconnected={() => {
-              closeOverlayAndClearTimer();
-              setIsConnected(false);
-              setConnect(false);
+            onConnected={() =>
+              dispatchCall({ type: "connected", roomID: invitation.roomID })
+            }
+            onError={(error) => {
+              feedbackToast({ msg: t("toast.rtcConnectFailed"), error });
+              closeCall(invitation.roomID);
             }}
+            onMediaDeviceFailure={(failure) => {
+              feedbackToast({
+                msg: t("toast.rtcDeviceFailed"),
+                error: failure ?? t("toast.rtcDeviceFailed"),
+              });
+              closeCall(invitation.roomID);
+            }}
+            onDisconnected={() => closeCall(invitation.roomID)}
           >
             <RtcLayout
               connect={connect}
@@ -156,8 +203,9 @@ const RtcCallModal: ForwardRefRenderFunction<
               isRecv={isRecv}
               inviteData={inviteData}
               sendCustomSignal={sendCustomSignal}
-              connectRtc={connectRtc}
-              closeOverlay={closeOverlayAndClearTimer}
+              acceptIncomingCall={acceptIncomingCall}
+              handleRemoteAccepted={handleRemoteAccepted}
+              closeOverlay={() => closeCall(invitation.roomID)}
             />
           </LiveKitRoom>
         )}

@@ -192,7 +192,9 @@
     "publishFailed": "发布失败！",
     "notCanAddFriend": "对方已设置不允许被添加为好友！",
     "isJoinCalling": "群通话进行中，是否直接加入？",
-    "fileTypeError": "不支持的文件类型或文件夹！"
+    "fileTypeError": "不支持的文件类型或文件夹！",
+    "rtcConnectFailed": "无法连接通话，请重试。",
+    "rtcDeviceFailed": "无法使用麦克风或摄像头，请检查浏览器权限。"
   },
   "placeholder": {
     "conversation": "会话",

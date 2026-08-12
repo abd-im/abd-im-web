@@ -191,7 +191,9 @@
     "getLogFailed": "Failed to retrieve the log file!",
     "publishFailed": "Failed to publish!",
     "notCanAddFriend": "The other party has been set up not to be added as a friend!",
-    "fileTypeError": "Unsupported file type or folder!"
+    "fileTypeError": "Unsupported file type or folder!",
+    "rtcConnectFailed": "Unable to connect the call. Please try again.",
+    "rtcDeviceFailed": "Unable to access the microphone or camera. Check browser permissions."
   },
   "placeholder": {
     "conversation": "Conversation",

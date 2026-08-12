@@ -1,7 +1,15 @@
 import { SessionType } from "@abd-im/wasm-client-sdk";
 import { Layout, Popover, Tooltip } from "antd";
 import clsx from "clsx";
-import { Bot, Check, ChevronDown, FileSearch, Settings, UserPlus } from "lucide-react";
+import {
+  Bot,
+  Check,
+  ChevronDown,
+  FileSearch,
+  Phone,
+  Settings,
+  UserPlus,
+} from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +25,7 @@ import { useContactStore, useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
 
+import CallPopContent from "../ChatFooter/SendActionBar/CallPopContent";
 import GroupSetting from "../GroupSetting";
 import SearchHistory from "../SearchHistory";
 import SingleSetting from "../SingleSetting";
@@ -30,6 +39,7 @@ const ChatHeader = () => {
   const [instruction, setInstruction] = useState("");
   const [businessLoading, setBusinessLoading] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
+  const [callMenuOpen, setCallMenuOpen] = useState(false);
 
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
@@ -238,6 +248,26 @@ const ChatHeader = () => {
           </div>
         </div>
         <div className="mr-5 flex">
+          {isSingleSession && currentConversation && (
+            <Popover
+              arrow={false}
+              content={<CallPopContent closeAllPop={() => setCallMenuOpen(false)} />}
+              open={callMenuOpen}
+              placement="bottomRight"
+              trigger="click"
+              onOpenChange={setCallMenuOpen}
+            >
+              <Tooltip title={t("placeholder.call")}>
+                <button
+                  type="button"
+                  className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                  aria-label={t("placeholder.call")}
+                >
+                  <Phone size={20} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+            </Popover>
+          )}
           {isSingleSession && currentConversation && (
             <div
               className={clsx(

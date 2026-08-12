@@ -6,13 +6,12 @@ import { getChatToken } from "@/utils/storage";
 
 const request = createAxiosInstance(RUNTIME_CHAT_URL);
 
-export const getRtcConnectData = async (room: string, identity: string) => {
+export const getRtcConnectData = async (room: string) => {
   const token = (await getChatToken()) as string;
   return request.post<{ serverUrl: string; token: string }>(
     "/user/rtc/get_token",
     {
       room,
-      identity,
     },
     {
       headers: {

@@ -1,11 +1,11 @@
 import { CbEvents, MessageType } from "@abd-im/wasm-client-sdk";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   GroupItem,
   MessageItem,
   RtcInvite,
   WSEvent,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Popover } from "antd";
 import i18n, { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -27,8 +27,8 @@ import { useContactStore, useUserStore } from "@/store";
 import emitter, { OpenUserCardParams } from "@/utils/events";
 
 import { IMSDK } from "../MainContentWrap";
-import SearchUserOrGroup from "./SearchUserOrGroup";
 import GlobalSearchModal from "./GlobalSearchModal";
+import SearchUserOrGroup from "./SearchUserOrGroup";
 
 type UserCardState = OpenUserCardParams & {
   cardInfo?: CardInfo;
@@ -66,13 +66,20 @@ const TopSearchBar = () => {
       setInviteData(inviteData);
       rtcRef.current?.openOverlay();
     };
-    const newMessageHandler = ({ data }: WSEvent<MessageItem[]>) => {
+    const handleCallMessages = (data: MessageItem | MessageItem[]) => {
       if (rtcRef.current?.isOverlayOpen) return;
       let rtcInvite = undefined as undefined | RtcInvite;
-      data.map((message) => {
+      const messages = Array.isArray(data) ? data : [data];
+      messages.forEach((message) => {
         if (message.contentType === MessageType.CustomMessage) {
           const customData = JSON.parse(message.customElem!.data);
-          if (customData.customType === CustomType.CallingInvite) {
+          if (
+            customData.customType === CustomType.CallingInvite &&
+            customData.data?.inviterUserID === message.sendID &&
+            customData.data?.inviteeUserIDList?.includes(
+              useUserStore.getState().selfInfo.userID,
+            )
+          ) {
             rtcInvite = customData.data;
           }
         }
@@ -95,18 +102,26 @@ const TopSearchBar = () => {
         });
       }
     };
+    const newMessageHandler = ({ data }: WSEvent<MessageItem[]>) => {
+      handleCallMessages(data);
+    };
+    const onlineOnlyMessageHandler = ({ data }: WSEvent<MessageItem>) => {
+      handleCallMessages(data);
+    };
 
     emitter.on("OPEN_USER_CARD", userCardHandler);
     emitter.on("OPEN_GROUP_CARD", openGroupCardWithData);
     emitter.on("OPEN_CHOOSE_MODAL", chooseModalHandler);
     emitter.on("OPEN_RTC_MODAL", callRtcHandler);
     IMSDK.on(CbEvents.OnRecvNewMessages, newMessageHandler);
+    IMSDK.on(CbEvents.OnRecvOnlineOnlyMessage, onlineOnlyMessageHandler);
     return () => {
       emitter.off("OPEN_USER_CARD", userCardHandler);
       emitter.off("OPEN_GROUP_CARD", openGroupCardWithData);
       emitter.off("OPEN_CHOOSE_MODAL", chooseModalHandler);
       emitter.off("OPEN_RTC_MODAL", callRtcHandler);
       IMSDK.off(CbEvents.OnRecvNewMessages, newMessageHandler);
+      IMSDK.off(CbEvents.OnRecvOnlineOnlyMessage, onlineOnlyMessageHandler);
     };
   }, []);
 
