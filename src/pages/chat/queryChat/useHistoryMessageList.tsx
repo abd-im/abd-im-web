@@ -6,7 +6,11 @@ import { useParams } from "react-router-dom";
 import { IMSDK } from "@/layout/MainContentWrap";
 import emitter, { emit } from "@/utils/events";
 
-import { mergeHistoryMessages } from "./historyMessageState";
+import type { MessageSenderProfile } from "./historyMessageState";
+import {
+  mergeHistoryMessages,
+  updateHistoryMessageSender,
+} from "./historyMessageState";
 
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
@@ -87,13 +91,23 @@ export function useHistoryMessageList(enabled = true) {
         messageList: [],
       }));
     };
+    const updateMessageSender = (profile: MessageSenderProfile) => {
+      setLoadState((preState) => {
+        const messageList = updateHistoryMessageSender(preState.messageList, profile);
+        return messageList === preState.messageList
+          ? preState
+          : { ...preState, messageList };
+      });
+    };
     emitter.on("PUSH_NEW_MSG", pushNewMessage);
     emitter.on("UPDATE_ONE_MSG", updateOneMessage);
+    emitter.on("UPDATE_MSG_SENDER", updateMessageSender);
     emitter.on("DELETE_ONE_MSG", deleteOneMessage);
     emitter.on("CLEAR_HISTORY_DONE", clearHistory);
     return () => {
       emitter.off("PUSH_NEW_MSG", pushNewMessage);
       emitter.off("UPDATE_ONE_MSG", updateOneMessage);
+      emitter.off("UPDATE_MSG_SENDER", updateMessageSender);
       emitter.off("DELETE_ONE_MSG", deleteOneMessage);
       emitter.off("CLEAR_HISTORY_DONE", clearHistory);
     };
@@ -196,5 +210,7 @@ export function useHistoryMessageList(enabled = true) {
 export const pushNewMessage = (message: MessageItem) => emit("PUSH_NEW_MSG", message);
 export const updateOneMessage = (message: MessageItem) =>
   emit("UPDATE_ONE_MSG", message);
+export const updateMessageSender = (profile: MessageSenderProfile) =>
+  emit("UPDATE_MSG_SENDER", profile);
 export const deleteMessage = (clientMsgID: string) =>
   emit("DELETE_ONE_MSG", clientMsgID);

@@ -24,6 +24,7 @@ import { CustomType } from "@/constants";
 import { parseReactionUpdatedEvent } from "@/pages/chat/queryChat/messageReactionState";
 import {
   pushNewMessage,
+  updateMessageSender,
   updateOneMessage,
 } from "@/pages/chat/queryChat/useHistoryMessageList";
 import { useConversationStore, useUserStore } from "@/store";
@@ -225,6 +226,12 @@ export function useGlobalEvent() {
 
   const selfUpdateHandler = ({ data }: WSEvent<SelfUserInfo>) => {
     updateSelfInfo(data);
+    if (
+      useConversationStore.getState().currentConversation?.conversationType ===
+      SessionType.Single
+    ) {
+      updateMessageSender(data);
+    }
   };
   const connectingHandler = () => {
     updateConnectState("loading");
@@ -404,6 +411,17 @@ export function useGlobalEvent() {
   // friend
   const friednInfoChangeHandler = ({ data }: WSEvent<FriendUserItem>) => {
     updateFriend(data);
+    const currentConversation = useConversationStore.getState().currentConversation;
+    if (
+      currentConversation?.conversationType === SessionType.Single &&
+      currentConversation.userID === data.userID
+    ) {
+      updateMessageSender({
+        userID: data.userID,
+        nickname: data.remark || data.nickname,
+        faceURL: data.faceURL,
+      });
+    }
   };
   const friednAddedHandler = ({ data }: WSEvent<FriendUserItem>) => {
     pushNewFriend(data);
@@ -474,6 +492,7 @@ export function useGlobalEvent() {
   const groupMemberInfoChangedHandler = ({ data }: WSEvent<GroupMemberItem>) => {
     if (data.groupID === useConversationStore.getState().currentConversation?.groupID) {
       tryUpdateCurrentMemberInGroup(data);
+      updateMessageSender(data);
     }
   };
 
