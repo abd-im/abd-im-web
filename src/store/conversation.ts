@@ -83,10 +83,7 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     }));
     void get().loadConversationKinds(nextList);
   },
-  updateCurrentConversation: async (
-    conversation?: ConversationItem,
-    isJump?: boolean,
-  ) => {
+  updateCurrentConversation: (conversation?: ConversationItem, isJump?: boolean) => {
     if (!conversation) {
       const prevConversation = get().currentConversation;
       if (prevConversation?.conversationType === SessionType.Single) {
@@ -98,7 +95,7 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
         currentGroupInfo: undefined,
         currentMemberInGroup: undefined,
       }));
-      return;
+      return Promise.resolve();
     }
     const prevConversation = get().currentConversation;
 
@@ -114,14 +111,18 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       }
     }
 
-    if (toggleNewConversation && isGroupSession(conversation.conversationType)) {
-      get().getCurrentGroupInfoByReq(conversation.groupID);
-      await get().getCurrentMemberInGroupByReq(conversation.groupID);
-    }
     set(() => ({
       currentConversation: { ...conversation },
       ...(toggleNewConversation ? { quoteMessage: undefined } : {}),
+      ...(toggleNewConversation
+        ? { currentGroupInfo: undefined, currentMemberInGroup: undefined }
+        : {}),
     }));
+    if (toggleNewConversation && isGroupSession(conversation.conversationType)) {
+      void get().getCurrentGroupInfoByReq(conversation.groupID);
+      void get().getCurrentMemberInGroupByReq(conversation.groupID);
+    }
+    return Promise.resolve();
   },
   updateQuoteMessage: (message?: MessageItem) => {
     set(() => ({ quoteMessage: message }));
@@ -145,9 +146,12 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       const { data } = await IMSDK.getSpecifiedGroupsInfo([groupID]);
       groupInfo = data[0];
     } catch (error) {
-      feedbackToast({ error, msg: t("toast.getGroupInfoFailed") });
+      if (get().currentConversation?.groupID === groupID) {
+        feedbackToast({ error, msg: t("toast.getGroupInfoFailed") });
+      }
       return;
     }
+    if (get().currentConversation?.groupID !== groupID) return;
     set((state) => ({
       currentGroupInfo: { ...groupInfo },
       conversationKinds: {
@@ -212,10 +216,13 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
       });
       memberInfo = data[0];
     } catch (error) {
-      set(() => ({ currentMemberInGroup: undefined }));
-      feedbackToast({ error, msg: t("toast.getGroupMemberFailed") });
+      if (get().currentConversation?.groupID === groupID) {
+        set(() => ({ currentMemberInGroup: undefined }));
+        feedbackToast({ error, msg: t("toast.getGroupMemberFailed") });
+      }
       return;
     }
+    if (get().currentConversation?.groupID !== groupID) return;
     set(() => ({ currentMemberInGroup: memberInfo ? { ...memberInfo } : undefined }));
   },
   setCurrentMemberInGroup: (memberInfo?: GroupMemberItem) => {
