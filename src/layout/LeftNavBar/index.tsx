@@ -249,7 +249,6 @@ const LeftNavBar = memo(() => {
   const customUpload = async ({ file }: { file: File }) => {
     const resizedFile = await resizeFile(file);
     const filePath = await window.electronAPI?.saveFileToDisk({
-      sync: true,
       file,
     });
 

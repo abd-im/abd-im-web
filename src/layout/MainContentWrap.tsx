@@ -10,7 +10,7 @@ import { getIMToken, getIMUserID } from "@/utils/storage";
 
 const openIMSDK = getSDK({
   coreWasmPath: "./openIM.wasm",
-  sqlWasmPath: "/sql-wasm.wasm",
+  sqlWasmPath: window.electronAPI ? "./sql-wasm.wasm" : "/sql-wasm.wasm",
 });
 
 export const IMSDK = openIMSDK;

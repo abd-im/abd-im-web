@@ -1,13 +1,5 @@
-import { BrowserWindow, Menu, app, dialog, ipcMain } from "electron";
-import {
-  clearCache,
-  closeWindow,
-  minimize,
-  showWindow,
-  splashEnd,
-  updateMaximize,
-} from "./windowManage";
-import { t } from "i18next";
+import { app, ipcMain } from "electron";
+import { closeWindow, minimize, splashEnd, updateMaximize } from "./windowManage";
 import { IpcRenderToMain } from "../constants";
 import { getStore } from "./storeManage";
 import { changeLanguage } from "../i18n";
@@ -15,11 +7,6 @@ import { changeLanguage } from "../i18n";
 const store = getStore();
 
 export const setIpcMainListener = () => {
-  ipcMain.handle(IpcRenderToMain.clearSession, () => {
-    clearCache();
-  });
-
-  // window manage
   ipcMain.handle("changeLanguage", (_, locale) => {
     store.set("language", locale);
     changeLanguage(locale).then(() => {
@@ -30,9 +17,6 @@ export const setIpcMainListener = () => {
   ipcMain.handle("main-win-ready", () => {
     splashEnd();
   });
-  ipcMain.handle(IpcRenderToMain.showMainWindow, () => {
-    showWindow();
-  });
   ipcMain.handle(IpcRenderToMain.minimizeWindow, () => {
     minimize();
   });
@@ -42,46 +26,11 @@ export const setIpcMainListener = () => {
   ipcMain.handle(IpcRenderToMain.closeWindow, () => {
     closeWindow();
   });
-  ipcMain.handle(IpcRenderToMain.showMessageBox, (_, options) => {
-    return dialog
-      .showMessageBox(BrowserWindow.getFocusedWindow(), options)
-      .then((res) => res.response);
-  });
-
-  // data transfer
-  ipcMain.handle(IpcRenderToMain.setKeyStore, (_, { key, data }) => {
-    store.set(key, data);
-  });
   ipcMain.handle(IpcRenderToMain.getKeyStore, (_, { key }) => {
     return store.get(key);
   });
   ipcMain.on(IpcRenderToMain.getKeyStoreSync, (e, { key }) => {
     e.returnValue = store.get(key);
-  });
-  ipcMain.handle(IpcRenderToMain.showInputContextMenu, () => {
-    const menu = Menu.buildFromTemplate([
-      {
-        label: t("system.copy"),
-        type: "normal",
-        role: "copy",
-        accelerator: "CommandOrControl+c",
-      },
-      {
-        label: t("system.paste"),
-        type: "normal",
-        role: "paste",
-        accelerator: "CommandOrControl+v",
-      },
-      {
-        label: t("system.selectAll"),
-        type: "normal",
-        role: "selectAll",
-        accelerator: "CommandOrControl+a",
-      },
-    ]);
-    menu.popup({
-      window: BrowserWindow.getFocusedWindow()!,
-    });
   });
   ipcMain.on(IpcRenderToMain.getDataPath, (e, key: string) => {
     switch (key) {

@@ -8,5 +8,3 @@ export const getStore = () => {
   }
   return store;
 };
-
-export { Store };
