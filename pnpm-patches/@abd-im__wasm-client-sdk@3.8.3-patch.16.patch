@@ -1,0 +1,21 @@
+diff --git a/lib/index.es.js b/lib/index.es.js
+index 6a6dc34a83744a504b550272646935ab2d476807..bdf0c70f6687184007e7bda8144b92286a751392 100644
+--- a/lib/index.es.js
++++ b/lib/index.es.js
+@@ -490,13 +490,13 @@ function initWorker() {
+         ? new URL('worker.js', import.meta.url)
+         : new URL('worker-legacy.js', import.meta.url);
+     if (isViteEnvironment) {
+-        workerUrl = workerUrl.href.replace('.vite/deps', '@openim/wasm-client-sdk/lib');
++        workerUrl = workerUrl.href.replace('.vite/deps', '@abd-im/wasm-client-sdk/lib');
+     }
+     if (isNuxtEnvironment) {
+-        workerUrl = workerUrl.href.replace('.cache/vite/client/deps', '@openim/wasm-client-sdk/lib');
++        workerUrl = workerUrl.href.replace('.cache/vite/client/deps', '@abd-im/wasm-client-sdk/lib');
+     }
+     if (isQuasarEnvironment) {
+-        workerUrl = workerUrl.href.replace(/\.q-cache\/dev-spa\/[^/]+\/deps/, '@openim/wasm-client-sdk/lib');
++        workerUrl = workerUrl.href.replace(/\.q-cache\/dev-spa\/[^/]+\/deps/, '@abd-im/wasm-client-sdk/lib');
+     }
+     worker = new Worker(workerUrl, {
+         type: isSupportModuleWorker ? 'module' : 'classic',
