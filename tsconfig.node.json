@@ -1,10 +1,15 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ESNext",
+    "strict": true,
     "module": "ESNext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "tsBuildInfoFile": "node_modules/.cache/tsconfig.node.tsbuildinfo",
+    "types": ["node"]
   },
   "include": ["vite.config.ts", "package.json", "electron"]
 }

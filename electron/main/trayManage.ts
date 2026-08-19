@@ -2,7 +2,7 @@ import { app, Menu, Tray } from "electron";
 import { t } from "i18next";
 import { hideWindow, showWindow } from "./windowManage";
 
-let appTray: Tray;
+let appTray: Tray | null = null;
 
 export const createTray = () => {
   const trayMenu = Menu.buildFromTemplate([

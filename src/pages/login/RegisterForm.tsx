@@ -157,10 +157,10 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
           },
         },
         {
-          onSuccess(res) {
+          async onSuccess(res) {
             message.success(t("toast.registerSuccess"));
             const { chatToken, imToken, userID } = res.data;
-            setIMProfile({ chatToken, imToken, userID });
+            await setIMProfile({ chatToken, imToken, userID });
             navigate("/chat");
           },
         },

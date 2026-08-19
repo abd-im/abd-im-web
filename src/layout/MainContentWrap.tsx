@@ -10,7 +10,11 @@ import { getIMToken, getIMUserID } from "@/utils/storage";
 
 const openIMSDK = getSDK({
   coreWasmPath: "./openIM.wasm",
-  sqlWasmPath: "/sql-wasm.wasm",
+  // The production worker runs from dist/assets and resolves this path itself.
+  sqlWasmPath:
+    window.electronAPI && import.meta.env.PROD
+      ? "../sql-wasm.wasm"
+      : "/sql-wasm.wasm",
 });
 
 export const IMSDK = openIMSDK;

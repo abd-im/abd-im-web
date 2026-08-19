@@ -64,9 +64,9 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
       setEmail(params.email);
     }
     login(params, {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         const { chatToken, imToken, userID } = data.data;
-        setIMProfile({ chatToken, imToken, userID });
+        await setIMProfile({ chatToken, imToken, userID });
         navigate("/chat");
       },
     });

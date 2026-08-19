@@ -5,10 +5,6 @@ import react from "@vitejs/plugin-react";
 import electron from "vite-electron-plugin";
 import { customStart, loadViteEnv } from "vite-electron-plugin/plugin";
 import pkg from "./package.json";
-import legacy from "@vitejs/plugin-legacy";
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-// import visualizer from "rollup-plugin-visualizer";
 
 const isWeb = process.env.BUILD_TARGET === "web";
 
@@ -63,10 +59,6 @@ export default defineConfig(({ command, mode }) => {
             loadViteEnv(),
           ],
         }),
-      // legacy({
-      //   targets: ["defaults", "not IE 11"],
-      // }),
-      // visualizer({ open: true }),
     ].filter(Boolean),
     server: {
       ...(!!process.env.VSCODE_DEBUG
@@ -93,12 +85,6 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: false,
       cssCodeSplit: true,
       chunkSizeWarningLimit: 500,
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
       rollupOptions: {
         output: {},
       },

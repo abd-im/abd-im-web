@@ -25,9 +25,11 @@ export const setIMProfile = ({
   imToken: string;
   userID: string;
 }) => {
-  setTMToken(imToken);
-  setChatToken(chatToken);
-  setTMUserID(userID);
+  return Promise.all([
+    setTMToken(imToken),
+    setChatToken(chatToken),
+    setTMUserID(userID),
+  ]);
 };
 
 export const setLocale = (locale: string) => localStorage.setItem("IM_LOCALE", locale);
