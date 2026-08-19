@@ -141,19 +141,14 @@ export function useGlobalEvent() {
       const apiAddr = RUNTIME_API_URL;
       const wsAddr = RUNTIME_WS_URL;
       if (window.electronAPI) {
-        await IMSDK.initSDK({
-          platformID: window.electronAPI?.getPlatform() ?? 5,
-          apiAddr,
-          wsAddr,
-          dataDir: window.electronAPI.getDataPath("sdkResources") || "./",
-          logFilePath: window.electronAPI.getDataPath("logsPath") || "./",
-          logLevel: LogLevel.Debug,
-          isLogStandardOutput: false,
-          systemType: "electron",
-        });
         await IMSDK.login({
           userID: IMUserID,
           token: IMToken,
+          platformID: window.electronAPI?.getPlatform() ?? 5,
+          apiAddr,
+          wsAddr,
+          logLevel: LogLevel.Debug,
+          isLogStandardOutput: false,
         });
       } else {
         await IMSDK.login({
