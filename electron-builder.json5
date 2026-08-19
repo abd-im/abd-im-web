@@ -5,7 +5,6 @@
   appId: "io.opencorp.desktop.base",
   asar: true,
   asarUnpack: ["**/*.node"],
-  electronDist: "node_modules/electron/dist",
   extends: null,
   directories: {
     output: "release/ABD-IM/${version}",
