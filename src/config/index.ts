@@ -1,6 +1,6 @@
 export const APP_NAME = "ABD IM";
 export const APP_VERSION = "v1.0.0";
-export const SDK_VERSION = "SDK(ffi) v3.8.3";
+export const SDK_VERSION = "SDK(wasm) v3.8.3-patch.16";
 export const isSaveLog = process.env.NODE_ENV !== "development";
 
 // Dynamically resolve backend URLs based on browser location if env variables are empty or default to placeholders
