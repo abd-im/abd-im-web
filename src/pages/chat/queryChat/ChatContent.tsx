@@ -161,7 +161,6 @@ const ChatContent = () => {
   );
 
   const reactionsEnabled =
-    !window.electronAPI &&
     currentConversation?.conversationID === conversationID &&
     !currentConversation?.isPrivateChat &&
     !currentConversation?.isMsgDestruct;

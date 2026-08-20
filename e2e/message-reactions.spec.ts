@@ -40,6 +40,18 @@ test.describe("message reactions", () => {
   }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
+    await contextB.addInitScript(() => {
+      Object.defineProperty(window, "electronAPI", {
+        value: {
+          getDataPath: () => "",
+          getPlatform: () => 3,
+          subscribe: () => () => undefined,
+          ipcInvoke: async () => undefined,
+          ipcSendSync: () => undefined,
+          saveFileToDisk: async () => "",
+        },
+      });
+    });
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
     const summaryBatchSizes: number[] = [];
