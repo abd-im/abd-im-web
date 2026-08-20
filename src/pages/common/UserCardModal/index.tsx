@@ -94,7 +94,12 @@ const UserCardModal: ForwardRefRenderFunction<
       const {
         data: { users },
       } = await getBusinessUserInfo([userID!]);
-      userInfo = { ...userInfo, ...users[0] };
+      userInfo = {
+        ...userInfo,
+        ...users[0],
+        nickname: userInfo.nickname,
+        faceURL: userInfo.faceURL,
+      };
     } catch (error) {
       console.error("get business user info failed", userID, error);
     }
@@ -131,12 +136,23 @@ const UserCardModal: ForwardRefRenderFunction<
         refetch();
       }
     };
+    const friendInfoChangedHandler = ({ data }: WSEvent<FriendUserItem>) => {
+      if (data.userID === userID) {
+        setCardInfo((current) => {
+          const nextInfo = { ...current, ...data };
+          setUserInfoRow(nextInfo);
+          return nextInfo;
+        });
+      }
+    };
     IMSDK.on(CbEvents.OnFriendAdded, friendAddedHandler);
+    IMSDK.on(CbEvents.OnFriendInfoChanged, friendInfoChangedHandler);
     refreshData(
       props.cardInfo ? { cardInfo: props.cardInfo } : latestFullCardInfo.current,
     );
     return () => {
       IMSDK.off(CbEvents.OnFriendAdded, friendAddedHandler);
+      IMSDK.off(CbEvents.OnFriendInfoChanged, friendInfoChangedHandler);
     };
   }, [isOverlayOpen, props.cardInfo]);
 
