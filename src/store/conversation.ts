@@ -13,6 +13,7 @@ import {
   workspaceKindUpdates,
 } from "@/features/agentWorkspace/metadata";
 import { IMSDK } from "@/layout/MainContentWrap";
+import type { QuoteDraft } from "@/pages/chat/queryChat/partialQuote";
 import { feedbackToast } from "@/utils/common";
 import { conversationSort, isGroupSession } from "@/utils/imCommon";
 
@@ -124,8 +125,11 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     }
     return Promise.resolve();
   },
-  updateQuoteMessage: (message?: MessageItem) => {
-    set(() => ({ quoteMessage: message }));
+  updateQuoteMessage: (quote?: QuoteDraft | MessageItem) => {
+    set(() => ({
+      quoteMessage:
+        quote && "message" in quote ? quote : quote ? { message: quote } : undefined,
+    }));
   },
   getUnReadCountByReq: async () => {
     try {

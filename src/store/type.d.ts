@@ -12,6 +12,7 @@ import {
 
 import { BusinessUserInfo } from "@/api/login";
 import type { ConversationKind } from "@/features/agentWorkspace/metadata";
+import type { QuoteDraft } from "@/pages/chat/queryChat/partialQuote";
 
 export type IMConnectState = "success" | "loading" | "failed";
 
@@ -49,7 +50,7 @@ export interface ConversationStore {
   conversationListLoaded: boolean;
   conversationKinds: Record<string, ConversationKind | undefined>;
   currentConversation?: ConversationItem;
-  quoteMessage?: MessageItem;
+  quoteMessage?: QuoteDraft;
   unReadCount: number;
   currentGroupInfo?: GroupItem;
   currentMemberInGroup?: GroupMemberItem;
@@ -62,7 +63,7 @@ export interface ConversationStore {
     conversation?: ConversationItem,
     isJump?: boolean,
   ) => Promise<void>;
-  updateQuoteMessage: (message?: MessageItem) => void;
+  updateQuoteMessage: (quote?: QuoteDraft | MessageItem) => void;
   getUnReadCountByReq: () => Promise<number>;
   updateUnReadCount: (count: number) => void;
   getCurrentGroupInfoByReq: (groupID: string) => Promise<void>;

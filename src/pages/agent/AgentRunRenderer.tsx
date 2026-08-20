@@ -281,7 +281,7 @@ export default function AgentRunRenderer({
       ))}
 
       {view.answer && (
-        <div className={styles.answer}>
+        <div className={styles.answer} data-quote-source>
           <ReactMarkdown skipHtml>{view.answer}</ReactMarkdown>
         </div>
       )}

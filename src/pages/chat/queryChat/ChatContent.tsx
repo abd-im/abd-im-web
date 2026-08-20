@@ -1,4 +1,9 @@
-import { MessageItem, MessageStatus, MessageType } from "@abd-im/wasm-client-sdk";
+import {
+  MessageItem,
+  MessageStatus,
+  MessageType,
+  ViewType,
+} from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +14,7 @@ import { message as antMessage } from "@/AntdGlobalComp";
 import { SystemMessageTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
+import type { QuoteLocation } from "@/utils/events";
 import emitter from "@/utils/events";
 
 import { moveMessageRetry, recreateFailedMessage } from "./ChatFooter/messageRetry";
@@ -19,6 +25,7 @@ import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetMod
 import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
+import { spotlightQuote } from "./partialQuote";
 import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
 import { useMessageReactions } from "./useMessageReactions";
 
@@ -55,6 +62,7 @@ const ChatContent = () => {
   const [forwardMode, setForwardMode] = useState<"merge" | "single">("merge");
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardSubmitting, setForwardSubmitting] = useState(false);
+  const [pendingQuoteLocation, setPendingQuoteLocation] = useState<QuoteLocation>();
   const { sendMessage } = useSendMessage();
   const {
     getFileMessage,
@@ -142,7 +150,71 @@ const ChatContent = () => {
     latestLoadState,
     moreOldLoading,
     getMoreOldMessages,
+    showSurroundingMessages,
   } = useHistoryMessageList();
+
+  const revealQuote = useCallback((location: QuoteLocation) => {
+    const row = document.getElementById(`chat_${location.clientMsgID}`);
+    if (!row) return false;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(
+      () => spotlightQuote(row, location.quoteText, location.quoteOffset),
+      180,
+    );
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const locateQuote = (location: QuoteLocation) => {
+      if (revealQuote(location) || !conversationID) return;
+      void (async () => {
+        try {
+          const { data: found } = await IMSDK.findMessageList([
+            { conversationID, clientMsgIDList: [location.clientMsgID] },
+          ]);
+          const source = found.findResultItems
+            ?.flatMap((item) => item.messageList)
+            .find((item) => item.clientMsgID === location.clientMsgID);
+          if (!source) throw new Error("Quoted message was not found");
+          const { data } = await IMSDK.fetchSurroundingMessages({
+            startMessage: source,
+            viewType: ViewType.History,
+            before: 10,
+            after: 10,
+          });
+          setPendingQuoteLocation(location);
+          showSurroundingMessages(data.messageList);
+        } catch (error) {
+          console.error(error);
+          antMessage.warning(t("toast.accessFailed"));
+        }
+      })();
+    };
+    emitter.on("LOCATE_QUOTED_MESSAGE", locateQuote);
+    return () => emitter.off("LOCATE_QUOTED_MESSAGE", locateQuote);
+  }, [conversationID, revealQuote, showSurroundingMessages, t]);
+
+  useEffect(() => {
+    if (!pendingQuoteLocation) return;
+    const index = loadState.messageList.findIndex(
+      (message) => message.clientMsgID === pendingQuoteLocation.clientMsgID,
+    );
+    if (index < 0) return;
+    virtuoso.current?.scrollToIndex({
+      index: loadState.firstItemIndex + index,
+      align: "center",
+      behavior: "smooth",
+    });
+    const timer = window.setTimeout(() => {
+      if (revealQuote(pendingQuoteLocation)) setPendingQuoteLocation(undefined);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [
+    loadState.firstItemIndex,
+    loadState.messageList,
+    pendingQuoteLocation,
+    revealQuote,
+  ]);
 
   const selectedMessages = useMemo(
     () =>

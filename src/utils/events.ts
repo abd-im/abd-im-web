@@ -11,6 +11,7 @@ type EmitterEvents = {
   OPEN_GROUP_CARD: GroupItem;
   OPEN_CHOOSE_MODAL: ChooseModalState;
   CHAT_LIST_SCROLL_TO_BOTTOM: void;
+  LOCATE_QUOTED_MESSAGE: QuoteLocation;
   OPEN_RTC_MODAL: InviteData;
   // message store
   PUSH_NEW_MSG: MessageItem;
@@ -24,6 +25,12 @@ type EmitterEvents = {
   SELECT_USER: SelectUserParams;
   CARD_USER_SELECTED: CheckListItem;
 };
+
+export interface QuoteLocation {
+  clientMsgID: string;
+  quoteText?: string;
+  quoteOffset?: number;
+}
 
 export type SelectUserParams = {
   notConversation: boolean;

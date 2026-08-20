@@ -5,8 +5,8 @@ import {
 } from "@abd-im/wasm-client-sdk";
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
-import { Bot, CircleAlert } from "lucide-react";
-import { FC, memo, useMemo } from "react";
+import { Bot, CircleAlert, Reply } from "lucide-react";
+import { FC, memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { message as antMessage } from "@/AntdGlobalComp";
@@ -17,6 +17,7 @@ import { useConversationStore, useUserStore } from "@/store";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
+import { captureQuoteSelection, QuoteSelection } from "../partialQuote";
 import { deleteMessage } from "../useHistoryMessageList";
 import BurnCountdown from "./BurnCountdown";
 import CardMessageRender from "./CardMessageRender";
@@ -54,6 +55,7 @@ export interface IMessageItemProps {
 
 const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.TextMessage]: TextMessageRender,
+  [MessageType.AtTextMessage]: TextMessageRender,
   [MessageType.StreamMessage]: StreamMessageRender,
   [MessageType.PictureMessage]: MediaMessageRender,
   [MessageType.VideoMessage]: VideoMessageRender,
@@ -96,6 +98,9 @@ const MessageItem: FC<IMessageItemProps> = ({
   const { t } = useTranslation();
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
+  const [quoteSelection, setQuoteSelection] = useState<
+    (QuoteSelection & { left: number; top: number }) | undefined
+  >();
   const isSender = useMemo(
     () => selfUserID === message.sendID,
     [selfUserID, message.sendID],
@@ -206,6 +211,7 @@ const MessageItem: FC<IMessageItemProps> = ({
     <>
       <div
         id={`chat_${message.clientMsgID}`}
+        data-chat-message-row
         className={clsx(
           "relative flex select-text justify-center py-3",
           styles["message-row"],
@@ -213,7 +219,42 @@ const MessageItem: FC<IMessageItemProps> = ({
           selected && styles["message-row-selected"],
           isPrivate && "!select-none",
         )}
+        onPointerUp={(event) => {
+          if (!canReply || selectionMode) return;
+          const selection = captureQuoteSelection(event.currentTarget);
+          if (!selection) {
+            setQuoteSelection(undefined);
+            return;
+          }
+          const rowRect = event.currentTarget.getBoundingClientRect();
+          setQuoteSelection({
+            ...selection,
+            left: selection.rect.left - rowRect.left + selection.rect.width / 2,
+            top: selection.rect.top - rowRect.top - 38,
+          });
+        }}
       >
+        {quoteSelection && (
+          <button
+            type="button"
+            className={styles["quote-selection-action"]}
+            style={{ left: quoteSelection.left, top: quoteSelection.top }}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => {
+              updateQuoteMessage({
+                message,
+                quoteText: quoteSelection.text,
+                quoteOffset: quoteSelection.offset,
+                sourceText: quoteSelection.sourceText,
+              });
+              setQuoteSelection(undefined);
+              window.getSelection()?.removeAllRanges();
+            }}
+          >
+            <Reply size={14} strokeWidth={1.8} />
+            {t("placeholder.reply")}
+          </button>
+        )}
         {selectionMode && selectable && (
           <button
             type="button"

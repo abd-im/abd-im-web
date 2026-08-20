@@ -1,4 +1,4 @@
-import { SessionType } from "@abd-im/wasm-client-sdk";
+import { MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
 import { CloseOutlined, RollbackOutlined } from "@ant-design/icons";
 import { useLatest } from "ahooks";
 import { Button } from "antd";
@@ -18,6 +18,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
 
 import { getMessagePreview } from "../messagePreview";
+import { createQuoteSnapshot } from "../partialQuote";
 import SendActionBar from "./SendActionBar";
 import { useFileMessage } from "./SendActionBar/useFileMessage";
 import { useSendMessage } from "./useSendMessage";
@@ -34,7 +35,8 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
 
   const { getImageMessage, getVideoMessage, getFileMessage } = useFileMessage();
   const { sendMessage } = useSendMessage();
-  const quoteAuthor = quoteMessage?.senderNickname || quoteMessage?.sendID || "";
+  const quoteAuthor =
+    quoteMessage?.message.senderNickname || quoteMessage?.message.sendID || "";
 
   useEffect(() => {
     if (!quoteMessage) return;
@@ -64,19 +66,29 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
     if (!cleanText) return;
-    setHtml("");
 
     try {
       const message = quoteMessage
         ? (
-            await IMSDK.createQuoteMessage({
+            await (
+              IMSDK.createQuoteMessage as unknown as (params: {
+                text: string;
+                message: MessageItem;
+                quoteText?: string;
+                quoteOffset?: number;
+              }) => ReturnType<typeof IMSDK.createQuoteMessage>
+            )({
               text: cleanText,
-              message: JSON.stringify(quoteMessage),
+              message: createQuoteSnapshot(quoteMessage),
+              quoteText: quoteMessage.quoteText,
+              quoteOffset: quoteMessage.quoteOffset,
             })
           ).data
         : (await IMSDK.createTextMessage(cleanText)).data;
-      void sendMessage({ message });
-      updateQuoteMessage();
+      if (await sendMessage({ message })) {
+        setHtml("");
+        updateQuoteMessage();
+      }
     } catch (e) {
       console.error(e);
     }
@@ -96,7 +108,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
                 {t("placeholder.reply")} {quoteAuthor}
               </strong>
               <span className="block truncate text-xs text-muted-foreground">
-                {getMessagePreview(quoteMessage)}
+                {quoteMessage.quoteText || getMessagePreview(quoteMessage.message)}
               </span>
             </div>
             <Button

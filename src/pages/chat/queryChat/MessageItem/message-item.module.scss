@@ -126,6 +126,8 @@
     }
 
     .message-quote {
+      display: block;
+      width: 100%;
       overflow: hidden;
       margin-bottom: 7px;
       padding-left: 8px;
@@ -133,8 +135,11 @@
       color: var(--muted-foreground);
       font-size: 12px;
       line-height: 1.45;
+      text-align: left;
       text-overflow: ellipsis;
       white-space: nowrap;
+      background: transparent;
+      cursor: pointer;
     }
 
     .message-quote-label {
@@ -533,6 +538,39 @@
   word-wrap: break-word;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.quote-selection-action {
+  position: absolute;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1;
+  background: var(--surface-raised);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 14%);
+  transform: translateX(-50%);
+}
+
+:global(#chat-main-content[data-quote-spotlight="true"])
+  :global([data-chat-message-row]) {
+  opacity: 0.24;
+  transition: opacity 160ms ease;
+}
+
+:global(#chat-main-content[data-quote-spotlight="true"])
+  :global([data-chat-message-row][data-quote-spotlight-target="true"]) {
+  opacity: 1;
+}
+
+:global([data-quote-spotlight-target="true"]) :global(::selection) {
+  color: #111827;
+  background: #fde047;
 }
 
 .merge-message-card {

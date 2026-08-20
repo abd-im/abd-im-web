@@ -1,6 +1,6 @@
 import { MessageItem, ViewType } from "@abd-im/wasm-client-sdk";
 import { useLatest, useRequest } from "ahooks";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { IMSDK } from "@/layout/MainContentWrap";
@@ -197,6 +197,15 @@ export function useHistoryMessageList(enabled = true) {
     };
   }, [conversationID, enabled, getMoreOldMessages]);
 
+  const showSurroundingMessages = useCallback((messageList: MessageItem[]) => {
+    setLoadState({
+      initLoading: false,
+      hasMoreOld: true,
+      messageList,
+      firstItemIndex: START_INDEX - messageList.length,
+    });
+  }, []);
+
   return {
     SPLIT_COUNT,
     loadState,
@@ -204,6 +213,7 @@ export function useHistoryMessageList(enabled = true) {
     conversationID,
     moreOldLoading,
     getMoreOldMessages,
+    showSurroundingMessages,
   };
 }
 

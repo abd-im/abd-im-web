@@ -159,6 +159,7 @@
 }
 
 .message {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -639,6 +640,72 @@
   color: #28333b;
   line-height: 1.75;
   overflow-wrap: anywhere;
+}
+
+.quoteSelectionAction {
+  position: absolute;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1;
+  background: var(--surface-raised);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 14%);
+  transform: translateX(-50%);
+}
+
+.messageQuote,
+.composerQuote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 0;
+  border-left: 2px solid var(--primary);
+  color: var(--muted-foreground);
+  text-align: left;
+  background: transparent;
+}
+
+.messageQuote span,
+.composerQuote small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composerQuote > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.composerQuote button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+
+:global(#chat-main-content[data-quote-spotlight="true"])
+  :global([data-chat-message-row]) {
+  opacity: 0.24;
+  transition: opacity 160ms ease;
+}
+
+:global(#chat-main-content[data-quote-spotlight="true"])
+  :global([data-chat-message-row][data-quote-spotlight-target="true"]) {
+  opacity: 1;
 }
 
 .answer > :first-child {

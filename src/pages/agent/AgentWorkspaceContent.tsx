@@ -1,21 +1,36 @@
-import { MessageItem, MessageType, SessionType } from "@abd-im/wasm-client-sdk";
+import {
+  MessageItem,
+  MessageType,
+  SessionType,
+  ViewType,
+} from "@abd-im/wasm-client-sdk";
 import type { ConversationItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Tooltip } from "antd";
 import clsx from "clsx";
 import {
   ArrowUp,
   Bot,
+  CircleX,
   Copy,
   FilePlus2,
   FileText,
   Image,
   LoaderCircle,
   Pencil,
+  Reply,
   Share2,
   Sparkles,
   Split,
 } from "lucide-react";
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +46,13 @@ import { emit } from "@/utils/events";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { useSendMessage } from "../chat/queryChat/ChatFooter/useSendMessage";
+import {
+  captureQuoteSelection,
+  createQuoteSnapshot,
+  PartialQuoteElem,
+  QuoteSelection,
+  spotlightQuote,
+} from "../chat/queryChat/partialQuote";
 import { useHistoryMessageList } from "../chat/queryChat/useHistoryMessageList";
 import styles from "./agent-workspace.module.scss";
 import { reduceAgentRun } from "./agentRunReducer";
@@ -80,6 +102,14 @@ export default function AgentWorkspaceContent({
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [activeRunMessageID, setActiveRunMessageID] = useState<string>();
+  const [quoteSelection, setQuoteSelection] = useState<
+    (QuoteSelection & { message: MessageItem; left: number; top: number }) | undefined
+  >();
+  const [pendingQuoteLocation, setPendingQuoteLocation] = useState<{
+    clientMsgID: string;
+    quoteText?: string;
+    quoteOffset?: number;
+  }>();
   const streamRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const currentConversation = useConversationStore(
@@ -94,11 +124,18 @@ export default function AgentWorkspaceContent({
   const updateCurrentConversation = useConversationStore(
     (state) => state.updateCurrentConversation,
   );
+  const quoteMessage = useConversationStore((state) => state.quoteMessage);
+  const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
   const { sendMessage } = useSendMessage();
   const isDraft = Boolean(draft?.agentUserID);
-  const { conversationID, loadState, moreOldLoading, getMoreOldMessages } =
-    useHistoryMessageList(!isDraft);
+  const {
+    conversationID,
+    loadState,
+    moreOldLoading,
+    getMoreOldMessages,
+    showSurroundingMessages,
+  } = useHistoryMessageList(!isDraft);
 
   const visibleMessages = useMemo(
     () => loadState.messageList.filter(isWorkspaceMessage),
@@ -206,6 +243,55 @@ export default function AgentWorkspaceContent({
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
+  const revealQuote = useCallback(
+    (location: { clientMsgID: string; quoteText?: string; quoteOffset?: number }) => {
+      const row = document.getElementById(`chat_${location.clientMsgID}`);
+      if (!row) return false;
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(
+        () => spotlightQuote(row, location.quoteText, location.quoteOffset),
+        180,
+      );
+      return true;
+    },
+    [],
+  );
+
+  const locateQuote = async (location: {
+    clientMsgID: string;
+    quoteText?: string;
+    quoteOffset?: number;
+  }) => {
+    if (revealQuote(location) || !conversationID) return;
+    try {
+      const { data: found } = await IMSDK.findMessageList([
+        { conversationID, clientMsgIDList: [location.clientMsgID] },
+      ]);
+      const source = found.findResultItems
+        ?.flatMap((item) => item.messageList)
+        .find((item) => item.clientMsgID === location.clientMsgID);
+      if (!source) throw new Error("Quoted message was not found");
+      const { data } = await IMSDK.fetchSurroundingMessages({
+        startMessage: source,
+        viewType: ViewType.History,
+        before: 10,
+        after: 10,
+      });
+      setPendingQuoteLocation(location);
+      showSurroundingMessages(data.messageList);
+    } catch (error) {
+      feedbackToast({ error });
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingQuoteLocation) return;
+    const timer = window.setTimeout(() => {
+      if (revealQuote(pendingQuoteLocation)) setPendingQuoteLocation(undefined);
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [loadState.messageList, pendingQuoteLocation, revealQuote]);
+
   const sendPrompt = async () => {
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt || sending || !conversationReady) return;
@@ -230,9 +316,26 @@ export default function AgentWorkspaceContent({
         updateConversationList([conversation], "push");
         await updateCurrentConversation(conversation);
       }
-      const { data: message } = await IMSDK.createTextMessage(trimmedPrompt);
-      await sendMessage({ message, conversation });
+      const message = quoteMessage
+        ? (
+            await (
+              IMSDK.createQuoteMessage as unknown as (params: {
+                text: string;
+                message: MessageItem;
+                quoteText?: string;
+                quoteOffset?: number;
+              }) => ReturnType<typeof IMSDK.createQuoteMessage>
+            )({
+              text: trimmedPrompt,
+              message: createQuoteSnapshot(quoteMessage),
+              quoteText: quoteMessage.quoteText,
+              quoteOffset: quoteMessage.quoteOffset,
+            })
+          ).data
+        : (await IMSDK.createTextMessage(trimmedPrompt)).data;
+      if (!(await sendMessage({ message, conversation }))) return;
       setPrompt("");
+      updateQuoteMessage();
       if (draft && conversation) {
         navigate(`/agent/${conversation.conversationID}`, { replace: true });
       }
@@ -256,7 +359,10 @@ export default function AgentWorkspaceContent({
   };
 
   return (
-    <main className={clsx("flex h-full min-w-0 flex-1 flex-col", styles.page)}>
+    <main
+      id="chat-main-content"
+      className={clsx("flex h-full min-w-0 flex-1 flex-col", styles.page)}
+    >
       <header className={styles.header}>
         <span className={styles.headerAvatar} aria-hidden="true">
           <Bot size={17} strokeWidth={1.8} />
@@ -385,6 +491,7 @@ export default function AgentWorkspaceContent({
                   ),
               );
               const copyText = isRun ? runReduction?.view.answer ?? "" : content;
+              const quoteElem = message.quoteElem as PartialQuoteElem | undefined;
               const persistentActions =
                 agentMessage && message.clientMsgID === latestAgentMessageID;
               const canEdit =
@@ -392,11 +499,69 @@ export default function AgentWorkspaceContent({
 
               return (
                 <article
+                  id={`chat_${message.clientMsgID}`}
                   className={clsx(styles.message, userMessage && styles.messageUser)}
                   key={message.clientMsgID}
+                  data-chat-message-row
                   data-agent-run-id={isRun ? message.clientMsgID : undefined}
+                  onPointerUp={(event) => {
+                    if (isRun && !runEnded) return;
+                    const selection = captureQuoteSelection(event.currentTarget);
+                    if (!selection) {
+                      setQuoteSelection(undefined);
+                      return;
+                    }
+                    const rowRect = event.currentTarget.getBoundingClientRect();
+                    setQuoteSelection({
+                      ...selection,
+                      message,
+                      left:
+                        selection.rect.left - rowRect.left + selection.rect.width / 2,
+                      top: selection.rect.top - rowRect.top - 38,
+                    });
+                  }}
                 >
+                  {quoteSelection?.message.clientMsgID === message.clientMsgID && (
+                    <button
+                      type="button"
+                      className={styles.quoteSelectionAction}
+                      style={{ left: quoteSelection.left, top: quoteSelection.top }}
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        updateQuoteMessage({
+                          message,
+                          quoteText: quoteSelection.text,
+                          quoteOffset: quoteSelection.offset,
+                          sourceText: quoteSelection.sourceText,
+                        });
+                        setQuoteSelection(undefined);
+                        window.getSelection()?.removeAllRanges();
+                      }}
+                    >
+                      <Reply size={14} strokeWidth={1.8} />
+                      {t("placeholder.reply")}
+                    </button>
+                  )}
                   <div className={styles.messageBody}>
+                    {quoteElem?.quoteMessage && (
+                      <button
+                        type="button"
+                        className={styles.messageQuote}
+                        onClick={() =>
+                          void locateQuote({
+                            clientMsgID: quoteElem.quoteMessage.clientMsgID,
+                            quoteText: quoteElem.quoteText,
+                            quoteOffset: quoteElem.quoteOffset,
+                          })
+                        }
+                      >
+                        <strong>
+                          {quoteElem.quoteMessage.senderNickname ||
+                            quoteElem.quoteMessage.sendID}
+                        </strong>
+                        <span>{quoteElem.quoteText}</span>
+                      </button>
+                    )}
                     {isRun && message.streamElem ? (
                       <AgentRunRenderer
                         streamElem={message.streamElem}
@@ -404,7 +569,7 @@ export default function AgentWorkspaceContent({
                       />
                     ) : userMessage ? (
                       <div className={styles.userBubble}>
-                        {content && <div>{content}</div>}
+                        {content && <div data-quote-source>{content}</div>}
                         {image && (
                           <div className={styles.userAttachment}>
                             <Image size={15} strokeWidth={1.8} />
@@ -427,7 +592,7 @@ export default function AgentWorkspaceContent({
                         )}
                       </div>
                     ) : (
-                      <div className={styles.answer}>
+                      <div className={styles.answer} data-quote-source>
                         <ReactMarkdown skipHtml>{content}</ReactMarkdown>
                       </div>
                     )}
@@ -492,6 +657,26 @@ export default function AgentWorkspaceContent({
 
       <form className={styles.composer} onSubmit={submit}>
         <div className={styles.composerInner}>
+          {quoteMessage && (
+            <div className={styles.composerQuote}>
+              <Reply size={14} strokeWidth={1.8} />
+              <span>
+                <strong>
+                  {quoteMessage.message.senderNickname || quoteMessage.message.sendID}
+                </strong>
+                <small>
+                  {quoteMessage.quoteText || textContent(quoteMessage.message)}
+                </small>
+              </span>
+              <button
+                type="button"
+                aria-label={t("cancel")}
+                onClick={() => updateQuoteMessage()}
+              >
+                <CircleX size={15} strokeWidth={1.8} />
+              </button>
+            </div>
+          )}
           <textarea
             value={prompt}
             placeholder={t("agentWorkspace.composerPlaceholder")}
