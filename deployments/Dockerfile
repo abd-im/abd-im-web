@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install pnpm for efficient package management
 RUN npm install -g pnpm
@@ -7,7 +7,9 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # Copy lockfile and package configuration first to utilize Docker layer caching
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY pnpm-patches ./pnpm-patches
+COPY patches ./patches
 
 # Install project dependencies
 RUN pnpm install --frozen-lockfile
