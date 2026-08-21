@@ -6,16 +6,11 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy lockfile and package configuration first to utilize Docker layer caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY pnpm-patches ./pnpm-patches
-COPY patches ./patches
+# Copy the application files, including local pnpm configuration and patches
+COPY . .
 
 # Install project dependencies
 RUN pnpm install --frozen-lockfile
-
-# Copy the rest of the application files
-COPY . .
 
 # Compile the React SPA for Web
 RUN pnpm build:web
