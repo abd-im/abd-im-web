@@ -6,7 +6,7 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy the application files, including local pnpm configuration and patches
+# Copy the application files
 COPY . .
 
 # Install project dependencies
