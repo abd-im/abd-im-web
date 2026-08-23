@@ -85,7 +85,7 @@ const USER_MESSAGE_TYPES = new Set<MessageType>([
 const isWorkspaceMessage = (message: MessageItem) =>
   USER_MESSAGE_TYPES.has(message.contentType) ||
   (message.contentType === MessageType.StreamMessage &&
-    message.streamElem?.type === "agent_run_v1");
+    message.streamElem?.type === "agent_run_v2");
 
 export interface AgentWorkspaceDraft {
   agentUserID: string;
@@ -158,7 +158,7 @@ export default function AgentWorkspaceContent({
         .find(
           (message) =>
             message.contentType === MessageType.StreamMessage &&
-            message.streamElem?.type === "agent_run_v1",
+            message.streamElem?.type === "agent_run_v2",
         )?.clientMsgID,
     [visibleMessages],
   );
@@ -179,7 +179,7 @@ export default function AgentWorkspaceContent({
       }
       if (
         message.contentType === MessageType.StreamMessage &&
-        message.streamElem?.type === "agent_run_v1"
+        message.streamElem?.type === "agent_run_v2"
       ) {
         runs.push({
           messageID: message.clientMsgID,
@@ -469,7 +469,7 @@ export default function AgentWorkspaceContent({
             visibleMessages.map((message) => {
               const isRun =
                 message.contentType === MessageType.StreamMessage &&
-                message.streamElem?.type === "agent_run_v1";
+                message.streamElem?.type === "agent_run_v2";
               const userMessage = message.sendID === selfUserID;
               const agentMessage = !userMessage;
               const content = textContent(message);

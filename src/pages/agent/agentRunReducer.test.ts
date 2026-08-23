@@ -3,61 +3,133 @@ import { describe, expect, it } from "vitest";
 import { reduceAgentRun } from "./agentRunReducer";
 
 const metadata = JSON.stringify({
-  schema: 1,
+  schema: "abd.agent_run",
+  schemaVersion: 2,
   runId: "run_123",
-  status: "running",
+  triggerMessageId: "message_123",
 });
 
-const packet = (value: Record<string, unknown>) =>
-  JSON.stringify({ version: 1, ...value });
+const packet = (value: Record<string, unknown>) => JSON.stringify(value);
 
 describe("reduceAgentRun", () => {
-  it("reduces an append-only run into the workspace view", () => {
-    const result = reduceAgentRun(metadata, [
-      packet({ kind: "run.queued", runId: "run_123" }),
-      packet({ kind: "run.started", runId: "run_123" }),
-      packet({ kind: "activity.summary", text: "已分析题图" }),
-      packet({
-        kind: "tool.started",
-        callId: "tool_1",
-        name: "read_image",
-        summary: "读取题图",
-      }),
-      packet({
-        kind: "tool.completed",
-        callId: "tool_1",
-        status: "completed",
-        durationMs: 320,
-        summary: "已识别受力关系",
-      }),
-      packet({ kind: "answer.delta", text: "支持力 " }),
-      packet({ kind: "answer.delta", text: "大于重力。" }),
-      packet({
-        kind: "artifact",
-        name: "result.txt",
-        mediaType: "text/plain",
-        size: 42,
-        attachmentId: "attachment_1",
-      }),
-      packet({ kind: "run.completed", durationMs: 58000 }),
-    ]);
+  it("replays message, reasoning, tool, artifact, and lifecycle events", () => {
+    const result = reduceAgentRun(
+      metadata,
+      [
+        packet({ event: "run.queued", at: 1 }),
+        packet({ event: "run.started", at: 2 }),
+        packet({
+          event: "item.started",
+          at: 3,
+          item: { id: "reasoning_1", type: "reasoning", content: [] },
+        }),
+        packet({
+          event: "item.delta",
+          at: 4,
+          itemId: "reasoning_1",
+          content: { type: "text", text: "检查" },
+        }),
+        packet({
+          event: "item.delta",
+          at: 5,
+          itemId: "reasoning_1",
+          content: { type: "text", text: "代码" },
+        }),
+        packet({
+          event: "item.started",
+          at: 6,
+          item: {
+            id: "tool_1",
+            type: "tool",
+            name: "shell",
+            title: "运行测试",
+            category: "execute",
+            status: "running",
+            content: [],
+            locations: [],
+          },
+        }),
+        packet({
+          event: "item.updated",
+          at: 7,
+          itemId: "tool_1",
+          update: {
+            type: "tool.state",
+            title: "测试通过",
+            status: "completed",
+            locations: [],
+            durationMs: 320,
+          },
+        }),
+        packet({
+          event: "item.completed",
+          at: 8,
+          itemId: "tool_1",
+          outcome: "completed",
+        }),
+        packet({
+          event: "item.started",
+          at: 9,
+          item: {
+            id: "message_1",
+            type: "message",
+            role: "assistant",
+            phase: "final",
+            content: [],
+          },
+        }),
+        packet({
+          event: "item.delta",
+          at: 10,
+          itemId: "message_1",
+          content: { type: "text", text: "已经" },
+        }),
+        packet({
+          event: "item.delta",
+          at: 11,
+          itemId: "message_1",
+          content: { type: "text", text: "完成。" },
+        }),
+        packet({
+          event: "item.started",
+          at: 12,
+          item: {
+            id: "artifact_1",
+            type: "artifact",
+            name: "result.txt",
+            mediaType: "text/plain",
+            attachmentId: "attachment_1",
+            size: 42,
+          },
+        }),
+        packet({
+          event: "run.finished",
+          at: 13,
+          outcome: "completed",
+          reason: "end_turn",
+          durationMs: 58000,
+        }),
+      ],
+      true,
+    );
 
     expect(result.unsupported).toBe(false);
     expect(result.view).toMatchObject({
       runId: "run_123",
       status: "completed",
-      activitySummaries: ["已分析题图"],
-      answer: "支持力 大于重力。",
+      activitySummaries: ["检查代码"],
+      answer: "已经完成。",
+      durationMs: 58000,
     });
     expect(result.view.tools.get("tool_1")).toEqual({
       callId: "tool_1",
-      name: "read_image",
-      summary: "已识别受力关系",
+      name: "shell",
+      summary: "测试通过",
       status: "completed",
       durationMs: 320,
     });
     expect(result.view.activitySteps).toEqual([
-      { kind: "summary", text: "已分析题图" },
+      { kind: "summary", text: "检查代码" },
       { kind: "tool", callId: "tool_1" },
     ]);
     expect(result.view.artifacts).toEqual([
@@ -68,137 +140,132 @@ describe("reduceAgentRun", () => {
         attachmentId: "attachment_1",
       },
     ]);
-    expect(result.view.durationMs).toBe(58000);
   });
 
-  it("keeps distinct reasoning summaries in chronological order", () => {
+  it("tracks canonical permission requests and resolutions", () => {
     const result = reduceAgentRun(metadata, [
-      packet({ kind: "activity.summary", text: "确认请求范围" }),
-      packet({ kind: "activity.summary", text: "查询最新数据" }),
-      packet({ kind: "activity.summary", text: "查询最新数据" }),
-    ]);
-
-    expect(result.view.activitySummaries).toEqual(["确认请求范围", "查询最新数据"]);
-  });
-
-  it("keeps a tool step in its original position when completion arrives later", () => {
-    const result = reduceAgentRun(metadata, [
-      packet({ kind: "tool.started", callId: "tool_1", name: "shell" }),
-      packet({ kind: "activity.summary", text: "等待命令完成" }),
       packet({
-        kind: "tool.completed",
-        callId: "tool_1",
-        status: "completed",
-        summary: "pnpm test",
+        event: "permission.requested",
+        at: 1,
+        request: {
+          id: "permission_1",
+          title: "Run command",
+          description: "pnpm test",
+          options: [
+            { id: "allow", kind: "allow_once", label: "Allow" },
+            { id: "deny", kind: "reject_once", label: "Deny" },
+          ],
+        },
+      }),
+      packet({
+        event: "permission.resolved",
+        at: 2,
+        resolution: {
+          requestId: "permission_1",
+          outcome: "selected",
+          optionId: "allow",
+        },
       }),
     ]);
 
-    expect(result.view.activitySteps).toEqual([
-      { kind: "tool", callId: "tool_1" },
-      { kind: "summary", text: "等待命令完成" },
-    ]);
-    expect(result.view.tools.get("tool_1")).toMatchObject({
-      status: "completed",
-      summary: "pnpm test",
-    });
-  });
-
-  it("tracks pending approvals and resumes after they are resolved", () => {
-    const waiting = reduceAgentRun(metadata, [
-      packet({
-        kind: "approval.requested",
-        requestId: "approval_1",
-        name: "run_command",
-        summary: "运行测试",
-        choices: ["approve", "deny"],
-      }),
-    ]);
-
-    expect(waiting.view.status).toBe("waiting_approval");
-    expect(waiting.view.approvals.get("approval_1")).toMatchObject({
-      requestId: "approval_1",
-      pending: true,
-      choices: ["approve", "deny"],
-    });
-
-    const resolved = reduceAgentRun(metadata, [
-      packet({
-        kind: "approval.requested",
-        requestId: "approval_1",
-        name: "run_command",
-        summary: "运行测试",
-        choices: ["approve", "deny"],
-      }),
-      packet({
-        kind: "approval.resolved",
-        requestId: "approval_1",
-        decision: "approve",
-      }),
-    ]);
-
-    expect(resolved.view.status).toBe("running");
-    expect(resolved.view.approvals.get("approval_1")).toMatchObject({
+    expect(result.view.status).toBe("running");
+    expect(result.view.approvals.get("permission_1")).toMatchObject({
       pending: false,
-      decision: "approve",
+      choices: ["allow", "deny"],
+      decision: "allow",
     });
   });
 
-  it("ignores unknown packet kinds while retaining supported answer packets", () => {
+  it("shows commentary messages in the detailed process without mixing them into the answer", () => {
     const result = reduceAgentRun(metadata, [
-      packet({ kind: "future.event", payload: "ignored" }),
-      packet({ kind: "answer.delta", text: "仍然可见" }),
+      packet({
+        event: "item.started",
+        at: 1,
+        item: {
+          id: "commentary_1",
+          type: "message",
+          role: "assistant",
+          phase: "commentary",
+          content: [],
+        },
+      }),
+      packet({
+        event: "item.delta",
+        at: 2,
+        itemId: "commentary_1",
+        content: { type: "text", text: "正在读取文件" },
+      }),
+    ]);
+
+    expect(result.view.activitySummaries).toEqual(["正在读取文件"]);
+    expect(result.view.answer).toBe("");
+  });
+
+  it("ignores unknown events while retaining supported content", () => {
+    const result = reduceAgentRun(metadata, [
+      packet({ event: "future.event", at: 1 }),
+      packet({
+        event: "item.started",
+        at: 2,
+        item: {
+          id: "message_1",
+          type: "message",
+          role: "assistant",
+          phase: "final",
+          content: [{ type: "text", text: "可见" }],
+        },
+      }),
     ]);
 
     expect(result.unsupported).toBe(false);
-    expect(result.view.answer).toBe("仍然可见");
+    expect(result.view.answer).toBe("可见");
   });
 
-  it("returns a finite unsupported state for malformed JSON", () => {
-    const result = reduceAgentRun(metadata, ["not-json"]);
-
-    expect(result.unsupported).toBe(true);
-    expect(result.view.answer).toBe("");
-    expect(result.view.tools.size).toBe(0);
-    expect(result.view.approvals.size).toBe(0);
+  it("rejects malformed packets and non-v2 metadata", () => {
+    expect(reduceAgentRun(metadata, ["not-json"]).unsupported).toBe(true);
+    expect(reduceAgentRun(metadata, [packet({ at: 1 })]).unsupported).toBe(true);
+    expect(
+      reduceAgentRun(JSON.stringify({ schema: "abd.agent_run", schemaVersion: 1 }), [])
+        .unsupported,
+    ).toBe(true);
   });
 
-  it("does not expose malformed run metadata", () => {
-    const result = reduceAgentRun("not-json", [
-      packet({ kind: "answer.delta", text: "raw content" }),
-    ]);
-
-    expect(result.unsupported).toBe(true);
-    expect(result.view.runId).toBeUndefined();
-    expect(result.view.answer).toBe("");
-  });
-
-  it("uses terminal failure and cancellation summaries", () => {
-    const failed = reduceAgentRun(metadata, [
-      packet({ kind: "run.failed", summary: "工具执行失败", durationMs: 2200 }),
-    ]);
-    const cancelled = reduceAgentRun(metadata, [
-      packet({ kind: "run.cancelled", durationMs: 1300 }),
-    ]);
-
-    expect(failed.view).toMatchObject({
-      status: "failed",
-      statusSummary: "工具执行失败",
-    });
-    expect(cancelled.view.status).toBe("cancelled");
-    expect(failed.view.durationMs).toBe(2200);
-    expect(cancelled.view.durationMs).toBe(1300);
-  });
-
-  it("treats an ended stream without a terminal packet as completed", () => {
+  it("does not treat transport end as a successful run terminal", () => {
     const result = reduceAgentRun(
       metadata,
-      [packet({ kind: "answer.delta", text: "回答完成" })],
+      [packet({ event: "run.started", at: 1 })],
       true,
     );
 
     expect(result.view).toMatchObject({
-      status: "completed",
-      answer: "回答完成",
+      status: "failed",
+      statusSummary: "incomplete_stream",
     });
+  });
+
+  it("uses explicit failure and cancellation outcomes", () => {
+    const failed = reduceAgentRun(metadata, [
+      packet({
+        event: "run.finished",
+        at: 1,
+        outcome: "failed",
+        reason: "provider_error",
+        errorCode: "provider_error",
+      }),
+    ]);
+    const cancelled = reduceAgentRun(metadata, [
+      packet({
+        event: "run.finished",
+        at: 1,
+        outcome: "cancelled",
+        reason: "cancelled",
+      }),
+    ]);
+
+    expect(failed.view).toMatchObject({
+      status: "failed",
+      statusSummary: "provider_error",
+    });
+    expect(cancelled.view.status).toBe("cancelled");
   });
 });

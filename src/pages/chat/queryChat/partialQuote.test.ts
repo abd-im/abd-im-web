@@ -10,7 +10,7 @@ describe("partial quote snapshot", () => {
       serverMsgID: "server-1",
       contentType: MessageType.StreamMessage,
       streamElem: {
-        type: "agent_run_v1",
+        type: "agent_run_v2",
         content: "metadata",
         packets: ["large tool packet"],
       },
