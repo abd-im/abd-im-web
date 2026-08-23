@@ -4,18 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  '@abd-im/wasm-client-sdk@3.8.3-patch.17':
-    hash: 4461f5e3472f7b98cb85df2c95c69b2bac6fd043ee69d802760a4b039d63a881
-    path: pnpm-patches/@abd-im__wasm-client-sdk@3.8.3-patch.17.patch
-
 importers:
 
   .:
     dependencies:
       '@abd-im/wasm-client-sdk':
-        specifier: 3.8.3-patch.17
-        version: 3.8.3-patch.17(patch_hash=4461f5e3472f7b98cb85df2c95c69b2bac6fd043ee69d802760a4b039d63a881)
+        specifier: 3.8.3-patch.18
+        version: 3.8.3-patch.18
       '@ant-design/icons':
         specifier: ^5.6.1
         version: 5.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -230,8 +225,8 @@ importers:
 
 packages:
 
-  '@abd-im/wasm-client-sdk@3.8.3-patch.17':
-    resolution: {integrity: sha512-mYYGSoRtRocOyvlz6mUKPP/aCSAptKGDfngKBNRXwPExO6IuIoDtVOeNS1pOJd1Dbhs5HA74jV4sGZjHAYHupw==}
+  '@abd-im/wasm-client-sdk@3.8.3-patch.18':
+    resolution: {integrity: sha512-IljIobx/ACywT/qx4+wcK9ZT34D1GluOl+r+Jibxf+4YhlR94ZYXUOJApvxmZRLCzhPM5VCVZHwbwXQ9xNywzg==}
     engines: {node: '>=12.0'}
 
   '@alloc/quick-lru@5.2.0':
@@ -5031,7 +5026,7 @@ packages:
 
 snapshots:
 
-  '@abd-im/wasm-client-sdk@3.8.3-patch.17(patch_hash=4461f5e3472f7b98cb85df2c95c69b2bac6fd043ee69d802760a4b039d63a881)':
+  '@abd-im/wasm-client-sdk@3.8.3-patch.18':
     dependencies:
       rimraf: 6.1.3
 

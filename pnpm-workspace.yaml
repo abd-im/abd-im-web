@@ -6,5 +6,3 @@ onlyBuiltDependencies:
   - esbuild
 ignoredBuiltDependencies:
   - electron-winstaller
-patchedDependencies:
-  '@abd-im/wasm-client-sdk@3.8.3-patch.17': pnpm-patches/@abd-im__wasm-client-sdk@3.8.3-patch.17.patch
