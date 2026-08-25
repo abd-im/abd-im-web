@@ -85,10 +85,9 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
             })
           ).data
         : (await IMSDK.createTextMessage(cleanText)).data;
-      if (await sendMessage({ message })) {
-        setHtml("");
-        updateQuoteMessage();
-      }
+      setHtml("");
+      updateQuoteMessage();
+      void sendMessage({ message });
     } catch (e) {
       console.error(e);
     }

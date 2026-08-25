@@ -5,8 +5,8 @@ import {
 } from "@abd-im/wasm-client-sdk";
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
-import { Bot, CircleAlert, Reply } from "lucide-react";
-import { FC, memo, useMemo, useState } from "react";
+import { Bot, CircleAlert, LoaderCircle, Reply } from "lucide-react";
+import { FC, memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { message as antMessage } from "@/AntdGlobalComp";
@@ -101,6 +101,7 @@ const MessageItem: FC<IMessageItemProps> = ({
   const [quoteSelection, setQuoteSelection] = useState<
     (QuoteSelection & { left: number; top: number }) | undefined
   >();
+  const [showSending, setShowSending] = useState(false);
   const isSender = useMemo(
     () => selfUserID === message.sendID,
     [selfUserID, message.sendID],
@@ -109,6 +110,14 @@ const MessageItem: FC<IMessageItemProps> = ({
     () => agentAttributionFromEx(message.ex),
     [message.ex],
   );
+
+  useEffect(() => {
+    setShowSending(false);
+    if (message.status !== MessageStatus.Sending) return;
+
+    const timer = setTimeout(() => setShowSending(true), 1000);
+    return () => clearTimeout(timer);
+  }, [message.status]);
 
   const MessageRenderComponent = components[message.contentType] || CatchMessageRender;
 
@@ -315,6 +324,21 @@ const MessageItem: FC<IMessageItemProps> = ({
 
             <div className={styles["message-content-group"]}>
               <div className={styles["message-content-row"]}>
+                {isSender &&
+                  showSending &&
+                  message.status === MessageStatus.Sending && (
+                    <span
+                      className="mr-2 grid h-7 w-7 shrink-0 place-items-center text-muted-foreground"
+                      role="status"
+                      aria-label={t("placeholder.sendMessage")}
+                    >
+                      <LoaderCircle
+                        className="animate-spin"
+                        size={16}
+                        aria-hidden="true"
+                      />
+                    </span>
+                  )}
                 {isSender && message.status === MessageStatus.Failed && (
                   <Tooltip title={t("retry")}>
                     <button
@@ -367,14 +391,16 @@ const MessageItem: FC<IMessageItemProps> = ({
                 )}
               </div>
 
-              <div className={styles["message-status-wrapper"]}>
-                <MessageSuffix
-                  message={message}
-                  isSender={isSender}
-                  disabled={false}
-                  conversationID={conversationID}
-                />
-              </div>
+              {message.status === MessageStatus.Succeed && (
+                <div className={styles["message-status-wrapper"]}>
+                  <MessageSuffix
+                    message={message}
+                    isSender={isSender}
+                    disabled={false}
+                    conversationID={conversationID}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
