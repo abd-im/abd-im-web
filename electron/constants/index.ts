@@ -1,5 +1,6 @@
 export const IpcMainToRender = {
   appResume: "appResume",
+  messageNotificationClicked: "messageNotificationClicked",
 };
 
 export const IpcRenderToMain = {
@@ -9,4 +10,5 @@ export const IpcRenderToMain = {
   getKeyStore: "getKeyStore",
   getKeyStoreSync: "getKeyStoreSync",
   getDataPath: "getDataPath",
+  showMessageNotification: "showMessageNotification",
 };

@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, Notification, shell } from "electron";
+import { IpcMainToRender } from "../constants";
 import { isMac } from "../utils";
 import { destroyTray } from "./trayManage";
 import { getIsForceQuit } from "./appManage";
@@ -8,6 +9,13 @@ import { registerShortcuts, unregisterShortcuts } from "./shortcutManage";
 const url = process.env.VITE_DEV_SERVER_URL;
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+
+type MessageNotificationParams = {
+  title: string;
+  body: string;
+  sourceID: string;
+  sessionType: number;
+};
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
@@ -104,6 +112,25 @@ export const closeWindow = () => {
 export const sendEvent = (name: string, ...args: any[]) => {
   if (!mainWindow) return;
   mainWindow.webContents.send(name, ...args);
+};
+
+export const showMessageNotification = (params: MessageNotificationParams) => {
+  if (!mainWindow || mainWindow.isFocused() || !Notification.isSupported()) return;
+
+  const notification = new Notification({
+    title: params.title,
+    body: params.body,
+    icon: join(global.pathConfig.publicPath, "icons", "icon.png"),
+    silent: true,
+  });
+  notification.on("click", () => {
+    showWindow();
+    sendEvent(IpcMainToRender.messageNotificationClicked, {
+      sourceID: params.sourceID,
+      sessionType: params.sessionType,
+    });
+  });
+  notification.show();
 };
 
 export const minimize = () => {

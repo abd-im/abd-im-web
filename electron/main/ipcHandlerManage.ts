@@ -1,5 +1,11 @@
 import { app, ipcMain } from "electron";
-import { closeWindow, minimize, splashEnd, updateMaximize } from "./windowManage";
+import {
+  closeWindow,
+  minimize,
+  showMessageNotification,
+  splashEnd,
+  updateMaximize,
+} from "./windowManage";
 import { IpcRenderToMain } from "../constants";
 import { getStore } from "./storeManage";
 import { changeLanguage } from "../i18n";
@@ -25,6 +31,9 @@ export const setIpcMainListener = () => {
   });
   ipcMain.handle(IpcRenderToMain.closeWindow, () => {
     closeWindow();
+  });
+  ipcMain.handle(IpcRenderToMain.showMessageNotification, (_, params) => {
+    showMessageNotification(params);
   });
   ipcMain.handle(IpcRenderToMain.getKeyStore, (_, { key }) => {
     return store.get(key);

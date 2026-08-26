@@ -1,4 +1,10 @@
-import { CbEvents, LogLevel, MessageType, SessionType } from "@abd-im/wasm-client-sdk";
+import {
+  CbEvents,
+  LogLevel,
+  MessageReceiveOptType,
+  MessageType,
+  SessionType,
+} from "@abd-im/wasm-client-sdk";
 import {
   BlackUserItem,
   ConversationItem,
@@ -21,6 +27,8 @@ import { useNavigate } from "react-router-dom";
 import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { CustomType } from "@/constants";
+import { useConversationToggle } from "@/hooks/useConversationToggle";
+import { getMessagePreview } from "@/pages/chat/queryChat/messagePreview";
 import { parseReactionUpdatedEvent } from "@/pages/chat/queryChat/messageReactionState";
 import {
   pushNewMessage,
@@ -32,13 +40,18 @@ import { useContactStore } from "@/store/contact";
 import { UserStatusItem } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
-import { initStore } from "@/utils/imCommon";
+import {
+  formatMessageByType,
+  getConversationIDByMsg,
+  initStore,
+} from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
 import { IMSDK } from "./MainContentWrap";
 
 export function useGlobalEvent() {
   const navigate = useNavigate();
+  const { toSpecifiedConversation } = useConversationToggle();
   const resume = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -109,7 +122,7 @@ export function useGlobalEvent() {
   useEffect(() => {
     loginCheck();
     setIMListener();
-    setIpcListener();
+    const disposeIpcListener = setIpcListener();
 
     window.addEventListener("online", () => {
       IMSDK.networkStatusChanged();
@@ -119,6 +132,7 @@ export function useGlobalEvent() {
     });
     return () => {
       disposeIMListener();
+      disposeIpcListener();
     };
   }, []);
 
@@ -333,18 +347,48 @@ export function useGlobalEvent() {
   const playNewMsgSound = () => {
     const { allowBeep } = useUserStore.getState().appSettings;
     const { globalRecvMsgOpt } = useUserStore.getState().selfInfo;
-    if (allowBeep && globalRecvMsgOpt !== 2) {
+    if (allowBeep && globalRecvMsgOpt !== MessageReceiveOptType.NotNotify) {
       audioRef.current?.play().catch(() => {
         // Browser might block auto-play if no user interaction
       });
     }
   };
 
-  const handleNewMessage = (newServerMsg: MessageItem) => {
+  const showMessageNotification = (message: MessageItem) => {
+    if (!window.electronAPI) return;
+
+    const conversation = useConversationStore
+      .getState()
+      .conversationList.find(
+        (item) => item.conversationID === getConversationIDByMsg(message),
+      );
+    const { globalRecvMsgOpt } = useUserStore.getState().selfInfo;
     if (
-      newServerMsg.contentType !== MessageType.StreamMessage &&
-      newServerMsg.sendID !== useUserStore.getState().selfInfo.userID
+      globalRecvMsgOpt === MessageReceiveOptType.NotNotify ||
+      conversation?.recvMsgOpt === MessageReceiveOptType.NotNotify
     ) {
+      return;
+    }
+
+    const isGroupMessage = message.sessionType === SessionType.Group;
+    const senderName = message.senderNickname || conversation?.showName || "ABD IM";
+    const title =
+      isGroupMessage && conversation?.showName
+        ? `${senderName} (${conversation.showName})`
+        : senderName;
+    void window.electronAPI.ipcInvoke("showMessageNotification", {
+      title,
+      body: formatMessageByType(message) || getMessagePreview(message),
+      sourceID: isGroupMessage ? message.groupID : message.sendID,
+      sessionType: message.sessionType,
+    });
+  };
+
+  const handleNewMessage = (newServerMsg: MessageItem) => {
+    const shouldAlert =
+      newServerMsg.contentType !== MessageType.StreamMessage &&
+      newServerMsg.sendID !== useUserStore.getState().selfInfo.userID;
+    if (shouldAlert) {
       playNewMsgSound();
     }
 
@@ -356,6 +400,10 @@ export function useGlobalEvent() {
       ) {
         return;
       }
+    }
+
+    if (shouldAlert && !notPushType.includes(newServerMsg.contentType)) {
+      showMessageNotification(newServerMsg);
     }
 
     if (!inCurrentConversation(newServerMsg)) return;
@@ -561,7 +609,7 @@ export function useGlobalEvent() {
   };
 
   const setIpcListener = () => {
-    window.electronAPI?.subscribe("appResume", () => {
+    const unsubscribeAppResume = window.electronAPI?.subscribe("appResume", () => {
       if (resume.current) {
         return;
       }
@@ -570,5 +618,15 @@ export function useGlobalEvent() {
         resume.current = false;
       }, 5000);
     });
+    const unsubscribeNotificationClick = window.electronAPI?.subscribe(
+      "messageNotificationClicked",
+      ({ sourceID, sessionType }: { sourceID: string; sessionType: SessionType }) => {
+        void toSpecifiedConversation({ sourceID, sessionType });
+      },
+    );
+    return () => {
+      unsubscribeAppResume?.();
+      unsubscribeNotificationClick?.();
+    };
   };
 }

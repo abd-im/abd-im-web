@@ -11,6 +11,8 @@ import { initI18n } from "../i18n";
 
 export const logger = getLogger(join(app.getPath("userData"), `/OpenIMData/logs`));
 
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+
 const init = () => {
   initI18n();
   createMainWindow();
