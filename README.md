@@ -50,7 +50,7 @@ AI features require the companion [ABD IM CLI](https://github.com/abd-im/abd-im-
 
 ### Requirements
 
-- Node.js 18.12 or later
+- Node.js 24.20.0 or later (latest LTS)
 - pnpm
 - Running ABD IM server and business API services
 
@@ -77,11 +77,29 @@ pnpm dev:web
 
 The development server listens on `http://localhost:5173` by default.
 
-### Build
+### Build the web client
 
 ```bash
 pnpm build:web
 ```
+
+### Build the macOS desktop client
+
+Install dependencies, then build a DMG for the current Mac architecture:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build:mac
+```
+
+To select the target architecture explicitly, use `pnpm build:mac:arm64` for
+Apple Silicon or `pnpm build:mac:x64` for Intel. Build artifacts are written to
+`release/ABD-IM/<version>/`. Local builds receive a deep ad-hoc signature so
+macOS notifications work with Electron 42 and later.
+
+For distribution, install a Developer ID Application certificate, configure
+electron-builder signing credentials, and run `pnpm build:mac:release`. This
+command fails instead of producing an unsigned release.
 
 ## Upstream and attribution
 
