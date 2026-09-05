@@ -9,6 +9,7 @@ import { registerShortcuts, unregisterShortcuts } from "./shortcutManage";
 const url = process.env.VITE_DEV_SERVER_URL;
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+let messageNotification: Notification | null = null;
 
 type MessageNotificationParams = {
   title: string;
@@ -117,6 +118,7 @@ export const sendEvent = (name: string, ...args: any[]) => {
 export const showMessageNotification = (params: MessageNotificationParams) => {
   if (!mainWindow || mainWindow.isFocused() || !Notification.isSupported()) return;
 
+  messageNotification?.close();
   const notification = new Notification({
     title: params.title,
     body: params.body,
@@ -130,6 +132,12 @@ export const showMessageNotification = (params: MessageNotificationParams) => {
       sessionType: params.sessionType,
     });
   });
+  notification.on("close", () => {
+    if (messageNotification === notification) {
+      messageNotification = null;
+    }
+  });
+  messageNotification = notification;
   notification.show();
 };
 
