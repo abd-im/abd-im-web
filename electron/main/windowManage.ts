@@ -5,6 +5,7 @@ import { isMac } from "../utils";
 import { destroyTray } from "./trayManage";
 import { getIsForceQuit } from "./appManage";
 import { registerShortcuts, unregisterShortcuts } from "./shortcutManage";
+import { logger } from ".";
 
 const url = process.env.VITE_DEV_SERVER_URL;
 let mainWindow: BrowserWindow | null = null;
@@ -131,6 +132,12 @@ export const showMessageNotification = (params: MessageNotificationParams) => {
       sourceID: params.sourceID,
       sessionType: params.sessionType,
     });
+  });
+  notification.on("show", () => {
+    logger.debug("message notification shown");
+  });
+  notification.on("failed", (_, error) => {
+    logger.error("message notification failed", error);
   });
   notification.on("close", () => {
     if (messageNotification === notification) {

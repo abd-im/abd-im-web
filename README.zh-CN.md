@@ -50,7 +50,7 @@ AI 功能需要配合 [ABD IM CLI](https://github.com/abd-im/abd-im-cli) 使用�
 
 ### 环境要求
 
-- Node.js 18.12 或更高版本
+- Node.js 24.20.0 或更高版本（最新 LTS）
 - pnpm
 - 已运行的 ABD IM 服务端和业务 API 服务
 
@@ -77,11 +77,28 @@ pnpm dev:web
 
 开发服务器默认监听 `http://localhost:5173`。
 
-### 构建
+### 构建 Web 客户端
 
 ```bash
 pnpm build:web
 ```
+
+### 构建 macOS 桌面客户端
+
+安装依赖后，为当前 Mac 的处理器架构构建 DMG：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build:mac
+```
+
+如需明确指定目标架构，Apple Silicon 使用 `pnpm build:mac:arm64`，Intel
+使用 `pnpm build:mac:x64`。构建产物位于 `release/ABD-IM/<version>/`。本地构建会
+进行深度 ad-hoc 签名，以支持 Electron 42 及更高版本的 macOS 系统通知。
+
+正式分发时，应安装 Developer ID Application 证书并配置 electron-builder 签名凭据，
+然后运行 `pnpm build:mac:release`。缺少有效证书时，该命令会直接失败，不会生成未签名
+的发布包。
 
 ## 上游与归属
 

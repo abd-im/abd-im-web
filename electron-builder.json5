@@ -9,14 +9,12 @@
   directories: {
     output: "release/ABD-IM/${version}",
   },
-  files: [
-    "dist",
-    "dist-electron",
-  ],
+  afterSign: "./scripts/ensureMacCodeSigning.cjs",
+  files: ["dist", "dist-electron"],
   mac: {
     artifactName: "${productName}_${version}_${arch}.${ext}",
     target: ["dmg"],
-    icon: "./dist/icons/mac_icon.png",
+    icon: "./dist/icons/icon.png",
   },
   win: {
     target: [

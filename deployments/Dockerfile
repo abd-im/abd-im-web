@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Install pnpm for efficient package management
 RUN npm install -g pnpm
