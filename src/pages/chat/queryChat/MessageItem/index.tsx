@@ -37,6 +37,7 @@ import VideoMessageRender from "./VideoMessageRender";
 
 export interface IMessageItemProps {
   message: MessageItemType;
+  avatarText?: string;
   isSender?: boolean;
   disabled?: boolean;
   conversationID?: string;
@@ -82,6 +83,7 @@ const agentAttributionFromEx = (ex?: string): AgentAttribution | undefined => {
 
 const MessageItem: FC<IMessageItemProps> = ({
   message,
+  avatarText,
   disabled,
   conversationID,
   reactionSummary,
@@ -287,7 +289,7 @@ const MessageItem: FC<IMessageItemProps> = ({
           <OIMAvatar
             size={36}
             src={message.senderFaceUrl}
-            text={message.senderNickname}
+            text={avatarText || message.senderNickname}
           />
 
           <div className={styles["message-wrap"]}>

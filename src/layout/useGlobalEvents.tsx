@@ -44,6 +44,7 @@ import {
   formatMessageByType,
   getConversationIDByMsg,
   initStore,
+  isGroupSession,
 } from "@/utils/imCommon";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
@@ -456,8 +457,9 @@ export function useGlobalEvent() {
     updateFriend(data);
     const currentConversation = useConversationStore.getState().currentConversation;
     if (
-      currentConversation?.conversationType === SessionType.Single &&
-      currentConversation.userID === data.userID
+      (currentConversation?.conversationType === SessionType.Single &&
+        currentConversation.userID === data.userID) ||
+      isGroupSession(currentConversation?.conversationType)
     ) {
       updateMessageSender({
         userID: data.userID,

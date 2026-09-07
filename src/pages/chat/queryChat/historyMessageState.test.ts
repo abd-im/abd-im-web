@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { updateHistoryMessageSender } from "./historyMessageState";
+import { applyFriendRemarks, updateHistoryMessageSender } from "./historyMessageState";
 
 describe("history message sender state", () => {
   const messages = [
@@ -52,5 +52,19 @@ describe("history message sender state", () => {
     });
 
     expect(result).toBe(messages);
+  });
+
+  it("applies saved remarks to messages loaded after the friend changed", () => {
+    const result = applyFriendRemarks(messages, [
+      { userID: "user-1", remark: "Saved remark" },
+      { userID: "user-2", remark: "" },
+    ]);
+
+    expect(result[0]).toEqual({
+      ...messages[0],
+      senderNickname: "Saved remark",
+    });
+    expect(result[0].senderFaceUrl).toBe("old-face");
+    expect(result[2]).toBe(messages[2]);
   });
 });

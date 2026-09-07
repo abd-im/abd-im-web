@@ -14,6 +14,11 @@ export type MessageSenderProfile = {
   faceURL: string;
 };
 
+type FriendRemarkProfile = {
+  userID: string;
+  remark: string;
+};
+
 export const mergeHistoryMessages = <T extends MessageWithID>(
   currentMessages: T[],
   incomingMessages: T[],
@@ -52,6 +57,26 @@ export const updateHistoryMessageSender = <T extends MessageWithSender>(
       senderNickname: profile.nickname,
       senderFaceUrl: profile.faceURL,
     };
+  });
+
+  return changed ? messageList : messages;
+};
+
+export const applyFriendRemarks = <T extends MessageWithSender>(
+  messages: T[],
+  friends: FriendRemarkProfile[],
+) => {
+  const remarks = new Map(
+    friends
+      .filter((friend) => friend.remark)
+      .map((friend) => [friend.userID, friend.remark]),
+  );
+  let changed = false;
+  const messageList = messages.map((message) => {
+    const remark = remarks.get(message.sendID);
+    if (!remark || message.senderNickname === remark) return message;
+    changed = true;
+    return { ...message, senderNickname: remark };
   });
 
   return changed ? messageList : messages;

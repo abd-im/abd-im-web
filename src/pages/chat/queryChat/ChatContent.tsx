@@ -14,6 +14,7 @@ import { message as antMessage } from "@/AntdGlobalComp";
 import { SystemMessageTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
+import { useContactStore } from "@/store/contact";
 import type { QuoteLocation } from "@/utils/events";
 import emitter from "@/utils/events";
 
@@ -22,6 +23,7 @@ import { useFileMessage } from "./ChatFooter/SendActionBar/useFileMessage";
 import { useSendMessage } from "./ChatFooter/useSendMessage";
 import ForwardSelectionBar from "./forwarding/ForwardSelectionBar";
 import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetModal";
+import { applyFriendRemarks } from "./historyMessageState";
 import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
@@ -54,6 +56,11 @@ const ChatContent = () => {
     (state) => state.currentConversation,
   );
   const conversationList = useConversationStore((state) => state.conversationList);
+  const friendList = useContactStore((state) => state.friendList);
+  const friendProfiles = useMemo(
+    () => new Map(friendList.map((friend) => [friend.userID, friend])),
+    [friendList],
+  );
   const [atBottom, setAtBottom] = useState(true);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMessageIDs, setSelectedMessageIDs] = useState<Set<string>>(
@@ -216,12 +223,15 @@ const ChatContent = () => {
     revealQuote,
   ]);
 
+  const displayMessages = useMemo(
+    () => applyFriendRemarks(loadState.messageList, friendList),
+    [friendList, loadState.messageList],
+  );
+
   const selectedMessages = useMemo(
     () =>
-      loadState.messageList.filter((message) =>
-        selectedMessageIDs.has(message.clientMsgID),
-      ),
-    [loadState.messageList, selectedMessageIDs],
+      displayMessages.filter((message) => selectedMessageIDs.has(message.clientMsgID)),
+    [displayMessages, selectedMessageIDs],
   );
 
   const isForwardableMessage = useCallback(
@@ -468,7 +478,7 @@ const ChatContent = () => {
           startReached={loadMoreMessage}
           atBottomStateChange={setAtBottom}
           ref={virtuoso}
-          data={loadState.messageList}
+          data={displayMessages}
           context={summaries}
           increaseViewportBy={500}
           components={{
@@ -492,11 +502,14 @@ const ChatContent = () => {
               );
             }
             const canReact = reactableMessageIDs.has(message.clientMsgID);
+            const avatarText =
+              friendProfiles.get(message.sendID)?.nickname || message.senderNickname;
             return (
               <MessageItemComponent
                 key={message.clientMsgID}
                 conversationID={conversationID}
                 message={message}
+                avatarText={avatarText}
                 reactionSummary={reactionSummaries[message.clientMsgID]}
                 isReactionPending={
                   canReact
@@ -510,6 +523,7 @@ const ChatContent = () => {
                     : undefined
                 }
                 messageUpdateFlag={
+                  avatarText +
                   message.senderNickname +
                   message.senderFaceUrl +
                   String(message.isRead) +
