@@ -46,6 +46,7 @@ import { emit } from "@/utils/events";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { useSendMessage } from "../chat/queryChat/ChatFooter/useSendMessage";
+import { getLatestUnreadMessageSeq } from "../chat/queryChat/historyMessageState";
 import {
   captureQuoteSelection,
   createQuoteSnapshot,
@@ -141,6 +142,10 @@ export default function AgentWorkspaceContent({
     () => loadState.messageList.filter(isWorkspaceMessage),
     [loadState.messageList],
   );
+  const latestUnreadMessageSeq = getLatestUnreadMessageSeq(
+    loadState.messageList,
+    selfUserID,
+  );
 
   const latestAgentMessageID = useMemo(() => {
     for (let index = visibleMessages.length - 1; index >= 0; index -= 1) {
@@ -206,7 +211,7 @@ export default function AgentWorkspaceContent({
 
   useEffect(() => {
     if (conversationID) void IMSDK.markConversationMessageAsRead(conversationID);
-  }, [conversationID, loadState.messageList.length]);
+  }, [conversationID, latestUnreadMessageSeq]);
 
   useEffect(() => {
     if (!runNavigationItems.length) {

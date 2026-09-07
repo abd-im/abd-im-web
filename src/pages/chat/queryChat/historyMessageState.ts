@@ -8,6 +8,12 @@ type MessageWithSender = {
   senderFaceUrl: string;
 };
 
+type MessageReadCandidate = {
+  sendID: string;
+  seq: number;
+  isRead: boolean;
+};
+
 export type MessageSenderProfile = {
   userID: string;
   nickname: string;
@@ -81,3 +87,15 @@ export const applyFriendRemarks = <T extends MessageWithSender>(
 
   return changed ? messageList : messages;
 };
+
+export const getLatestUnreadMessageSeq = (
+  messages: MessageReadCandidate[],
+  selfUserID: string,
+) =>
+  messages.reduce(
+    (latestSeq, message) =>
+      !message.isRead && message.sendID !== selfUserID
+        ? Math.max(latestSeq, message.seq)
+        : latestSeq,
+    0,
+  );

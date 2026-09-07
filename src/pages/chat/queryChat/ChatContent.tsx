@@ -23,7 +23,7 @@ import { useFileMessage } from "./ChatFooter/SendActionBar/useFileMessage";
 import { useSendMessage } from "./ChatFooter/useSendMessage";
 import ForwardSelectionBar from "./forwarding/ForwardSelectionBar";
 import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetModal";
-import { applyFriendRemarks } from "./historyMessageState";
+import { applyFriendRemarks, getLatestUnreadMessageSeq } from "./historyMessageState";
 import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
@@ -243,7 +243,6 @@ const ChatContent = () => {
   );
 
   const reactionsEnabled =
-    !window.electronAPI &&
     currentConversation?.conversationID === conversationID &&
     !currentConversation?.isPrivateChat &&
     !currentConversation?.isMsgDestruct;
@@ -270,6 +269,10 @@ const ChatContent = () => {
     selfUserID,
     connectState === "success" && syncState === "success",
   );
+  const latestUnreadMessageSeq = getLatestUnreadMessageSeq(
+    loadState.messageList,
+    selfUserID,
+  );
 
   useEffect(() => {
     lastMsgIdRef.current = "";
@@ -282,7 +285,7 @@ const ChatContent = () => {
     if (conversationID) {
       IMSDK.markConversationMessageAsRead(conversationID).then(() => {
         latestLoadState.current?.messageList.forEach((msg) => {
-          if (!msg.isRead && msg.sendID !== selfUserID) {
+          if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
             updateOneMessage({
               clientMsgID: msg.clientMsgID,
               isRead: true,
@@ -313,10 +316,10 @@ const ChatContent = () => {
       }
     }
 
-    if (atBottom) {
+    if (atBottom && latestUnreadMessageSeq > 0) {
       IMSDK.markConversationMessageAsRead(conversationID).then(() => {
         latestLoadState.current?.messageList.forEach((msg) => {
-          if (!msg.isRead && msg.sendID !== selfUserID) {
+          if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
             updateOneMessage({
               clientMsgID: msg.clientMsgID,
               isRead: true,
@@ -328,6 +331,7 @@ const ChatContent = () => {
     }
   }, [
     loadState.messageList.length,
+    latestUnreadMessageSeq,
     conversationID,
     selfUserID,
     atBottom,

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { applyFriendRemarks, updateHistoryMessageSender } from "./historyMessageState";
+import {
+  applyFriendRemarks,
+  getLatestUnreadMessageSeq,
+  updateHistoryMessageSender,
+} from "./historyMessageState";
 
-describe("history message sender state", () => {
+describe("history message state", () => {
   const messages = [
     {
       clientMsgID: "message-1",
@@ -66,5 +70,21 @@ describe("history message sender state", () => {
     });
     expect(result[0].senderFaceUrl).toBe("old-face");
     expect(result[2]).toBe(messages[2]);
+  });
+
+  it("waits for a stream message to receive a sequence before submitting read", () => {
+    const streamMessage = { sendID: "user-1", seq: 0, isRead: false };
+    const laterMessage = { sendID: "user-1", seq: 11, isRead: false };
+
+    expect(getLatestUnreadMessageSeq([streamMessage], "self-user")).toBe(0);
+    expect(getLatestUnreadMessageSeq([streamMessage, laterMessage], "self-user")).toBe(
+      11,
+    );
+    expect(
+      getLatestUnreadMessageSeq(
+        [{ ...streamMessage, seq: 12 }, laterMessage],
+        "self-user",
+      ),
+    ).toBe(12);
   });
 });
