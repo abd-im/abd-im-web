@@ -1,8 +1,9 @@
-onlyBuiltDependencies:
-  - "@parcel/watcher"
-  - core-js
-  - electron
-  - es5-ext
-  - esbuild
-ignoredBuiltDependencies:
-  - electron-winstaller
+allowBuilds:
+  "@parcel/watcher": true
+  core-js: true
+  electron: true
+  electron-winstaller: false
+  es5-ext: true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - "@abd-im/wasm-client-sdk"

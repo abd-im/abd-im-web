@@ -7,7 +7,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # Copy lockfile and package configuration first to utilize Docker layer caching
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install project dependencies
 RUN pnpm install --frozen-lockfile

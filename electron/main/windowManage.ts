@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { app, BrowserWindow, Notification, shell } from "electron";
 import { IpcMainToRender } from "../constants";
@@ -10,7 +11,6 @@ import { logger } from ".";
 const url = process.env.VITE_DEV_SERVER_URL;
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
-let messageNotification: Notification | null = null;
 
 type MessageNotificationParams = {
   title: string;
@@ -18,6 +18,22 @@ type MessageNotificationParams = {
   sourceID: string;
   sessionType: number;
 };
+
+type PendingMessageNotification = {
+  params: MessageNotificationParams;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+const MESSAGE_NOTIFICATION_DEBOUNCE_MS = 300;
+const MESSAGE_NOTIFICATION_GROUP_ID = "abd-im-messages";
+const messageNotifications = new Map<string, Notification>();
+const pendingMessageNotifications = new Map<string, PendingMessageNotification>();
+
+const getMessageNotificationID = (params: MessageNotificationParams) =>
+  createHash("sha256")
+    .update(`${params.sessionType}:${params.sourceID}`)
+    .digest("hex")
+    .slice(0, 16);
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
@@ -71,6 +87,14 @@ export function createMainWindow() {
   });
 
   mainWindow.on("focus", () => {
+    for (const { timer } of pendingMessageNotifications.values()) {
+      clearTimeout(timer);
+    }
+    pendingMessageNotifications.clear();
+    for (const notification of messageNotifications.values()) {
+      notification.close();
+    }
+    messageNotifications.clear();
     mainWindow?.flashFrame(false);
     registerShortcuts();
   });
@@ -117,35 +141,53 @@ export const sendEvent = (name: string, ...args: any[]) => {
 };
 
 export const showMessageNotification = (params: MessageNotificationParams) => {
-  if (!mainWindow || mainWindow.isFocused() || !Notification.isSupported()) return;
+  if (!mainWindow || mainWindow.isFocused() || !Notification.isSupported()) {
+    return;
+  }
 
-  messageNotification?.close();
-  const notification = new Notification({
-    title: params.title,
-    body: params.body,
-    icon: join(global.pathConfig.publicPath, "icons", "icon.png"),
-    silent: true,
-  });
-  notification.on("click", () => {
-    showWindow();
-    sendEvent(IpcMainToRender.messageNotificationClicked, {
-      sourceID: params.sourceID,
-      sessionType: params.sessionType,
+  const notificationID = getMessageNotificationID(params);
+  const pendingNotification = pendingMessageNotifications.get(notificationID);
+  if (pendingNotification) {
+    clearTimeout(pendingNotification.timer);
+  }
+  const timer = setTimeout(() => {
+    const pendingParams = pendingMessageNotifications.get(notificationID)?.params;
+    pendingMessageNotifications.delete(notificationID);
+    if (!pendingParams || !mainWindow || mainWindow.isFocused()) return;
+
+    const notification = new Notification({
+      id: notificationID,
+      groupId: MESSAGE_NOTIFICATION_GROUP_ID,
+      title: pendingParams.title,
+      body: pendingParams.body,
+      icon: join(global.pathConfig.publicPath, "icons", "icon.png"),
+      silent: true,
     });
-  });
-  notification.on("show", () => {
-    logger.debug("message notification shown");
-  });
-  notification.on("failed", (_, error) => {
-    logger.error("message notification failed", error);
-  });
-  notification.on("close", () => {
-    if (messageNotification === notification) {
-      messageNotification = null;
-    }
-  });
-  messageNotification = notification;
-  notification.show();
+    notification.on("click", () => {
+      showWindow();
+      sendEvent(IpcMainToRender.messageNotificationClicked, {
+        sourceID: pendingParams.sourceID,
+        sessionType: pendingParams.sessionType,
+      });
+    });
+    notification.on("show", () => {
+      logger.debug("message notification shown");
+    });
+    notification.on("failed", (_, error) => {
+      if (messageNotifications.get(notificationID) === notification) {
+        messageNotifications.delete(notificationID);
+      }
+      logger.error("message notification failed", error);
+    });
+    notification.on("close", () => {
+      if (messageNotifications.get(notificationID) === notification) {
+        messageNotifications.delete(notificationID);
+      }
+    });
+    messageNotifications.set(notificationID, notification);
+    notification.show();
+  }, MESSAGE_NOTIFICATION_DEBOUNCE_MS);
+  pendingMessageNotifications.set(notificationID, { params, timer });
 };
 
 export const minimize = () => {
