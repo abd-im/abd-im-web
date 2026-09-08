@@ -7,10 +7,13 @@ import { ReactQueryDevtools } from "react-query/devtools";
 import { RouterProvider } from "react-router-dom";
 
 import AntdGlobalComp from "./AntdGlobalComp";
+import AppUpdateBar, { MandatoryUpdate } from "./components/AppUpdateBar";
+import { useDesktopUpdates } from "./hooks/useDesktopUpdates";
 import router from "./routes";
 import { useUserStore } from "./store";
 
 function App() {
+  useDesktopUpdates();
   const locale = useUserStore((state) => state.appSettings.locale);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -40,9 +43,11 @@ function App() {
           <AntdApp>
             <AntdGlobalComp />
             <RouterProvider router={router} />
+            <AppUpdateBar />
+            <MandatoryUpdate />
           </AntdApp>
         </Suspense>
-        <ReactQueryDevtools initialIsOpen={false} />
+        <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
       </QueryClientProvider>
     </ConfigProvider>
   );

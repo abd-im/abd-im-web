@@ -1,4 +1,36 @@
 {
+  "desktopUpdate": {
+    "required": "需要更新才能继续使用",
+    "check": "检查更新",
+    "restart": "重启更新",
+    "later": "稍后",
+    "quit": "退出应用",
+    "retry": "重试下载",
+    "progress": "更新下载进度",
+    "notes": "更新内容",
+    "onQuit": "也会在退出应用时安装更新。",
+    "readyVersion": "重启以更新到 {{version}}",
+    "manualDownload": "下载安装包",
+    "phase": {
+      "idle": "应用更新",
+      "checking": "正在检查更新",
+      "upToDate": "已是最新版本",
+      "downloading": "正在下载更新",
+      "verifying": "正在准备更新",
+      "downloaded": "更新已就绪",
+      "installing": "正在安装更新",
+      "error": "暂时无法更新",
+      "disabled": "自动更新暂不可用"
+    },
+    "error": {
+      "check": "检查更新失败，请稍后重试。",
+      "download": "更新下载或校验失败，请重试下载。",
+      "validation": "无法验证此更新，请稍后重新检查。",
+      "install": "无法开始安装，请重试或下载安装包。",
+      "busy": "通话或文件传输正在进行，请结束后再更新或退出。",
+      "prepare": "未能保存当前内容，请重试后再退出。"
+    }
+  },
   "me": "我",
   "you": "你",
   "yes": "是",
@@ -153,6 +185,7 @@
     "syncing": "同步中...",
     "syncFailed": "同步失败！",
     "appUpdate": "应用程序更新",
+    "updateApp": "更新 {{appName}}",
     "updateVersion": "发现新版本{{version}}，是否立即更新？",
     "updateContent": "更新内容：",
     "isCancelUpdate": "确认要取消更新吗？",

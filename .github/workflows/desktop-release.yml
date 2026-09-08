@@ -1,0 +1,54 @@
+name: Build desktop releases
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+          - os: macos-14
+            platform: mac
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      VITE_UPDATE_API_URL: ${{ vars.VITE_UPDATE_API_URL }}
+      VITE_UPDATE_ORIGINS: ${{ vars.VITE_UPDATE_ORIGINS }}
+      DESKTOP_UPDATE_BASE_URL: ${{ vars.DESKTOP_UPDATE_BASE_URL }}
+      VITE_CHAT_URL: ${{ vars.VITE_CHAT_URL }}
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+      CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:electron
+      - run: pnpm test
+      - run: node --test scripts/verifyDesktopRelease.test.cjs
+      - run: node scripts/buildDesktopRelease.cjs ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            release/ABD-IM/*/*.exe
+            release/ABD-IM/*/*.dmg
+            release/ABD-IM/*/*.zip
+            release/ABD-IM/*/*.blockmap
+            release/ABD-IM/*/latest*.yml

@@ -10,10 +10,10 @@
     output: "release/ABD-IM/${version}",
   },
   afterSign: "./scripts/ensureMacCodeSigning.cjs",
-  files: ["dist", "dist-electron"],
+  files: ["dist", "dist-electron", "!dist-electron/**/*.test.js"],
   mac: {
     artifactName: "${productName}_${version}_${arch}.${ext}",
-    target: ["dmg"],
+    target: ["dmg", "zip"],
     icon: "./dist/icons/icon.png",
   },
   win: {
@@ -22,7 +22,7 @@
         target: "nsis",
       },
     ],
-    artifactName: "${productName}_${version}.${ext}",
+    artifactName: "${productName}_${version}_${arch}.${ext}",
     icon: "./dist/icons/icon.png",
   },
   linux: {

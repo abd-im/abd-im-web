@@ -1,0 +1,177 @@
+.app-update-entry {
+  position: fixed;
+  left: 14px;
+  bottom: 16px;
+  z-index: 1001;
+}
+.app-update-trigger {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: pointer;
+}
+.app-update-trigger:hover {
+  color: var(--foreground);
+  background: var(--surface-hover);
+}
+.app-update-trigger:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.app-update-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--trust);
+}
+.app-update-popover .ant-popover-inner {
+  padding: 0;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-raised);
+  border-radius: 8px;
+}
+.app-update-details {
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  color: var(--foreground);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.app-update-heading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+.app-update-heading svg {
+  flex-shrink: 0;
+}
+.app-update-heading strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.app-update-version {
+  margin: 8px 0 16px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.app-update-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.app-update-progress-label span:last-child {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.app-update-progress {
+  height: 3px;
+  overflow: hidden;
+  background: var(--surface-border);
+}
+.app-update-progress > div {
+  height: 100%;
+  background: var(--foreground);
+  transition: width 150ms linear;
+}
+.app-update-progress .indeterminate {
+  width: 35% !important;
+  animation: update-progress 1.2s linear infinite;
+}
+.app-update-notes {
+  margin: 14px 0;
+}
+.app-update-notes summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+.app-update-notes > div {
+  max-height: 180px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-top: 8px;
+}
+.app-update-hint,
+.app-update-error {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 12px 0;
+}
+.app-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.app-update-actions .ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  height: auto;
+  border-radius: 6px;
+  white-space: normal;
+}
+.app-update-actions .ant-btn-text {
+  color: var(--muted-foreground);
+}
+.app-update-download {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+}
+.app-update-modal .ant-modal-content {
+  padding: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+}
+.app-update-modal .app-update-details {
+  width: 100%;
+}
+.app-update-modal .ant-modal-header {
+  margin: 0;
+  height: 0;
+  padding: 0;
+}
+.app-update-about {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@keyframes update-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-update-progress > div {
+    transition: none;
+    animation: none !important;
+  }
+}

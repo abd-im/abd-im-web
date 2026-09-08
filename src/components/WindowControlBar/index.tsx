@@ -6,7 +6,8 @@ import win_max from "@/assets/images/topSearchBar/win_max.png";
 import win_min from "@/assets/images/topSearchBar/win_min.png";
 
 const WindowControlBar = () => {
-  useKeyPress("esc", () => {
+  useKeyPress("esc", (event) => {
+    if (event.defaultPrevented || document.querySelector('[role="dialog"], .app-update-popover:not(.ant-popover-hidden)')) return;
     window.electronAPI?.ipcInvoke("minimizeWindow");
   });
 

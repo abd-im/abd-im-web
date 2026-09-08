@@ -8,6 +8,7 @@ import { forwardRef, ForwardRefRenderFunction, memo, useEffect, useState } from 
 import { useCopyToClipboard } from "react-use";
 
 import { APP_NAME, APP_VERSION, SDK_VERSION } from "@/config";
+import { UpdateAboutRow } from "@/components/AppUpdateBar";
 import { feedbackToast } from "@/utils/common";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
@@ -151,6 +152,7 @@ export const AboutContent = ({ closeOverlay }: { closeOverlay?: () => void }) =>
         </div>
 
         <Divider className="border-1 m-0 border-[var(--gap-text)]" />
+        <UpdateAboutRow />
 
         <a
           href="https://github.com/abd-im/abd-im-web"

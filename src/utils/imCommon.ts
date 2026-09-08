@@ -12,6 +12,7 @@ import { useContactStore } from "@/store/contact";
 import { getUserDisplayName } from "@/hooks/useUserDisplayName";
 
 import { generateAvatar, secondsToTime } from "./common";
+import { beginDesktopTask } from "./desktopTasks";
 import {
   AtTextElem,
   ConversationItem,
@@ -476,6 +477,7 @@ export const getConversationContent = (
 };
 
 export const uploadFile = async (file: FileWithPath, path?: string) => {
+  const finishTask = beginDesktopTask();
   const params: UploadFileParams = {
     name: file.name,
     contentType: file.type,
@@ -487,7 +489,8 @@ export const uploadFile = async (file: FileWithPath, path?: string) => {
   } else {
     params.file = file;
   }
-  return IMSDK.uploadFile(params);
+  try { return await IMSDK.uploadFile(params); }
+  finally { finishTask(); }
 };
 
 export const getConversationIDByMsg = (message: MessageItem) => {

@@ -10,6 +10,7 @@ import { useCallback } from "react";
 import { GroupSessionTypes } from "@/constants/im";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
+import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
 import { pushNewMessage, updateOneMessage } from "../useHistoryMessageList";
 import { clearMessageRetry } from "./messageRetry";
@@ -64,6 +65,8 @@ export function useSendMessage() {
     async ({ message, conversation }: SendMessageParams) => {
       const targetConversation = conversation ?? currentConversation;
       if (!targetConversation) return false;
+      if (!canStartDesktopTask()) return false;
+      const finishTask = beginDesktopTask();
       const shouldRenderInCurrentChat =
         targetConversation.conversationID === currentConversation?.conversationID;
 
@@ -108,6 +111,8 @@ export function useSendMessage() {
           updateOneMessage({ ...message });
         }
         return false;
+      } finally {
+        finishTask();
       }
     },
     [currentConversation, selfInfo],

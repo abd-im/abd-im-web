@@ -18,8 +18,10 @@ import CKEditor, { CKEditorRef } from "@/components/CKEditor";
 import { getCleanText } from "@/components/CKEditor/utils";
 import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
-import { useConversationStore } from "@/store";
+import { useConversationStore, useUserStore } from "@/store";
+import { useDesktopDraft } from "@/hooks/useDesktopDraft";
 import { feedbackToast } from "@/utils/common";
+import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
 import { getMessagePreview } from "../messagePreview";
 import { createQuoteSnapshot } from "../partialQuote";
@@ -29,14 +31,17 @@ import { useFileMessage } from "./SendActionBar/useFileMessage";
 import { useSendMessage } from "./useSendMessage";
 
 const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
-  const [html, setHtml] = useState("");
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
-  const latestHtml = useLatest(html);
   const ckEditorRef = useRef<CKEditorRef>(null);
   const fileDragDepth = useRef(0);
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
+  const selfID = useUserStore((state) => state.selfInfo.userID);
+  const [html, setHtml] = useDesktopDraft(
+    `desktop-draft:${selfID}:chat:${currentConversation?.conversationID || ""}`,
+  );
+  const latestHtml = useLatest(html);
   const quoteMessage = useConversationStore((state) => state.quoteMessage);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
 
@@ -78,13 +83,19 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   };
 
   const sendFiles = async (files: readonly File[], requestedType?: AttachmentType) => {
-    for (const file of files) {
-      try {
-        const message = await getAttachmentMessage(file, requestedType);
-        await sendMessage({ message });
-      } catch (error) {
-        feedbackToast({ error });
+    if (!files.length || !canStartDesktopTask()) return;
+    const finishTask = beginDesktopTask();
+    try {
+      for (const file of files) {
+        try {
+          const message = await getAttachmentMessage(file, requestedType);
+          await sendMessage({ message });
+        } catch (error) {
+          feedbackToast({ error });
+        }
       }
+    } finally {
+      finishTask();
     }
   };
 
@@ -132,8 +143,8 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
 
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
-    if (!cleanText) return;
-
+    if (!cleanText || !canStartDesktopTask()) return;
+    const finishTask = beginDesktopTask();
     try {
       const message = quoteMessage
         ? (
@@ -154,9 +165,11 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
         : (await IMSDK.createTextMessage(cleanText)).data;
       setHtml("");
       updateQuoteMessage();
-      void sendMessage({ message });
+      await sendMessage({ message });
     } catch (e) {
       console.error(e);
+    } finally {
+      finishTask();
     }
   };
 

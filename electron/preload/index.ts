@@ -78,6 +78,17 @@ const saveFileToDisk = async ({ file }: { file: File }): Promise<string> => {
 };
 
 const Api: IElectronAPI = {
+  updates: {
+    getState: () => ipcInvoke("desktop-update:getState"),
+    check: () => ipcInvoke("desktop-update:check"),
+    install: () => ipcInvoke("desktop-update:install"),
+    quit: () => ipcInvoke("desktop-update:quit"),
+    openDownload: () => ipcInvoke("desktop-update:openDownload"),
+    subscribe: callback => subscribe("desktop-update:state", callback),
+    onPrepare: callback => subscribe("desktop-update:prepare", callback),
+    prepared: (id, result) => ipcInvoke("desktop-update:prepared", id, result),
+    onResume: callback => subscribe("desktop-update:resume", callback),
+  },
   getDataPath,
   getPlatform,
   subscribe,

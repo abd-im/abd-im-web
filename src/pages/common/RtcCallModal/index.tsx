@@ -19,6 +19,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 import { getRtcDeviceFailure } from "@/utils/rtcMedia";
+import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
 import { callReducer, initialCallState } from "./callState";
 import { AuthData, InviteData } from "./data";
@@ -45,6 +46,12 @@ const RtcCallModal: ForwardRefRenderFunction<
   visibleRoomIDRef.current = visibleRoomID;
 
   const isRecv = selfID !== invitation?.inviterUserID;
+
+  useEffect(() => {
+    if (!isOverlayOpen) return;
+    if (!canStartDesktopTask()) { closeOverlay(); return; }
+    return beginDesktopTask();
+  }, [isOverlayOpen, closeOverlay]);
 
   const clearTimer = useCallback(() => clearTimeout(timer.current), []);
 

@@ -47,6 +47,8 @@ import { emit } from "@/utils/events";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { useSendMessage } from "../chat/queryChat/ChatFooter/useSendMessage";
+import { useDesktopDraft } from "@/hooks/useDesktopDraft";
+import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 import { getLatestUnreadMessageSeq } from "../chat/queryChat/historyMessageState";
 import {
   captureQuoteSelection,
@@ -102,7 +104,6 @@ export default function AgentWorkspaceContent({
   const { t } = useTranslation();
   const resolveUserDisplayName = useUserDisplayNameResolver();
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [activeRunMessageID, setActiveRunMessageID] = useState<string>();
   const [quoteSelection, setQuoteSelection] = useState<
@@ -130,6 +131,11 @@ export default function AgentWorkspaceContent({
   const quoteMessage = useConversationStore((state) => state.quoteMessage);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
+  const [prompt, setPrompt] = useDesktopDraft(
+    `desktop-draft:${selfUserID}:agent:${
+      draft?.agentUserID || currentConversation?.conversationID || ""
+    }`,
+  );
   const { sendMessage } = useSendMessage();
   const isDraft = Boolean(draft?.agentUserID);
   const {
@@ -301,8 +307,9 @@ export default function AgentWorkspaceContent({
 
   const sendPrompt = async () => {
     const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt || sending || !conversationReady) return;
-
+    if (!trimmedPrompt || sending || !conversationReady || !canStartDesktopTask())
+      return;
+    const finishTask = beginDesktopTask();
     setSending(true);
     try {
       let conversation: ConversationItem | undefined = currentConversation;
@@ -350,6 +357,7 @@ export default function AgentWorkspaceContent({
       feedbackToast({ error });
     } finally {
       setSending(false);
+      finishTask();
     }
   };
 

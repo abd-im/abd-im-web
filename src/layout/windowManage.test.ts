@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call -- Electron main uses tsconfig.node.json. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+const runtime = global as typeof global & { forceQuit: boolean };
 
 const electronMocks = vi.hoisted(() => {
   const windows: Array<{
@@ -57,16 +58,25 @@ const electronMocks = vi.hoisted(() => {
   });
   Object.assign(Notification, { isSupported: vi.fn(() => true) });
 
-  return { BrowserWindow, Notification, notifications, windows };
+  return {
+    BrowserWindow,
+    Notification,
+    notifications,
+    windows,
+    quit: vi.fn(),
+    getIsForceQuit: vi.fn(() => false),
+  };
 });
 
 vi.mock("electron", () => ({
-  app: { getName: () => "ABD IM" },
+  app: { getName: () => "ABD IM", quit: electronMocks.quit },
   BrowserWindow: electronMocks.BrowserWindow,
   Notification: electronMocks.Notification,
   shell: { openExternal: vi.fn() },
 }));
-vi.mock("../../electron/main/appManage", () => ({ getIsForceQuit: () => false }));
+vi.mock("../../electron/main/appManage", () => ({
+  getIsForceQuit: electronMocks.getIsForceQuit,
+}));
 vi.mock("../../electron/main/shortcutManage", () => ({
   registerShortcuts: vi.fn(),
   unregisterShortcuts: vi.fn(),
@@ -79,6 +89,7 @@ vi.mock("../../electron/main", () => ({
 import {
   createMainWindow,
   showMessageNotification,
+  getMainWindow,
 } from "../../electron/main/windowManage";
 
 describe("message notifications", () => {
@@ -88,6 +99,9 @@ describe("message notifications", () => {
     electronMocks.Notification.mockClear();
     electronMocks.notifications.length = 0;
     electronMocks.windows.length = 0;
+    electronMocks.quit.mockClear();
+    electronMocks.getIsForceQuit.mockReturnValue(false);
+    runtime.forceQuit = false;
     global.pathConfig = {
       publicPath: "/public",
       logsPath: "/logs",
@@ -98,6 +112,20 @@ describe("message notifications", () => {
       preload: "/public/preload.js",
     };
     createMainWindow();
+  });
+
+  it("keeps the window alive until quit preparation has completed", () => {
+    electronMocks.getIsForceQuit.mockReturnValue(true);
+    const preventDefault = vi.fn();
+    const close = electronMocks.windows[1].handlers.get("close")!;
+    close({ preventDefault });
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(electronMocks.quit).toHaveBeenCalledOnce();
+    expect(getMainWindow()).not.toBeNull();
+    runtime.forceQuit = true;
+    close({ preventDefault });
+    expect(getMainWindow()).toBeNull();
+    expect(preventDefault).toHaveBeenCalledOnce();
   });
 
   it("coalesces bursts and replaces notifications by conversation", () => {

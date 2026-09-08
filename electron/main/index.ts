@@ -8,6 +8,7 @@ import createAppMenu from "./menuManage";
 import { isLinux } from "../utils";
 import { getLogger } from "../utils/log";
 import { initI18n } from "../i18n";
+import { initDesktopUpdates } from "./updateManage";
 
 export const logger = getLogger(join(app.getPath("userData"), `/OpenIMData/logs`));
 
@@ -26,5 +27,6 @@ setSingleInstance();
 setAppListener(init);
 
 app.whenReady().then(() => {
+  initDesktopUpdates();
   isLinux ? setTimeout(init, 300) : init();
 });

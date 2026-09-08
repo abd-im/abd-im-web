@@ -1,4 +1,36 @@
 {
+  "desktopUpdate": {
+    "required": "Update required to continue",
+    "check": "Check for updates",
+    "restart": "Restart to update",
+    "later": "Later",
+    "quit": "Quit",
+    "retry": "Retry download",
+    "progress": "Update download progress",
+    "notes": "What's new",
+    "onQuit": "The update will also install when you quit the app.",
+    "readyVersion": "Restart to update to {{version}}",
+    "manualDownload": "Download installer",
+    "phase": {
+      "idle": "Updates",
+      "checking": "Checking for updates",
+      "upToDate": "You're up to date",
+      "downloading": "Downloading update",
+      "verifying": "Preparing update",
+      "downloaded": "Update ready",
+      "installing": "Installing update",
+      "error": "Update unavailable",
+      "disabled": "Automatic updates unavailable"
+    },
+    "error": {
+      "check": "Couldn't check for updates. Please try again.",
+      "download": "The update couldn't be downloaded or verified. Please retry.",
+      "validation": "This update couldn't be verified. Please check again later.",
+      "install": "Installation couldn't start. Please retry or download the installer.",
+      "busy": "A call or transfer is in progress. Finish it before updating or quitting.",
+      "prepare": "Your work couldn't be saved. Please try again before quitting."
+    }
+  },
   "me": "I",
   "you": "You",
   "yes": "Yes",
@@ -153,6 +185,7 @@
     "syncing": "Syncing...",
     "syncFailed": "Sync failed!",
     "appUpdate": "App update",
+    "updateApp": "Update {{appName}}",
     "updateVersion": "New version {{version}} found. Update now?",
     "updateContent": "Update content:",
     "isCancelUpdate": "Are you sure you want to cancel the update?",

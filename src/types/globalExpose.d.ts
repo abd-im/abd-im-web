@@ -1,8 +1,10 @@
 import { Platform } from "@abd-im/wasm-client-sdk";
+import type { DesktopUpdateAPI } from "./desktopUpdate";
 
 export type DataPath = "public" | "sdkResources" | "logsPath";
 
 export interface IElectronAPI {
+  updates?: DesktopUpdateAPI;
   getDataPath: (key: DataPath) => string;
   getPlatform: () => Platform;
   subscribe: (channel: string, callback: (...args: any[]) => void) => () => void;

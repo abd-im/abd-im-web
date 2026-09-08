@@ -10,6 +10,7 @@ import { logger } from ".";
 
 const url = process.env.VITE_DEV_SERVER_URL;
 let mainWindow: BrowserWindow | null = null;
+export const getMainWindow = () => mainWindow;
 let splashWindow: BrowserWindow | null = null;
 
 type MessageNotificationParams = {
@@ -107,7 +108,13 @@ export function createMainWindow() {
     const window = mainWindow;
     if (!window) return;
 
-    if (getIsForceQuit() || !window.isVisible()) {
+    if (!global.forceQuit && (getIsForceQuit() || !window.isVisible())) {
+      // Keep the renderer alive for the update manager's before-quit preparation.
+      e.preventDefault();
+      app.quit();
+      return;
+    }
+    if (global.forceQuit) {
       mainWindow = null;
       destroyTray();
     } else {
