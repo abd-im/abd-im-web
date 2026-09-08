@@ -3,6 +3,7 @@ import { v4 as uuidV4 } from "uuid";
 
 import { IMSDK } from "@/layout/MainContentWrap";
 
+import { AttachmentType, getAttachmentType } from "../attachmentType";
 import { registerMessageRetry } from "../messageRetry";
 
 export interface FileWithPath extends File {
@@ -97,6 +98,16 @@ export function useFileMessage() {
     }
     registerMessageRetry(message.clientMsgID, () => getFileMessage(file));
     return message;
+  };
+
+  const getAttachmentMessage = (
+    file: FileWithPath,
+    requestedType?: AttachmentType,
+  ): Promise<MessageItem> => {
+    const attachmentType = requestedType ?? getAttachmentType(file);
+    if (attachmentType === "image") return getImageMessage(file);
+    if (attachmentType === "video") return getVideoMessage(file);
+    return getFileMessage(file);
   };
 
   const recreateFileBackedMessage = async (message: MessageItem) => {
@@ -218,6 +229,7 @@ export function useFileMessage() {
     getImageMessage,
     getVideoMessage,
     getFileMessage,
+    getAttachmentMessage,
     recreateFileBackedMessage,
   };
 }

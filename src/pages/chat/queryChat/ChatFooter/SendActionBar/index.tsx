@@ -1,4 +1,3 @@
-import { MessageItem } from "@abd-im/wasm-client-sdk";
 import { Popover, PopoverProps, Upload } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
 import clsx from "clsx";
@@ -18,6 +17,7 @@ import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import { feedbackToast } from "@/utils/common";
 import emitter, { emit } from "@/utils/events";
 
+import { AttachmentType } from "../attachmentType";
 import { SendMessageParams } from "../useSendMessage";
 import EmojiPicker from "./EmojiPicker";
 
@@ -74,15 +74,11 @@ i18n.on("languageChanged", () => {
 
 const SendActionBar = ({
   sendMessage,
-  getImageMessage,
-  getVideoMessage,
-  getFileMessage,
+  sendFiles,
   onSelectEmoji,
 }: {
   sendMessage: (params: SendMessageParams) => Promise<unknown>;
-  getImageMessage: (file: File) => Promise<MessageItem>;
-  getVideoMessage: (file: File) => Promise<MessageItem>;
-  getFileMessage: (file: File) => Promise<MessageItem>;
+  sendFiles: (files: readonly File[], requestedType?: AttachmentType) => Promise<void>;
   onSelectEmoji: (emoji: string) => void;
 }) => {
   const [visibleState, setVisibleState] = useState(false);
@@ -114,23 +110,6 @@ const SendActionBar = ({
   const closePop = () => {
     setVisibleState(false);
     setActiveAction("");
-  };
-
-  const fileHandle = async (options: UploadRequestOption, key: string) => {
-    try {
-      let message: MessageItem;
-      const file = options.file as File;
-      if (key === "image") {
-        message = await getImageMessage(file);
-      } else if (key === "video") {
-        message = await getVideoMessage(file);
-      } else {
-        message = await getFileMessage(file);
-      }
-      void sendMessage({ message });
-    } catch (error) {
-      feedbackToast({ error });
-    }
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -171,7 +150,9 @@ const SendActionBar = ({
             popProps={action.key === "card" ? undefined : popProps}
             key={action.key}
             accept={action.accept}
-            fileHandle={(options) => void fileHandle(options, action.key)}
+            fileHandle={(options) =>
+              void sendFiles([options.file as File], action.key as AttachmentType)
+            }
           >
             <button
               type="button"
