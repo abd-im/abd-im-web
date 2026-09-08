@@ -11,6 +11,7 @@ import { setAreaCode, setEmail, setIMProfile, setPhoneNumber } from "@/utils/sto
 
 import { areaCode } from "./areaCode";
 import type { FormType } from "./index";
+import { runWithRequestLock } from "./requestLock";
 
 type RegisterFormProps = {
   loginMethod: "phone" | "email";
@@ -31,7 +32,7 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
   const { message } = App.useApp();
   const [form] = Form.useForm<FormFields>();
   const navigate = useNavigate();
-  const { mutate: sendSms } = useSendSms();
+  const { mutateAsync: sendSms, isLoading: isSendingSms } = useSendSms();
   const { mutate: verifySmsCode } = useVerifyCode();
   const { mutate: register } = useRegister();
 
@@ -40,6 +41,7 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<InputRef[]>([]);
+  const isSendingSmsRef = useRef(false);
   const handleInputChange = (
     index: number,
     event: React.ChangeEvent<HTMLInputElement>,
@@ -97,25 +99,33 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
     }
   }, [countdown]);
 
+  const requestVerificationCode = async (params: API.Login.SendSmsParams) => {
+    try {
+      const didSend = await runWithRequestLock(isSendingSmsRef, () => sendSms(params));
+      if (!didSend) return false;
+      setCountdown(60);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const onFinish = (fields: FormFields) => {
     if (registerForm === 0) {
       const pattern = /^1\d{10}$/;
       if (fields.phoneNumber && !pattern.test(fields.phoneNumber)) {
-        return message.error(t("toast.inputCorrectPhoneNumber"));
+        message.error(t("toast.inputCorrectPhoneNumber"));
+        return;
       }
-      sendSms(
-        {
-          usedFor: 1,
-          ...fields,
-        },
-        {
-          onSuccess() {
-            setCountdown(60);
-            setRegisterForm(1);
-            setTimeout(() => inputRefs.current[0].focus());
-          },
-        },
-      );
+      void requestVerificationCode({
+        usedFor: 1,
+        ...fields,
+      }).then((isSent) => {
+        if (!isSent) return;
+        setRegisterForm(1);
+        setTimeout(() => inputRefs.current[0].focus());
+      });
+      return;
     }
     const verifyCode = code.join("");
 
@@ -169,19 +179,12 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
   };
 
   const sendSmsHandle = () => {
-    sendSms(
-      {
-        email: form.getFieldValue("email") as string,
-        phoneNumber: form.getFieldValue("phoneNumber") as string,
-        areaCode: form.getFieldValue("areaCode") as string,
-        usedFor: 1,
-      },
-      {
-        onSuccess() {
-          setCountdown(60);
-        },
-      },
-    );
+    void requestVerificationCode({
+      email: form.getFieldValue("email") as string,
+      phoneNumber: form.getFieldValue("phoneNumber") as string,
+      areaCode: form.getFieldValue("areaCode") as string,
+      usedFor: 1,
+    });
   };
 
   const back = () => {
@@ -212,7 +215,7 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
       </div>
       <div className="mt-4 tracking-wider text-gray-400" hidden={registerForm !== 1}>
         <span>{t("placeholder.pleaseEnterSendTo")}</span>
-        <span className="text-foreground font-semibold mx-1">{receiver}</span>
+        <span className="mx-1 font-semibold text-foreground">{receiver}</span>
         <span>{t("placeholder.verifyValidity")}</span>
       </div>
       <Form
@@ -264,12 +267,15 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
           <div className="mt-4 text-gray-400">
             {countdown > 0 ? (
               <>
-                <span className="text-foreground font-semibold">{countdown}s </span>
+                <span className="font-semibold text-foreground">{countdown}s </span>
                 <span>{t("placeholder.regain") + t("placeholder.verifyCode")}</span>
               </>
             ) : (
               <>
-                <span onClick={sendSmsHandle} className="cursor-pointer text-foreground font-semibold hover:underline">
+                <span
+                  onClick={sendSmsHandle}
+                  className="cursor-pointer font-semibold text-foreground hover:underline"
+                >
                   {t("placeholder.regain")}
                 </span>
                 <span>{t("placeholder.verifyCode")}</span>
@@ -337,7 +343,13 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
         )}
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" block>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={registerForm === 0 && isSendingSms}
+            disabled={registerForm === 0 && isSendingSms}
+            block
+          >
             {registerForm === 2 ? t("confirm") : t("placeholder.nextStep")}
           </Button>
         </Form.Item>
