@@ -1,9 +1,11 @@
 import { MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
-import { CloseOutlined, RollbackOutlined } from "@ant-design/icons";
+import { CloseOutlined, RollbackOutlined, UploadOutlined } from "@ant-design/icons";
 import { useLatest } from "ahooks";
 import { Button } from "antd";
 import { t } from "i18next";
 import {
+  ClipboardEvent,
+  DragEvent,
   forwardRef,
   ForwardRefRenderFunction,
   memo,
@@ -17,24 +19,28 @@ import { getCleanText } from "@/components/CKEditor/utils";
 import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
+import { feedbackToast } from "@/utils/common";
 
 import { getMessagePreview } from "../messagePreview";
 import { createQuoteSnapshot } from "../partialQuote";
+import { AttachmentType } from "./attachmentType";
 import SendActionBar from "./SendActionBar";
 import { useFileMessage } from "./SendActionBar/useFileMessage";
 import { useSendMessage } from "./useSendMessage";
 
 const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   const [html, setHtml] = useState("");
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const latestHtml = useLatest(html);
   const ckEditorRef = useRef<CKEditorRef>(null);
+  const fileDragDepth = useRef(0);
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
   const quoteMessage = useConversationStore((state) => state.quoteMessage);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
 
-  const { getImageMessage, getVideoMessage, getFileMessage } = useFileMessage();
+  const { getAttachmentMessage } = useFileMessage();
   const { sendMessage } = useSendMessage();
   const quoteAuthorSnapshot =
     quoteMessage?.message.senderNickname || quoteMessage?.message.sendID || "";
@@ -71,6 +77,59 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
     ckEditorRef.current?.insertEmoji(emoji);
   };
 
+  const sendFiles = async (files: readonly File[], requestedType?: AttachmentType) => {
+    for (const file of files) {
+      try {
+        const message = await getAttachmentMessage(file, requestedType);
+        await sendMessage({ message });
+      } catch (error) {
+        feedbackToast({ error });
+      }
+    }
+  };
+
+  const hasDraggedFiles = (event: DragEvent<HTMLElement>) =>
+    Array.from(event.dataTransfer.types).includes("Files");
+
+  const handlePaste = (event: ClipboardEvent<HTMLElement>) => {
+    const files = Array.from(event.clipboardData.files);
+    if (!files.length) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    void sendFiles(files);
+  };
+
+  const handleDragEnter = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    fileDragDepth.current += 1;
+    setIsDraggingFiles(true);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
+    if (!fileDragDepth.current) setIsDraggingFiles(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    fileDragDepth.current = 0;
+    setIsDraggingFiles(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length) void sendFiles(files);
+  };
+
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
     if (!cleanText) return;
@@ -102,7 +161,23 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   };
 
   return (
-    <footer className="relative h-full bg-surface px-3 pb-3 pt-2 text-foreground">
+    <footer
+      className="relative h-full bg-surface px-3 pb-3 pt-2 text-foreground"
+      onPasteCapture={handlePaste}
+      onDragEnterCapture={handleDragEnter}
+      onDragOverCapture={handleDragOver}
+      onDragLeaveCapture={handleDragLeave}
+      onDropCapture={handleDrop}
+    >
+      {isDraggingFiles && (
+        <div
+          className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-brand bg-surface-raised"
+          data-testid="file-drop-target"
+          aria-hidden
+        >
+          <UploadOutlined className="text-3xl text-brand" />
+        </div>
+      )}
       <div className="flex h-full flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-raised shadow-sm">
         {quoteMessage && (
           <div
@@ -130,9 +205,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
         )}
         <SendActionBar
           sendMessage={sendMessage}
-          getImageMessage={getImageMessage}
-          getVideoMessage={getVideoMessage}
-          getFileMessage={getFileMessage}
+          sendFiles={sendFiles}
           onSelectEmoji={onSelectEmoji}
         />
         <div className="relative flex flex-1 flex-col overflow-hidden">
