@@ -1,15 +1,16 @@
-import { CloseOutlined, RightOutlined } from "@ant-design/icons";
 import { SessionType } from "@abd-im/wasm-client-sdk";
 import {
   ConversationItem,
   FriendUserItem,
   GroupItem,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { CloseOutlined, RightOutlined } from "@ant-design/icons";
 import { Checkbox } from "antd";
 import clsx from "clsx";
 import { FC, memo } from "react";
 
 import OIMAvatar from "@/components/OIMAvatar";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 
 interface ICheckItemProps {
   data: CheckListItem;
@@ -26,7 +27,10 @@ export type CheckListItem = Partial<
 
 const CheckItem: FC<ICheckItemProps> = (props) => {
   const { data, isChecked, showCheck, disabled, itemClick, cancelClick } = props;
-  const showName = data.remark || data.nickname || data.groupName || data.showName;
+  const resolveUserDisplayName = useUserDisplayNameResolver();
+  const showName = data.userID
+    ? resolveUserDisplayName(data, data.groupName || data.showName)
+    : data.groupName || data.showName;
   const isDisabled = disabled ?? data.disabled;
   return (
     <div

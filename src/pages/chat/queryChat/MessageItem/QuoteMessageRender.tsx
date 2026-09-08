@@ -1,6 +1,7 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { emit } from "@/utils/events";
 
 import { getMessagePreview } from "../messagePreview";
@@ -13,10 +14,17 @@ const QuoteMessageRender: FC<IMessageItemProps> = ({ message }) => {
   const quoteElem = message.quoteElem as PartialQuoteElem | undefined;
   const quoteMessage = quoteElem?.quoteMessage;
   const text = quoteElem?.text || "";
-  const quoteAuthor = quoteMessage?.senderNickname || quoteMessage?.sendID || "";
+  const snapshotAuthor = quoteMessage?.senderNickname || quoteMessage?.sendID || "";
+  const quoteAuthor = useUserDisplayName(
+    {
+      userID: quoteMessage?.sendID,
+      nickname: snapshotAuthor,
+    },
+    snapshotAuthor,
+  );
   const mention =
-    message.groupID && quoteAuthor && text.startsWith(`@${quoteAuthor}`)
-      ? `@${quoteAuthor}`
+    message.groupID && snapshotAuthor && text.startsWith(`@${snapshotAuthor}`)
+      ? `@${snapshotAuthor}`
       : "";
 
   return (

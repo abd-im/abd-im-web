@@ -8,6 +8,7 @@ import { Virtuoso } from "react-virtuoso";
 import OIMAvatar from "@/components/OIMAvatar";
 import { useCurrentMemberRole } from "@/hooks/useCurrentMemberRole";
 import useGroupMembers from "@/hooks/useGroupMembers";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { useUserStore } from "@/store";
 
 import styles from "./group-setting.module.scss";
@@ -63,15 +64,16 @@ interface IMemberItemProps {
 
 const MemberItem = memo(({ member }: IMemberItemProps) => {
   const isOwner = member.roleLevel === GroupMemberRole.Owner;
+  const displayName = useUserDisplayName(member);
   return (
     <div className={styles["list-member-item"]}>
       <div
         className="flex items-center overflow-hidden"
         onClick={() => window.userClick(member.userID, member.groupID)}
       >
-        <OIMAvatar src={member.faceURL} text={member.nickname} />
+        <OIMAvatar src={member.faceURL} text={displayName} />
         <div className="ml-3 flex items-center">
-          <div className="max-w-[120px] truncate">{member.nickname}</div>
+          <div className="max-w-[120px] truncate">{displayName}</div>
           {isOwner && (
             <span className="ml-2 rounded border border-[#FF9831] px-1 text-xs text-[#FF9831]">
               {t("placeholder.groupOwner")}

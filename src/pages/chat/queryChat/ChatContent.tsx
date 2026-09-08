@@ -57,10 +57,6 @@ const ChatContent = () => {
   );
   const conversationList = useConversationStore((state) => state.conversationList);
   const friendList = useContactStore((state) => state.friendList);
-  const friendProfiles = useMemo(
-    () => new Map(friendList.map((friend) => [friend.userID, friend])),
-    [friendList],
-  );
   const [atBottom, setAtBottom] = useState(true);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMessageIDs, setSelectedMessageIDs] = useState<Set<string>>(
@@ -506,8 +502,7 @@ const ChatContent = () => {
               );
             }
             const canReact = reactableMessageIDs.has(message.clientMsgID);
-            const avatarText =
-              friendProfiles.get(message.sendID)?.nickname || message.senderNickname;
+            const avatarText = message.senderNickname;
             return (
               <MessageItemComponent
                 key={message.clientMsgID}

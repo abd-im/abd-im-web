@@ -5,6 +5,7 @@ import { FC, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import OIMAvatar from "@/components/OIMAvatar";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useContactStore, useConversationStore } from "@/store";
 
 export type ForwardTarget = {
@@ -38,6 +39,7 @@ const ForwardTargetModal: FC<ForwardTargetModalProps> = ({
   const conversationList = useConversationStore((state) => state.conversationList);
   const friendList = useContactStore((state) => state.friendList);
   const groupList = useContactStore((state) => state.groupList);
+  const resolveUserDisplayName = useUserDisplayNameResolver();
   const [selectedIDs, setSelectedIDs] = useState<string[]>([]);
   const [query, setQuery] = useState("");
 
@@ -68,7 +70,12 @@ const ForwardTargetModal: FC<ForwardTargetModalProps> = ({
         id: targetID(conversation.conversationType, sourceID),
         sourceID,
         sessionType: conversation.conversationType,
-        name: conversation.showName,
+        name: isGroup
+          ? conversation.showName
+          : resolveUserDisplayName({
+              userID: conversation.userID,
+              nickname: conversation.showName,
+            }),
         faceURL: conversation.faceURL,
         isGroup,
       });
@@ -82,7 +89,7 @@ const ForwardTargetModal: FC<ForwardTargetModalProps> = ({
         id,
         sourceID: friend.userID,
         sessionType: SessionType.Single,
-        name: friend.remark || friend.nickname,
+        name: resolveUserDisplayName(friend),
         faceURL: friend.faceURL,
         isGroup: false,
       });
@@ -103,7 +110,7 @@ const ForwardTargetModal: FC<ForwardTargetModalProps> = ({
     });
 
     return { recentTargets, friendTargets, groupTargets };
-  }, [conversationList, friendList, groupList]);
+  }, [conversationList, friendList, groupList, resolveUserDisplayName]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const filterTargets = (targets: ForwardTarget[]) =>

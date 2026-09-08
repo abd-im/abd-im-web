@@ -1,3 +1,5 @@
+import { createUserDisplayNameResolver } from "@/utils/userDisplayName";
+
 type MessageWithID = {
   clientMsgID: string;
 };
@@ -72,17 +74,16 @@ export const applyFriendRemarks = <T extends MessageWithSender>(
   messages: T[],
   friends: FriendRemarkProfile[],
 ) => {
-  const remarks = new Map(
-    friends
-      .filter((friend) => friend.remark)
-      .map((friend) => [friend.userID, friend.remark]),
-  );
+  const resolveUserDisplayName = createUserDisplayNameResolver(friends);
   let changed = false;
   const messageList = messages.map((message) => {
-    const remark = remarks.get(message.sendID);
-    if (!remark || message.senderNickname === remark) return message;
+    const displayName = resolveUserDisplayName({
+      userID: message.sendID,
+      nickname: message.senderNickname,
+    });
+    if (message.senderNickname === displayName) return message;
     changed = true;
-    return { ...message, senderNickname: remark };
+    return { ...message, senderNickname: displayName };
   });
 
   return changed ? messageList : messages;

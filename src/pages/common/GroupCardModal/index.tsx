@@ -1,6 +1,6 @@
-import { LeftOutlined } from "@ant-design/icons";
 import { GroupJoinSource, SessionType } from "@abd-im/wasm-client-sdk";
 import { GroupItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { LeftOutlined } from "@ant-design/icons";
 import { useRequest } from "ahooks";
 import { Button, Input } from "antd";
 import dayjs from "dayjs";
@@ -14,6 +14,7 @@ import OIMAvatar from "@/components/OIMAvatar";
 import { useConversationToggle } from "@/hooks/useConversationToggle";
 import useGroupMembers from "@/hooks/useGroupMembers";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { feedbackToast } from "@/utils/common";
 
@@ -31,6 +32,7 @@ const GroupCardModal: ForwardRefRenderFunction<
   const { fetchState, getMemberData, resetState } = useGroupMembers({
     groupID: groupData?.groupID,
   });
+  const resolveUserDisplayName = useUserDisplayNameResolver();
 
   const { toSpecifiedConversation } = useConversationToggle();
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
@@ -153,7 +155,7 @@ const GroupCardModal: ForwardRefRenderFunction<
             </div>
           </div>
         ) : (
-          <div className="bg-surface border border-surface-border rounded-lg p-5.5">
+          <div className="rounded-lg border border-surface-border bg-surface p-5.5">
             <div className="mb-3">{`${t("placeholder.groupMember")}：${
               groupData?.memberCount
             }`}</div>
@@ -162,7 +164,7 @@ const GroupCardModal: ForwardRefRenderFunction<
                 <OIMAvatar
                   className="mr-3"
                   src={item.faceURL}
-                  text={item.nickname}
+                  text={resolveUserDisplayName(item)}
                   key={item.userID}
                 />
               ))}

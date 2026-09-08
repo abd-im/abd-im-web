@@ -7,6 +7,7 @@ import { modal } from "@/AntdGlobalComp";
 import OIMAvatar from "@/components/OIMAvatar";
 import SettingRow from "@/components/SettingRow";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
 import { useContactStore } from "@/store/contact";
@@ -29,6 +30,10 @@ const SingleSetting: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
+  const conversationName = useUserDisplayName({
+    userID: currentConversation?.userID,
+    nickname: currentConversation?.showName,
+  });
   const [popVisible, setPopVisible] = useState(false);
 
   const isBlack = useContactStore((state) => state.blackList).some(
@@ -204,13 +209,8 @@ const SingleSetting: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
           onClick={openUserCard}
         >
           <div className="flex items-center">
-            <OIMAvatar
-              src={currentConversation?.faceURL}
-              text={currentConversation?.showName}
-            />
-            <div className="ml-3 text-base font-medium">
-              {currentConversation?.showName}
-            </div>
+            <OIMAvatar src={currentConversation?.faceURL} text={conversationName} />
+            <div className="ml-3 text-base font-medium">{conversationName}</div>
           </div>
           <RightOutlined className="text-xs text-[var(--sub-text)]" rev={undefined} />
         </div>
@@ -270,15 +270,12 @@ const SingleSetting: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
           </Popover>
           <Divider className="m-0 mx-4 w-auto" />
           <SettingRow title={t("toast.clearChatHistory")} rowClick={tryClearHistory}>
-            <RightOutlined
-              className="text-xs text-[var(--sub-text)]"
-              rev={undefined}
-            />
+            <RightOutlined className="text-xs text-[var(--sub-text)]" rev={undefined} />
           </SettingRow>
         </div>
 
         {/* Delete Friend Button */}
-        <div className="flex w-full justify-center pt-24 pb-6">
+        <div className="flex w-full justify-center pb-6 pt-24">
           {isFriend && (
             <Button
               type="primary"

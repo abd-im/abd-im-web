@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import OIMAvatar from "@/components/OIMAvatar";
 import { CustomType } from "@/constants";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 
 import { CallPhase } from "./callState";
 import { AuthData, InviteData } from "./data";
@@ -75,6 +76,10 @@ export const RtcLayout = ({
   const showRemoteVideo =
     isConnected && isVideoCall && Boolean(remoteTrack) && !isRemoteVideoMuted;
   const callType = isVideoCall ? t("rtcCall.video") : t("rtcCall.audio");
+  const participantName = useUserDisplayName(
+    inviteData?.participant?.userInfo ?? {},
+    callType,
+  );
 
   return (
     <div
@@ -96,7 +101,7 @@ export const RtcLayout = ({
                 "text-white": showRemoteVideo,
               })}
             >
-              {inviteData?.participant?.userInfo.nickname || callType}
+              {participantName}
             </div>
             <div
               className={clsx("mt-0.5 text-xs text-muted-foreground", {
@@ -183,23 +188,26 @@ const SingleProfile = ({
   callType,
   status,
   hasError,
-}: ISingleProfileProps) => (
-  <div className="relative z-10 flex max-w-[320px] flex-col items-center text-center">
-    <div className="rounded-full border border-surface-border bg-surface p-1 shadow-surface">
-      <OIMAvatar size={88} src={userInfo?.faceURL} text={userInfo?.nickname} />
+}: ISingleProfileProps) => {
+  const displayName = useUserDisplayName(userInfo ?? {}, callType);
+  return (
+    <div className="relative z-10 flex max-w-[320px] flex-col items-center text-center">
+      <div className="rounded-full border border-surface-border bg-surface p-1 shadow-surface">
+        <OIMAvatar size={88} src={userInfo?.faceURL} text={displayName} />
+      </div>
+      <div className="mt-5 max-w-full truncate text-base font-semibold text-foreground">
+        {displayName}
+      </div>
+      <div
+        className={clsx("mt-1.5 text-sm text-muted-foreground", {
+          "text-red-600 dark:text-red-400": hasError,
+        })}
+        role={hasError ? "alert" : undefined}
+      >
+        {status}
+      </div>
     </div>
-    <div className="mt-5 max-w-full truncate text-base font-semibold text-foreground">
-      {userInfo?.nickname || callType}
-    </div>
-    <div
-      className={clsx("mt-1.5 text-sm text-muted-foreground", {
-        "text-red-600 dark:text-red-400": hasError,
-      })}
-      role={hasError ? "alert" : undefined}
-    >
-      {status}
-    </div>
-  </div>
-);
+  );
+};
 
 const isLocal = (participant: Participant) => participant instanceof LocalParticipant;

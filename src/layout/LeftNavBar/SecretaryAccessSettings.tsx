@@ -10,12 +10,14 @@ import {
   updateChatManagement,
 } from "@/api/secretary";
 import OIMAvatar from "@/components/OIMAvatar";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useConversationStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 
 const SecretaryAccessSettings = () => {
   const { t } = useTranslation();
   const conversations = useConversationStore((state) => state.conversationList);
+  const resolveUserDisplayName = useUserDisplayNameResolver();
   const [connection, setConnection] = useState<BusinessConnection>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,6 +105,13 @@ const SecretaryAccessSettings = () => {
       <div className="max-h-64 overflow-y-auto rounded-md border border-surface-border">
         {accessibleConversations.map((conversation) => {
           const checked = selectedIDs.has(conversation.conversationID);
+          const displayName =
+            conversation.conversationType === SessionType.Group
+              ? conversation.showName
+              : resolveUserDisplayName({
+                  userID: conversation.userID,
+                  nickname: conversation.showName,
+                });
           return (
             <label
               key={conversation.conversationID}
@@ -123,11 +132,11 @@ const SecretaryAccessSettings = () => {
               <OIMAvatar
                 size={32}
                 src={conversation.faceURL}
-                text={conversation.showName}
+                text={displayName}
                 isgroup={conversation.conversationType === SessionType.Group}
               />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                {conversation.showName}
+                {displayName}
               </span>
             </label>
           );

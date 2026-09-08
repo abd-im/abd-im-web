@@ -14,6 +14,7 @@ import {
 
 import CKEditor, { CKEditorRef } from "@/components/CKEditor";
 import { getCleanText } from "@/components/CKEditor/utils";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
 
@@ -35,8 +36,15 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
 
   const { getImageMessage, getVideoMessage, getFileMessage } = useFileMessage();
   const { sendMessage } = useSendMessage();
-  const quoteAuthor =
+  const quoteAuthorSnapshot =
     quoteMessage?.message.senderNickname || quoteMessage?.message.sendID || "";
+  const quoteAuthor = useUserDisplayName(
+    {
+      userID: quoteMessage?.message.sendID,
+      nickname: quoteAuthorSnapshot,
+    },
+    quoteAuthorSnapshot,
+  );
 
   useEffect(() => {
     if (!quoteMessage) return;

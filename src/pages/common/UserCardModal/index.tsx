@@ -28,6 +28,7 @@ import EditableContent from "@/components/EditableContent";
 import OIMAvatar from "@/components/OIMAvatar";
 import { useConversationToggle } from "@/hooks/useConversationToggle";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useContactStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
@@ -60,6 +61,7 @@ const UserCardModal: ForwardRefRenderFunction<
   const [cardInfo, setCardInfo] = useState<CardInfo>();
   const [isSendRequest, setIsSendRequest] = useState(false);
   const [userFields, setUserFields] = useState<FieldRow[]>([]);
+  const cardDisplayName = useUserDisplayName(cardInfo ?? {});
 
   const selfInfo = useUserStore((state) => state.selfInfo);
   const isFriendUser = useContactStore(
@@ -251,18 +253,14 @@ const UserCardModal: ForwardRefRenderFunction<
             <div className="h-[104px] min-h-[104px] w-full cursor-move" />
             <div className="ignore-drag flex flex-1 flex-col overflow-hidden">
               <div className="flex items-center">
-                <OIMAvatar
-                  size={60}
-                  src={cardInfo?.faceURL}
-                  text={cardInfo?.nickname}
-                />
+                <OIMAvatar size={60} src={cardInfo?.faceURL} text={cardDisplayName} />
                 <div className="ml-3 flex h-[60px] flex-1 flex-col justify-around overflow-hidden">
                   <div className="flex w-fit max-w-[80%] items-baseline">
                     <div
                       className="flex-1 select-text truncate text-base font-medium text-white"
-                      title={cardInfo?.nickname}
+                      title={cardDisplayName}
                     >
-                      {cardInfo?.nickname}
+                      {cardDisplayName}
                     </div>
                   </div>
                   <div className="flex items-center">

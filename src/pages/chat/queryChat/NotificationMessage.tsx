@@ -2,6 +2,7 @@ import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import { t } from "i18next";
 import { FC, memo } from "react";
 
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useUserStore } from "@/store";
 import { notificationMessageFormat } from "@/utils/imCommon";
 
@@ -9,6 +10,7 @@ const NotificationMessage: FC<{
   message: MessageItem;
 }> = ({ message }) => {
   const selfID = useUserStore((state) => state.selfInfo.userID);
+  const resolveUserDisplayName = useUserDisplayNameResolver();
 
   const getFormatNotification = (msg: MessageItem) => {
     if (msg.contentType === MessageType.BurnMessageChange) {
@@ -26,13 +28,19 @@ const NotificationMessage: FC<{
         const isSelf = detail.revokerID === selfID;
         const revokerName = isSelf
           ? t("you")
-          : detail.revokerNickname || msg.senderNickname;
+          : resolveUserDisplayName({
+              userID: detail.revokerID || msg.sendID,
+              nickname: detail.revokerNickname || msg.senderNickname,
+            });
         return t("messageDescription.revokeMessage", {
           revoker: revokerName,
         });
       } catch (e) {
         return t("messageDescription.revokeMessage", {
-          revoker: msg.senderNickname,
+          revoker: resolveUserDisplayName({
+            userID: msg.sendID,
+            nickname: msg.senderNickname,
+          }),
         });
       }
     }

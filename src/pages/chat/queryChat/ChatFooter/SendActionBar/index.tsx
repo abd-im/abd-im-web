@@ -12,6 +12,7 @@ import emoji from "@/assets/images/chatFooter/emoji.png";
 import file from "@/assets/images/chatFooter/file.png";
 import image from "@/assets/images/chatFooter/image.png";
 import video from "@/assets/images/chatFooter/video.png";
+import { getUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import { feedbackToast } from "@/utils/common";
@@ -93,7 +94,7 @@ const SendActionBar = ({
       try {
         const { data: message } = await IMSDK.createCardMessage({
           userID: user.userID,
-          nickname: user.remark || user.nickname || user.showName || "",
+          nickname: getUserDisplayName(user, user.showName),
           faceURL: user.faceURL || "",
           ex: "",
         });

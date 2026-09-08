@@ -7,6 +7,7 @@ import invite from "@/assets/images/chatSetting/invite.png";
 import kick from "@/assets/images/chatSetting/kick.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import useGroupMembers from "@/hooks/useGroupMembers";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { emit } from "@/utils/events";
 
 import styles from "./group-setting.module.scss";
@@ -21,6 +22,7 @@ const GroupMemberRow = ({
   updateTravel: () => void;
 }) => {
   const { fetchState, getMemberData, resetState } = useGroupMembers();
+  const resolveUserDisplayName = useUserDisplayNameResolver();
 
   useEffect(() => {
     if (currentGroupInfo?.groupID) {
@@ -56,19 +58,22 @@ const GroupMemberRow = ({
         <span className="ml-2">{currentGroupInfo?.memberCount}</span>
       </div>
       <div className="flex flex-wrap items-center">
-        {fetchState.groupMemberList.slice(0, sliceCount).map((member) => (
-          <div
-            key={member.userID}
-            title={member.nickname}
-            className={styles["member-item"]}
-            onClick={() => window.userClick(member.userID, member.groupID)}
-          >
-            <OIMAvatar src={member.faceURL} text={member.nickname} size={36} />
-            <div className="mt-2 min-h-[16px] max-w-full truncate text-xs">
-              {member.nickname}
+        {fetchState.groupMemberList.slice(0, sliceCount).map((member) => {
+          const displayName = resolveUserDisplayName(member);
+          return (
+            <div
+              key={member.userID}
+              title={displayName}
+              className={styles["member-item"]}
+              onClick={() => window.userClick(member.userID, member.groupID)}
+            >
+              <OIMAvatar src={member.faceURL} text={displayName} size={36} />
+              <div className="mt-2 min-h-[16px] max-w-full truncate text-xs">
+                {displayName}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div
           className={clsx(styles["member-item"], "cursor-pointer")}
           onClick={inviteMember}

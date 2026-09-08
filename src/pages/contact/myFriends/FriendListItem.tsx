@@ -1,6 +1,7 @@
 import { FriendUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 
 import OIMAvatar from "@/components/OIMAvatar";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 
 const FriendListItem = ({
   friend,
@@ -9,13 +10,15 @@ const FriendListItem = ({
   friend: FriendUserItem;
   showUserCard: (userID: string) => void;
 }) => {
+  const displayName = useUserDisplayName(friend);
+
   return (
     <div
-      className="flex items-center rounded-md px-3.5 pb-3 pt-2.5 transition-colors hover:bg-surface-hover text-foreground cursor-pointer"
+      className="flex cursor-pointer items-center rounded-md px-3.5 pb-3 pt-2.5 text-foreground transition-colors hover:bg-surface-hover"
       onClick={() => showUserCard(friend.userID)}
     >
-      <OIMAvatar src={friend.faceURL} text={friend.remark || friend.nickname} />
-      <div className="ml-3 truncate text-sm">{friend.remark || friend.nickname}</div>
+      <OIMAvatar src={friend.faceURL} text={displayName} />
+      <div className="ml-3 truncate text-sm">{displayName}</div>
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { FileText } from "lucide-react";
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
+
 import { getMessagePreview } from "../messagePreview";
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
@@ -10,6 +12,7 @@ import styles from "./message-item.module.scss";
 const MergeMessageRender: FC<IMessageItemProps> = ({ message }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const resolveUserDisplayName = useUserDisplayNameResolver();
   const merge = message.mergeElem;
   const summaries = merge?.abstractList ?? [];
   const messages = merge?.multiMessage ?? [];
@@ -47,7 +50,12 @@ const MergeMessageRender: FC<IMessageItemProps> = ({ message }) => {
           {messages.map((record, index) => (
             <div key={record.clientMsgID || `${record.sendID}-${index}`}>
               <div className={styles["merge-record-meta"]}>
-                <span>{record.senderNickname || record.sendID}</span>
+                <span>
+                  {resolveUserDisplayName({
+                    userID: record.sendID,
+                    nickname: record.senderNickname,
+                  })}
+                </span>
                 <span>{new Date(record.sendTime).toLocaleString()}</span>
               </div>
               <div className={styles["merge-record-bubble"]}>

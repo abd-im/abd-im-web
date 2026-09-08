@@ -1,18 +1,36 @@
-import { CloseOutlined, SearchOutlined, MessageFilled, FileTextOutlined } from "@ant-design/icons";
 import { MessageType } from "@abd-im/wasm-client-sdk";
-import { Empty, Input, Modal, Spin, InputRef } from "antd";
-import { forwardRef, ForwardRefRenderFunction, memo, useEffect, useRef, useState, useCallback } from "react";
+import type { FriendUserItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
+import {
+  CloseOutlined,
+  FileTextOutlined,
+  MessageFilled,
+  SearchOutlined,
+} from "@ant-design/icons";
+import { Empty, Input, InputRef, Modal, Spin } from "antd";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import OIMAvatar from "@/components/OIMAvatar";
 import { useConversationToggle } from "@/hooks/useConversationToggle";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import { bytesToSize } from "@/utils/common";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
 
-const GlobalSearchModal: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (_, ref) => {
+const GlobalSearchModal: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
+  _,
+  ref,
+) => {
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
 
   return (
@@ -40,15 +58,20 @@ const GlobalSearchModal: ForwardRefRenderFunction<OverlayVisibleHandle, unknown>
 
 export default memo(forwardRef(GlobalSearchModal));
 
-export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => void }) => {
+export const GlobalSearchContent = ({
+  closeOverlay,
+}: {
+  closeOverlay?: () => void;
+}) => {
   const { t } = useTranslation();
   const inputRef = useRef<InputRef>(null);
   const { toSpecifiedConversation } = useConversationToggle();
   const selfInfo = useUserStore((state) => state.selfInfo);
-  
+  const resolveUserDisplayName = useUserDisplayNameResolver();
+
   const [keyword, setKeyword] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
-  const [friends, setFriends] = useState<any[]>([]);
+  const [friends, setFriends] = useState<FriendUserItem[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
@@ -118,43 +141,50 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
     }
   };
 
-  const handleItemClick = useCallback(async (type: "contact" | "group" | "message", item: any) => {
-    closeOverlay?.();
-    if (type === "contact") {
-      toSpecifiedConversation({
-        sourceID: item.userID,
-        sessionType: 1,
-      });
-    } else if (type === "group") {
-      toSpecifiedConversation({
-        sourceID: item.groupID,
-        sessionType: 3,
-      });
-    } else if (type === "message") {
-      // Find conversation in store first
-      const conversation = useConversationStore.getState().conversationList.find(
-        (c) => c.conversationID === item.conversationID
-      );
-      if (conversation) {
-        useConversationStore.getState().updateCurrentConversation({ ...conversation });
-        window.location.hash = `#/chat/${conversation.conversationID}`;
-      } else {
-        // Find correct sourceID (userID or groupID) from the message item
-        const firstMsg = item.messageList?.[0];
-        if (firstMsg) {
-          const isGroup = item.conversationType === 3;
-          const sourceID = isGroup 
-            ? firstMsg.groupID 
-            : (firstMsg.sendID === selfInfo.userID ? firstMsg.recvID : firstMsg.sendID);
-          
-          toSpecifiedConversation({
-            sourceID,
-            sessionType: item.conversationType,
-          });
+  const handleItemClick = useCallback(
+    async (type: "contact" | "group" | "message", item: any) => {
+      closeOverlay?.();
+      if (type === "contact") {
+        toSpecifiedConversation({
+          sourceID: item.userID,
+          sessionType: 1,
+        });
+      } else if (type === "group") {
+        toSpecifiedConversation({
+          sourceID: item.groupID,
+          sessionType: 3,
+        });
+      } else if (type === "message") {
+        // Find conversation in store first
+        const conversation = useConversationStore
+          .getState()
+          .conversationList.find((c) => c.conversationID === item.conversationID);
+        if (conversation) {
+          useConversationStore
+            .getState()
+            .updateCurrentConversation({ ...conversation });
+          window.location.hash = `#/chat/${conversation.conversationID}`;
+        } else {
+          // Find correct sourceID (userID or groupID) from the message item
+          const firstMsg = item.messageList?.[0];
+          if (firstMsg) {
+            const isGroup = item.conversationType === 3;
+            const sourceID = isGroup
+              ? firstMsg.groupID
+              : firstMsg.sendID === selfInfo.userID
+              ? firstMsg.recvID
+              : firstMsg.sendID;
+
+            toSpecifiedConversation({
+              sourceID,
+              sessionType: item.conversationType,
+            });
+          }
         }
       }
-    }
-  }, [toSpecifiedConversation, selfInfo, closeOverlay]);
+    },
+    [toSpecifiedConversation, selfInfo, closeOverlay],
+  );
 
   const tabList = [
     { key: "overview", label: "综合" },
@@ -165,29 +195,34 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   ];
 
   const renderSectionHeader = (title: string) => (
-    <div className="px-5 py-2.5 text-xs font-bold text-muted-foreground bg-surface border-y border-gray-100">
+    <div className="border-y border-gray-100 bg-surface px-5 py-2.5 text-xs font-bold text-muted-foreground">
       {title}
     </div>
   );
 
-  const renderFriendItem = (friend: any) => (
-    <div
-      key={friend.userID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
-      onClick={() => handleItemClick("contact", friend)}
-    >
-      <OIMAvatar src={friend.faceURL} text={friend.nickname} size={38} />
-      <div className="ml-3">
-        <div className="text-sm font-bold text-foreground">{friend.nickname}</div>
-        {friend.remark && <div className="text-xs text-muted-foreground">备注: {friend.remark}</div>}
+  const renderFriendItem = (friend: FriendUserItem) => {
+    const displayName = resolveUserDisplayName(friend);
+    return (
+      <div
+        key={friend.userID}
+        className="flex cursor-pointer items-center border-b border-gray-100 px-6 py-3 transition-colors hover:bg-surface active:bg-gray-100"
+        onClick={() => handleItemClick("contact", friend)}
+      >
+        <OIMAvatar src={friend.faceURL} text={displayName} size={38} />
+        <div className="ml-3">
+          <div className="text-sm font-bold text-foreground">{displayName}</div>
+          {friend.remark && friend.remark !== friend.nickname && (
+            <div className="text-xs text-muted-foreground">{friend.nickname}</div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderGroupItem = (group: any) => (
     <div
       key={group.groupID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
+      className="flex cursor-pointer items-center border-b border-gray-100 px-6 py-3 transition-colors hover:bg-surface active:bg-gray-100"
       onClick={() => handleItemClick("group", group)}
     >
       <OIMAvatar src={group.faceURL} text={group.groupName} isgroup size={38} />
@@ -201,7 +236,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderMessageItem = (msgItem: any) => (
     <div
       key={msgItem.conversationID}
-      className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
+      className="flex cursor-pointer items-center border-b border-gray-100 px-6 py-3 transition-colors hover:bg-surface active:bg-gray-100"
       onClick={() => handleItemClick("message", msgItem)}
     >
       <OIMAvatar
@@ -212,7 +247,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
       />
       <div className="ml-3 flex-1 overflow-hidden">
         <div className="text-sm font-bold text-foreground">{msgItem.showName}</div>
-        <div className="text-xs text-muted-foreground truncate mt-0.5">
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {msgItem.messageCount} 条相关聊天记录
         </div>
       </div>
@@ -222,20 +257,22 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderFileItem = (fileItem: any) => {
     const firstFileMsg = fileItem.messageList?.[0];
     const fileName = firstFileMsg?.fileElem?.fileName || "文件";
-    const fileSize = firstFileMsg?.fileElem?.fileSize ? bytesToSize(firstFileMsg.fileElem.fileSize) : "";
-    
+    const fileSize = firstFileMsg?.fileElem?.fileSize
+      ? bytesToSize(firstFileMsg.fileElem.fileSize)
+      : "";
+
     return (
       <div
         key={fileItem.conversationID}
-        className="flex items-center px-6 py-3 cursor-pointer hover:bg-surface active:bg-gray-100 transition-colors border-b border-gray-100"
+        className="flex cursor-pointer items-center border-b border-gray-100 px-6 py-3 transition-colors hover:bg-surface active:bg-gray-100"
         onClick={() => handleItemClick("message", fileItem)}
       >
-        <div className="flex h-[38px] w-[38px] items-center justify-center rounded-lg bg-surface border border-surface-border shadow-sm text-foreground text-lg">
+        <div className="flex h-[38px] w-[38px] items-center justify-center rounded-lg border border-surface-border bg-surface text-lg text-foreground shadow-sm">
           <FileTextOutlined rev={undefined} />
         </div>
         <div className="ml-3 flex-1 overflow-hidden">
-          <div className="text-sm font-bold text-foreground truncate">{fileName}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="truncate text-sm font-bold text-foreground">{fileName}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
             {fileSize ? `${fileSize} • ` : ""}来自 {fileItem.showName}
           </div>
         </div>
@@ -244,14 +281,18 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   };
 
   const renderOverview = () => {
-    const hasAnyResults = friends.length > 0 || groups.length > 0 || messages.length > 0 || files.length > 0;
-    
+    const hasAnyResults =
+      friends.length > 0 ||
+      groups.length > 0 ||
+      messages.length > 0 ||
+      files.length > 0;
+
     if (!hasAnyResults) {
       return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-12" />;
     }
 
     return (
-      <div className="flex-1 overflow-y-auto no-scrollbar max-h-[420px]">
+      <div className="no-scrollbar max-h-[420px] flex-1 overflow-y-auto">
         {friends.length > 0 && (
           <div>
             {renderSectionHeader("联系人")}
@@ -283,7 +324,7 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   const renderActiveTabContent = () => {
     if (loading) {
       return (
-        <div className="flex justify-center items-center py-20">
+        <div className="flex items-center justify-center py-20">
           <Spin size="large" />
         </div>
       );
@@ -294,25 +335,33 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
         return renderOverview();
       case "contacts":
         return friends.length > 0 ? (
-          <div className="flex-1 overflow-y-auto no-scrollbar max-h-[420px]">{friends.map(renderFriendItem)}</div>
+          <div className="no-scrollbar max-h-[420px] flex-1 overflow-y-auto">
+            {friends.map(renderFriendItem)}
+          </div>
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-12" />
         );
       case "groups":
         return groups.length > 0 ? (
-          <div className="flex-1 overflow-y-auto no-scrollbar max-h-[420px]">{groups.map(renderGroupItem)}</div>
+          <div className="no-scrollbar max-h-[420px] flex-1 overflow-y-auto">
+            {groups.map(renderGroupItem)}
+          </div>
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-12" />
         );
       case "history":
         return messages.length > 0 ? (
-          <div className="flex-1 overflow-y-auto no-scrollbar max-h-[420px]">{messages.map(renderMessageItem)}</div>
+          <div className="no-scrollbar max-h-[420px] flex-1 overflow-y-auto">
+            {messages.map(renderMessageItem)}
+          </div>
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-12" />
         );
       case "files":
         return files.length > 0 ? (
-          <div className="flex-1 overflow-y-auto no-scrollbar max-h-[420px]">{files.map(renderFileItem)}</div>
+          <div className="no-scrollbar max-h-[420px] flex-1 overflow-y-auto">
+            {files.map(renderFileItem)}
+          </div>
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-12" />
         );
@@ -322,37 +371,39 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
   };
 
   return (
-    <div className="flex flex-col bg-white rounded-lg overflow-hidden h-[540px]">
+    <div className="flex h-[540px] flex-col overflow-hidden rounded-lg bg-white">
       {/* Search Input Header */}
-      <div className="flex items-center gap-3 border-b border-gray-100 p-4.5 bg-white">
-        <SearchOutlined rev={undefined} className="text-gray-400 text-lg ml-2" />
+      <div className="flex items-center gap-3 border-b border-gray-100 bg-white p-4.5">
+        <SearchOutlined rev={undefined} className="ml-2 text-lg text-gray-400" />
         <Input
           ref={inputRef}
           placeholder="搜索"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           bordered={false}
-          className="flex-1 text-sm focus:ring-0 p-0 hover:bg-transparent"
+          className="flex-1 p-0 text-sm hover:bg-transparent focus:ring-0"
           allowClear
           spellCheck={false}
         />
         <CloseOutlined
           rev={undefined}
-          className="cursor-pointer text-gray-400 hover:text-red-500 mr-2 text-base transition-colors"
+          className="mr-2 cursor-pointer text-base text-gray-400 transition-colors hover:text-red-500"
           onClick={closeOverlay}
         />
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-100 px-6 pt-3 gap-8 text-xs text-muted-foreground bg-white">
+      <div className="flex gap-8 border-b border-gray-100 bg-white px-6 pt-3 text-xs text-muted-foreground">
         {tabList.map((tab) => {
           const active = activeTab === tab.key;
           return (
             <div
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`cursor-pointer pb-2.5 font-bold transition-all border-b-2 ${
-                active ? "border-brand text-brand" : "border-transparent hover:text-foreground"
+              className={`cursor-pointer border-b-2 pb-2.5 font-bold transition-all ${
+                active
+                  ? "border-brand text-brand"
+                  : "border-transparent hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -362,11 +413,13 @@ export const GlobalSearchContent = ({ closeOverlay }: { closeOverlay?: () => voi
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 bg-page-canvas overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-page-canvas">
         {!keyword.trim() ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-10">
-            <SearchOutlined rev={undefined} className="text-4xl mb-3 text-gray-200" />
-            <div className="text-sm font-medium">输入关键词搜索联系人、我的群组、聊天记录和文档</div>
+          <div className="flex h-full flex-col items-center justify-center p-10 text-muted-foreground">
+            <SearchOutlined rev={undefined} className="mb-3 text-4xl text-gray-200" />
+            <div className="text-sm font-medium">
+              输入关键词搜索联系人、我的群组、聊天记录和文档
+            </div>
           </div>
         ) : (
           renderActiveTabContent()

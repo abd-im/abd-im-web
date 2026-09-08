@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import { GroupSessionTypes, SystemMessageTypes } from "@/constants/im";
 import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
+import { getUserDisplayName } from "@/hooks/useUserDisplayName";
 
 import { generateAvatar, secondsToTime } from "./common";
 import {
@@ -48,18 +49,19 @@ dayjs.updateLocale("zh-cn", {
 });
 
 const formatMemberName = ({
+  userID,
   name,
 }: {
   userID: string;
   groupID: string;
   name: string;
   fromAt?: boolean;
-}) => name;
+}) => getUserDisplayName({ userID, nickname: name });
 
 export const notificationMessageFormat = (msg: MessageItem) => {
   const selfID = useUserStore.getState().selfInfo.userID;
   const getName = (user: PublicUserItem) => {
-    return user.userID === selfID ? t("you") : user.nickname;
+    return user.userID === selfID ? t("you") : getUserDisplayName(user);
   };
   try {
     switch (msg.contentType) {
@@ -118,11 +120,11 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         let inviteStr = "";
         invitedUserList.slice(0, 3).map(
           (user: any) =>
-          (inviteStr += `${formatMemberName({
-            userID: user.userID,
-            groupID: msg.groupID,
-            name: getName(user),
-          })}、`),
+            (inviteStr += `${formatMemberName({
+              userID: user.userID,
+              groupID: msg.groupID,
+              name: getName(user),
+            })}、`),
         );
         inviteStr = inviteStr.slice(0, -1);
         return t("messageDescription.invitedToGroupMessage", {
@@ -131,12 +133,13 @@ export const notificationMessageFormat = (msg: MessageItem) => {
             groupID: msg.groupID,
             name: getName(inviteOpUser),
           }),
-          invitedUser: `${inviteStr}${invitedUserList.length > 3
-            ? `${t("placeholder.and")}${t("placeholder.somePerson", {
-              num: invitedUserList.length,
-            })}`
-            : ""
-            }`,
+          invitedUser: `${inviteStr}${
+            invitedUserList.length > 3
+              ? `${t("placeholder.and")}${t("placeholder.somePerson", {
+                  num: invitedUserList.length,
+                })}`
+              : ""
+          }`,
         });
       case MessageType.MemberKicked:
         const kickDetails = JSON.parse(msg.notificationElem!.detail);
@@ -145,11 +148,11 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         let kickStr = "";
         kickdUserList.slice(0, 3).map(
           (user: any) =>
-          (kickStr += `${formatMemberName({
-            userID: user.userID,
-            groupID: msg.groupID,
-            name: getName(user),
-          })}、`),
+            (kickStr += `${formatMemberName({
+              userID: user.userID,
+              groupID: msg.groupID,
+              name: getName(user),
+            })}、`),
         );
         kickStr = kickStr.slice(0, -1);
         return t("messageDescription.kickInGroupMessage", {
@@ -184,13 +187,21 @@ export const notificationMessageFormat = (msg: MessageItem) => {
         try {
           const revokeDetails = JSON.parse(msg.notificationElem!.detail);
           const isSelf = revokeDetails.revokerID === selfID;
-          const revokerName = isSelf ? t("you") : (revokeDetails.revokerNickname || msg.senderNickname);
+          const revokerName = isSelf
+            ? t("you")
+            : getUserDisplayName({
+                userID: revokeDetails.revokerID || msg.sendID,
+                nickname: revokeDetails.revokerNickname || msg.senderNickname,
+              });
           return t("messageDescription.revokeMessage", {
             revoker: revokerName,
           });
         } catch (e) {
           return t("messageDescription.revokeMessage", {
-            revoker: msg.senderNickname,
+            revoker: getUserDisplayName({
+              userID: msg.sendID,
+              nickname: msg.senderNickname,
+            }),
           });
         }
       default:
@@ -244,7 +255,7 @@ export const formatMessageByType = (message?: MessageItem): string => {
   const selfUserID = useUserStore.getState().selfInfo.userID;
   const isSelf = (id: string) => id === selfUserID;
   const getName = (user: PublicUserItem) => {
-    return user.userID === selfUserID ? t("you") : user.nickname;
+    return user.userID === selfUserID ? t("you") : getUserDisplayName(user);
   };
   try {
     switch (message.contentType) {
@@ -284,12 +295,13 @@ export const formatMessageByType = (message?: MessageItem): string => {
         inviteStr = inviteStr.slice(0, -1);
         return t("messageDescription.invitedToGroupMessage", {
           operator: getName(inviteOpUser),
-          invitedUser: `${inviteStr}${invitedUserList.length > 3
-            ? `${t("placeholder.and")}${t("placeholder.somePerson", {
-              num: invitedUserList.length,
-            })}`
-            : ""
-            }`,
+          invitedUser: `${inviteStr}${
+            invitedUserList.length > 3
+              ? `${t("placeholder.and")}${t("placeholder.somePerson", {
+                  num: invitedUserList.length,
+                })}`
+              : ""
+          }`,
         });
       case MessageType.MemberKicked:
         const kickDetails = JSON.parse(message.notificationElem!.detail);
@@ -300,12 +312,13 @@ export const formatMessageByType = (message?: MessageItem): string => {
         kickStr = kickStr.slice(0, -1);
         return t("messageDescription.kickInGroupMessage", {
           operator: getName(kickOpUser),
-          kickedUser: `${kickStr}${kickdUserList.length > 3
-            ? `${t("placeholder.and")}${t("placeholder.somePerson", {
-              num: kickdUserList.length,
-            })}`
-            : ""
-            }`,
+          kickedUser: `${kickStr}${
+            kickdUserList.length > 3
+              ? `${t("placeholder.and")}${t("placeholder.somePerson", {
+                  num: kickdUserList.length,
+                })}`
+              : ""
+          }`,
         });
       case MessageType.MemberQuit:
         const quitDetails = JSON.parse(message.notificationElem!.detail);
@@ -427,15 +440,13 @@ export const calcApplicationBadge = async () => {
   const unHandleFriendApplicationNum = useContactStore
     .getState()
     .recvFriendApplicationList.filter(
-      (application) =>
-        application.handleResult === 0,
+      (application) => application.handleResult === 0,
     ).length;
 
   const unHandleGroupApplicationNum = useContactStore
     .getState()
     .recvGroupApplicationList.filter(
-      (application) =>
-        application.handleResult === 0,
+      (application) => application.handleResult === 0,
     ).length;
   useContactStore
     .getState()
@@ -445,15 +456,23 @@ export const calcApplicationBadge = async () => {
     .updateUnHandleGroupApplicationCount(unHandleGroupApplicationNum);
 };
 
-export const getConversationContent = (message: MessageItem) => {
+export const getConversationContent = (
+  message: MessageItem,
+  resolveDisplayName = getUserDisplayName,
+  selfUserID = useUserStore.getState().selfInfo.userID,
+) => {
   if (
     !message.groupID ||
     SystemMessageTypes.includes(message.contentType) ||
-    message.sendID === useUserStore.getState().selfInfo.userID
+    message.sendID === selfUserID
   ) {
     return formatMessageByType(message);
   }
-  return `${message.senderNickname}：${formatMessageByType(message)}`;
+  const senderName = resolveDisplayName({
+    userID: message.sendID,
+    nickname: message.senderNickname,
+  });
+  return `${senderName}：${formatMessageByType(message)}`;
 };
 
 export const uploadFile = async (file: FileWithPath, path?: string) => {

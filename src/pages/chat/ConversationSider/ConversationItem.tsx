@@ -1,5 +1,4 @@
 import type {
-  ConversationItem,
   ConversationItem as ConversationItemType,
   MessageItem,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
@@ -11,6 +10,7 @@ import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import OIMAvatar from "@/components/OIMAvatar";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useConversationStore, useUserStore } from "@/store";
 import { formatConversionTime, getConversationContent } from "@/utils/imCommon";
 
@@ -28,6 +28,13 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
     (state) => state.updateCurrentConversation,
   );
   const currentUser = useUserStore((state) => state.selfInfo.userID);
+  const resolveUserDisplayName = useUserDisplayNameResolver();
+  const conversationName = conversation.groupID
+    ? conversation.showName
+    : resolveUserDisplayName({
+        userID: conversation.userID,
+        nickname: conversation.showName,
+      });
 
   const toSpecifiedConversation = async () => {
     if (isActive) {
@@ -45,12 +52,14 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
     try {
       content = getConversationContent(
         JSON.parse(conversation.latestMsg) as MessageItem,
+        resolveUserDisplayName,
+        currentUser,
       );
     } catch (error) {
       content = t("messageDescription.catchMessage");
     }
     return content;
-  }, [conversation.draftText, conversation.latestMsg, isActive, currentUser]);
+  }, [conversation.latestMsg, currentUser, resolveUserDisplayName]);
 
   const latestMessageTime = formatConversionTime(conversation.latestMsgSendTime);
 
@@ -69,16 +78,14 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
         <OIMAvatar
           src={conversation.faceURL}
           isgroup={Boolean(conversation.groupID)}
-          text={conversation.showName}
+          text={conversationName}
         />
       </Badge>
 
       <div className="ml-3 flex h-11 flex-1 flex-col justify-between overflow-hidden">
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <div className="text-body truncate font-medium">
-              {conversation.showName}
-            </div>
+            <div className="text-body truncate font-medium">{conversationName}</div>
             {isHosted && (
               <span
                 className="inline-flex h-[17px] shrink-0 items-center gap-0.5 rounded border border-trust-border bg-trust-soft px-1 text-[9px] font-bold leading-none text-trust"

@@ -28,6 +28,7 @@ import newMsgAudio from "@/assets/audio/newMsg.mp3";
 import { RUNTIME_API_URL, RUNTIME_WS_URL } from "@/config";
 import { CustomType } from "@/constants";
 import { useConversationToggle } from "@/hooks/useConversationToggle";
+import { getUserDisplayName } from "@/hooks/useUserDisplayName";
 import { getMessagePreview } from "@/pages/chat/queryChat/messagePreview";
 import { parseReactionUpdatedEvent } from "@/pages/chat/queryChat/messageReactionState";
 import {
@@ -372,7 +373,10 @@ export function useGlobalEvent() {
     }
 
     const isGroupMessage = message.sessionType === SessionType.Group;
-    const senderName = message.senderNickname || conversation?.showName || "ABD IM";
+    const senderName = getUserDisplayName(
+      { userID: message.sendID, nickname: message.senderNickname },
+      conversation?.showName || "ABD IM",
+    );
     const title =
       isGroupMessage && conversation?.showName
         ? `${senderName} (${conversation.showName})`
@@ -463,7 +467,7 @@ export function useGlobalEvent() {
     ) {
       updateMessageSender({
         userID: data.userID,
-        nickname: data.remark || data.nickname,
+        nickname: getUserDisplayName(data),
         faceURL: data.faceURL,
       });
     }

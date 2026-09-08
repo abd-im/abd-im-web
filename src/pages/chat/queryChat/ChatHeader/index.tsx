@@ -21,6 +21,7 @@ import {
 import group_member from "@/assets/images/chatHeader/group_member.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
+import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
@@ -70,6 +71,13 @@ const ChatHeader = () => {
 
   const isSingleSession = currentConversation?.conversationType === SessionType.Single;
   const isGroupSession = currentConversation?.conversationType === SessionType.Group;
+  const conversationName = useUserDisplayName(
+    {
+      userID: isSingleSession ? currentConversation?.userID : undefined,
+      nickname: currentConversation?.showName,
+    },
+    currentConversation?.showName,
+  );
 
   useEffect(() => {
     const conversationID = currentConversation?.conversationID;
@@ -217,7 +225,7 @@ const ChatHeader = () => {
         <div className="flex flex-1 items-center overflow-hidden">
           <OIMAvatar
             src={currentConversation?.faceURL}
-            text={currentConversation?.showName}
+            text={conversationName}
             isgroup={Boolean(currentConversation?.groupID)}
           />
           <div
@@ -225,9 +233,7 @@ const ChatHeader = () => {
               "ml-3 flex !h-10.5 flex-1 flex-col justify-between overflow-hidden",
             )}
           >
-            <div className="truncate text-base font-semibold">
-              {currentConversation?.showName}
-            </div>
+            <div className="truncate text-base font-semibold">{conversationName}</div>
             {isGroupSession && currentUserIsInGroup && (
               <div className="flex items-center text-xs text-[var(--sub-text)]">
                 <img width={20} src={group_member} alt="member" />

@@ -10,6 +10,13 @@ vi.mock("@/store", () => ({
     selector({ selfInfo: { userID: "self-user" } }),
 }));
 
+vi.mock("@/hooks/useUserDisplayName", () => ({
+  useUserDisplayNameResolver:
+    () =>
+    ({ nickname, userID }: { nickname?: string; userID?: string }, fallback?: string) =>
+      nickname || fallback || userID || "",
+}));
+
 vi.mock("@/utils/imCommon", () => ({
   notificationMessageFormat: () => '<img src=x onerror="alert(1)">',
 }));

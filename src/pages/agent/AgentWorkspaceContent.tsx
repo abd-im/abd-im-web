@@ -39,6 +39,7 @@ import {
   agentWorkspaceTitleFromPrompt,
   createAgentWorkspace,
 } from "@/features/agentWorkspace/actions";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
@@ -99,6 +100,7 @@ export default function AgentWorkspaceContent({
   draft?: AgentWorkspaceDraft;
 }) {
   const { t } = useTranslation();
+  const resolveUserDisplayName = useUserDisplayNameResolver();
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
@@ -561,8 +563,10 @@ export default function AgentWorkspaceContent({
                         }
                       >
                         <strong>
-                          {quoteElem.quoteMessage.senderNickname ||
-                            quoteElem.quoteMessage.sendID}
+                          {resolveUserDisplayName({
+                            userID: quoteElem.quoteMessage.sendID,
+                            nickname: quoteElem.quoteMessage.senderNickname,
+                          })}
                         </strong>
                         <span>{quoteElem.quoteText}</span>
                       </button>
@@ -667,7 +671,10 @@ export default function AgentWorkspaceContent({
               <Reply size={14} strokeWidth={1.8} />
               <span>
                 <strong>
-                  {quoteMessage.message.senderNickname || quoteMessage.message.sendID}
+                  {resolveUserDisplayName({
+                    userID: quoteMessage.message.sendID,
+                    nickname: quoteMessage.message.senderNickname,
+                  })}
                 </strong>
                 <small>
                   {quoteMessage.quoteText || textContent(quoteMessage.message)}
