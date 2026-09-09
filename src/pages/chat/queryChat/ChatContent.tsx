@@ -24,6 +24,7 @@ import { useSendMessage } from "./ChatFooter/useSendMessage";
 import ForwardSelectionBar from "./forwarding/ForwardSelectionBar";
 import ForwardTargetModal, { ForwardTarget } from "./forwarding/ForwardTargetModal";
 import { applyFriendRemarks, getLatestUnreadMessageSeq } from "./historyMessageState";
+import { formatMessageDate, messageDate, startsMessageDay } from "./messageDate";
 import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
@@ -461,11 +462,11 @@ const ChatContent = () => {
 
   return (
     <Layout.Content
-      className="relative flex h-full flex-col overflow-hidden !bg-white"
+      className="relative flex h-full flex-col overflow-hidden !bg-surface"
       id="chat-main-content"
     >
       {loadState.initLoading ? (
-        <div className="flex h-full w-full items-center justify-center bg-white pt-1">
+        <div className="flex h-full w-full items-center justify-center bg-surface pt-1">
           <Spin spinning />
         </div>
       ) : (
@@ -495,48 +496,57 @@ const ChatContent = () => {
               ) : null,
           }}
           computeItemKey={(_, item) => item.clientMsgID}
-          itemContent={(_, message, reactionSummaries) => {
-            if (SystemMessageTypes.includes(message.contentType)) {
-              return (
-                <NotificationMessage key={message.clientMsgID} message={message} />
-              );
-            }
+          itemContent={(index, message, reactionSummaries) => {
+            const previous = displayMessages[index - loadState.firstItemIndex - 1];
             const canReact = reactableMessageIDs.has(message.clientMsgID);
             const avatarText = message.senderNickname;
             return (
-              <MessageItemComponent
-                key={message.clientMsgID}
-                conversationID={conversationID}
-                message={message}
-                avatarText={avatarText}
-                reactionSummary={reactionSummaries[message.clientMsgID]}
-                isReactionPending={
-                  canReact
-                    ? (emoji) => isPending(message.clientMsgID, emoji)
-                    : undefined
-                }
-                onToggleReaction={
-                  canReact
-                    ? (emoji, reactedByMe) =>
-                        toggleReaction(message.clientMsgID, emoji, reactedByMe)
-                    : undefined
-                }
-                messageUpdateFlag={
-                  avatarText +
-                  message.senderNickname +
-                  message.senderFaceUrl +
-                  String(message.isRead) +
-                  String(message.status) +
-                  String(message.attachedInfoElem?.hasReadTime)
-                }
-                selectionMode={selectionMode}
-                selected={selectedMessageIDs.has(message.clientMsgID)}
-                selectable={isForwardableMessage(message)}
-                onEnterSelection={enterSelection}
-                onToggleSelection={toggleSelection}
-                onForward={openSingleForward}
-                onRetry={() => void retryMessage(message)}
-              />
+              <>
+                {startsMessageDay(message.sendTime, previous?.sendTime) && (
+                  <div className="chat-date-divider">
+                    <time dateTime={messageDate(message.sendTime).format("YYYY-MM-DD")}>
+                      {formatMessageDate(message.sendTime)}
+                    </time>
+                  </div>
+                )}
+                {SystemMessageTypes.includes(message.contentType) ? (
+                  <NotificationMessage message={message} />
+                ) : (
+                  <MessageItemComponent
+                    key={message.clientMsgID}
+                    conversationID={conversationID}
+                    message={message}
+                    avatarText={avatarText}
+                    reactionSummary={reactionSummaries[message.clientMsgID]}
+                    isReactionPending={
+                      canReact
+                        ? (emoji) => isPending(message.clientMsgID, emoji)
+                        : undefined
+                    }
+                    onToggleReaction={
+                      canReact
+                        ? (emoji, reactedByMe) =>
+                            toggleReaction(message.clientMsgID, emoji, reactedByMe)
+                        : undefined
+                    }
+                    messageUpdateFlag={
+                      avatarText +
+                      message.senderNickname +
+                      message.senderFaceUrl +
+                      String(message.isRead) +
+                      String(message.status) +
+                      String(message.attachedInfoElem?.hasReadTime)
+                    }
+                    selectionMode={selectionMode}
+                    selected={selectedMessageIDs.has(message.clientMsgID)}
+                    selectable={isForwardableMessage(message)}
+                    onEnterSelection={enterSelection}
+                    onToggleSelection={toggleSelection}
+                    onForward={openSingleForward}
+                    onRetry={() => void retryMessage(message)}
+                  />
+                )}
+              </>
             );
           }}
         />

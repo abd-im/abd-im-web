@@ -1,7 +1,7 @@
 :root {
   --full-height: 100%;
-  --chat-bubble: var(--surface);
-  --chat-bubble-sender: var(--brand);
+  --chat-bubble: var(--bubble-received);
+  --chat-bubble-sender: var(--bubble-sent);
   --base-black: var(--foreground);
   --primary: var(--brand);
   --primary-active: var(--surface-selected);
@@ -10,7 +10,7 @@
   --gap-text: var(--surface-border);
   --warn-text: #ff381f;
   --moment-text: #6085b1;
-  --searchbar-height: 2.5rem;
+  --searchbar-height: 44px;
 }
 
 @media only screen and (max-width: 600px) {
@@ -25,9 +25,12 @@ html {
   font-family: "Noto Sans SC", "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC",
     "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 
-  div {
-    color: var(--base-black);
-  }
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+* {
+  letter-spacing: 0;
 }
 
 body,

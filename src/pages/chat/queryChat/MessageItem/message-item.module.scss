@@ -2,6 +2,21 @@
   padding-inline: 0;
 }
 
+.message-time {
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.message-row:hover .message-time,
+.message-row:focus-within .message-time {
+  opacity: 1;
+}
+@media (hover: none) {
+  .message-time {
+    opacity: 1;
+  }
+}
+
 .message-row-selection-mode {
   padding-inline: 46px 12px;
 }
@@ -33,7 +48,8 @@
 
 .message-container {
   @apply flex overflow-hidden;
-  width: 80%;
+  width: calc(100% - 48px);
+  max-width: 1000px;
   min-width: 0;
 
   .message-wrap {
@@ -44,10 +60,13 @@
     }
 
     .bubble {
-      @apply w-fit rounded-lg border border-surface-border p-2.5 shadow-sm;
-      background-color: var(--surface);
+      @apply w-fit border border-transparent;
+      padding: 9px 12px;
+      border-radius: var(--radius-panel);
+      background-color: var(--chat-bubble);
       color: var(--foreground);
-      word-break: break-all;
+      overflow-wrap: anywhere;
+      line-height: 1.65;
     }
 
     .markdown-content {
@@ -202,8 +221,8 @@
       flex-direction: column;
       border: 1px solid var(--surface-border);
       border-radius: 8px;
-      background: var(--surface);
-      box-shadow: var(--surface-shadow);
+      background: var(--chat-bubble);
+      box-shadow: none;
     }
 
     .message-bubble-wrap-with-reactions .bubble {
@@ -214,6 +233,9 @@
       @apply mt-1 flex items-center;
       gap: 6px;
       height: 18px;
+      &:empty {
+        display: none;
+      }
     }
 
     .suffix {
@@ -242,25 +264,25 @@
       }
 
       .bubble {
-        background-color: #27272a;
-        color: #ffffff;
+        background-color: var(--chat-bubble-sender);
+        color: var(--foreground);
         border-color: transparent;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        box-shadow: none;
       }
 
       .message-quote {
-        border-left-color: rgb(255 255 255 / 0.45);
-        color: rgb(255 255 255 / 0.68);
+        border-left-color: var(--faint-foreground);
+        color: var(--muted-foreground);
       }
 
       .message-mention {
-        color: #9fcfff;
+        color: var(--brand);
       }
 
       .message-bubble-wrap-reaction-shell {
         border-color: transparent;
-        background: #27272a;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        background: var(--chat-bubble-sender);
+        box-shadow: none;
       }
 
       .message-content-group {
@@ -293,7 +315,7 @@
   border-radius: 6px;
   opacity: 0;
   background: var(--surface-raised);
-  box-shadow: var(--surface-shadow);
+  box-shadow: none;
   pointer-events: none;
   transition: opacity 0.12s ease;
 }
@@ -354,34 +376,13 @@
 }
 
 .reaction-picker {
-  position: absolute;
-  z-index: 8;
-  top: 27px;
-  left: calc(100% + 7px);
   display: flex;
   gap: 1px;
   padding: 4px;
   border: 1px solid var(--surface-border);
   border-radius: 7px;
-  opacity: 0;
   background: var(--surface-raised);
   box-shadow: var(--floating-shadow);
-  pointer-events: none;
-  transform: translateY(-3px);
-  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
-  visibility: hidden;
-}
-
-.reaction-wrapper-sender .reaction-picker {
-  right: calc(100% + 7px);
-  left: auto;
-}
-
-.reaction-picker-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-  visibility: visible;
 }
 
 .reaction-picker-option {
@@ -461,13 +462,13 @@
 
 .reaction-wrapper-sender .reaction-chip {
   border-color: rgb(255 255 255 / 0.2);
-  color: #fff;
-  background: rgb(255 255 255 / 0.1);
+  color: var(--foreground);
+  background: var(--surface);
 }
 
 .reaction-wrapper-sender .reaction-chip-selected {
   border-color: rgb(255 255 255 / 0.38);
-  background: rgb(255 255 255 / 0.18);
+  background: var(--brand-soft);
 }
 
 .reaction-emoji {
@@ -510,22 +511,6 @@
 
   .reaction-wrapper-sender .reaction-actions {
     margin-right: 0;
-  }
-
-  .reaction-picker,
-  .reaction-wrapper-sender .reaction-picker {
-    position: static;
-    top: auto;
-    right: auto;
-    left: auto;
-    display: none;
-    width: max-content;
-    margin-top: 4px;
-    margin-left: auto;
-  }
-
-  .reaction-picker-open {
-    display: flex;
   }
 }
 
@@ -615,11 +600,11 @@
 
 .message-container-sender .merge-message-summary,
 .message-container-sender .merge-message-footer {
-  color: rgb(255 255 255 / 0.72);
+  color: var(--muted-foreground);
 }
 
 .message-container-sender .merge-message-footer {
-  border-top-color: rgb(255 255 255 / 0.18);
+  border-top-color: var(--surface-border);
 }
 
 .merge-record-list {

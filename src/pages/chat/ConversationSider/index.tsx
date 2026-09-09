@@ -100,14 +100,20 @@ const ConversationSider = () => {
   };
 
   return (
-    <div>
+    <div
+      className={
+        conversationID
+          ? "flex h-full flex-col max-[600px]:hidden"
+          : "flex h-full flex-col max-[600px]:w-full"
+      }
+    >
       <ConnectBar />
       <FlexibleSider
         needHidden={Boolean(conversationID)}
-        wrapClassName="left-2 right-2 top-1.5 flex flex-col"
+        wrapClassName="inset-0 flex flex-col"
       >
         <Virtuoso
-          className="flex-1"
+          className="conversation-list flex-1"
           data={chatConversationList}
           ref={virtuoso}
           endReached={endReached}

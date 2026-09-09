@@ -2,7 +2,6 @@ import type {
   ConversationItem as ConversationItemType,
   MessageItem,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
-import { Badge } from "antd";
 import clsx from "clsx";
 import { t } from "i18next";
 import { Bot } from "lucide-react";
@@ -47,7 +46,7 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
   const latestMessageContent = useMemo(() => {
     let content = "";
     if (!conversation.latestMsg) {
-      return "";
+      return t("messageDescription.noMessages");
     }
     try {
       content = getConversationContent(
@@ -67,25 +66,38 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
     <div
       className={clsx(
         styles["conversation-item"],
-        "my-0.5 cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
-        isActive
-          ? "bg-surface-selected text-foreground shadow-sm"
-          : "text-foreground hover:bg-surface-hover",
+        "conversation-row",
+        isActive ? "conversation-row-active" : "",
       )}
+      role="button"
+      tabIndex={0}
+      aria-current={isActive ? "true" : undefined}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          void toSpecifiedConversation();
+        }
+      }}
       onClick={toSpecifiedConversation}
     >
-      <Badge size="small" count={conversation.unreadCount}>
-        <OIMAvatar
-          src={conversation.faceURL}
-          isgroup={Boolean(conversation.groupID)}
-          text={conversationName}
-        />
-      </Badge>
+      <OIMAvatar
+        size={36}
+        src={conversation.faceURL}
+        isgroup={Boolean(conversation.groupID)}
+        text={conversationName}
+      />
 
-      <div className="ml-3 flex h-11 flex-1 flex-col justify-between overflow-hidden">
+      <div className="ml-2.5 flex min-w-0 flex-1 flex-col justify-center gap-1">
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <div className="text-body truncate font-medium">{conversationName}</div>
+            <div
+              className={clsx(
+                "truncate text-[13px] leading-[20px]",
+                conversation.unreadCount ? "font-semibold" : "font-medium",
+              )}
+            >
+              {conversationName}
+            </div>
             {isHosted && (
               <span
                 className="inline-flex h-[17px] shrink-0 items-center gap-0.5 rounded border border-trust-border bg-trust-soft px-1 text-[9px] font-bold leading-none text-trust"
@@ -96,17 +108,25 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
               </span>
             )}
           </div>
-          <div className="ml-2 text-[11px] text-muted-foreground">
+          <div className="ml-2 shrink-0 text-[10px] tabular-nums text-faint-foreground">
             {latestMessageTime}
           </div>
         </div>
 
-        <div className="flex items-center">
-          <div className="flex min-h-[16px] flex-1 items-center overflow-hidden text-xs">
-            <div className="truncate text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center">
+          <div className="flex min-w-0 flex-1 items-center text-xs">
+            <div
+              className="conversation-preview min-w-0 truncate text-xs leading-[20px] text-muted-foreground"
+              title={latestMessageContent}
+            >
               {latestMessageContent}
             </div>
           </div>
+          {conversation.unreadCount > 0 && (
+            <span className="conversation-unread">
+              {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
+            </span>
+          )}
         </div>
       </div>
     </div>

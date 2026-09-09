@@ -14,9 +14,9 @@ import type { MessageReactionSummary } from "@/api/messageReaction";
 import OIMAvatar from "@/components/OIMAvatar";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
-import { formatMessageTime } from "@/utils/imCommon";
 
 import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
+import { messageDate } from "../messageDate";
 import { captureQuoteSelection, QuoteSelection } from "../partialQuote";
 import { deleteMessage } from "../useHistoryMessageList";
 import BurnCountdown from "./BurnCountdown";
@@ -224,7 +224,7 @@ const MessageItem: FC<IMessageItemProps> = ({
         id={`chat_${message.clientMsgID}`}
         data-chat-message-row
         className={clsx(
-          "relative flex select-text justify-center py-3",
+          "relative flex select-text justify-center py-2",
           styles["message-row"],
           selectionMode && styles["message-row-selection-mode"],
           selected && styles["message-row-selected"],
@@ -303,9 +303,14 @@ const MessageItem: FC<IMessageItemProps> = ({
               >
                 {message.senderNickname}
               </div>
-              <div className="text-[var(--sub-text)]">
-                {formatMessageTime(message.sendTime)}
-              </div>
+              <time
+                className={styles["message-time"]}
+                tabIndex={0}
+                dateTime={messageDate(message.sendTime).toISOString()}
+                title={messageDate(message.sendTime).format("YYYY-MM-DD HH:mm:ss")}
+              >
+                {messageDate(message.sendTime).format("HH:mm")}
+              </time>
               {agentAttribution && (
                 <Tooltip
                   title={t("secretary.sentByAgent", {

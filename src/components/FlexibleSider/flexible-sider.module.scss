@@ -1,5 +1,5 @@
 .sider_resize {
-  width: 300px;
+  width: 284px;
   min-width: 240px;
   max-width: 45vw;
   resize: horizontal;
@@ -12,11 +12,11 @@
   }
 }
 
-.sider_bar {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  border-left: 1px solid var(--surface-border);
-  pointer-events: none;
+@media (max-width: 600px) {
+  .sider_resize {
+    width: 100vw;
+    min-width: 100%;
+    max-width: 100%;
+    resize: none;
+  }
 }

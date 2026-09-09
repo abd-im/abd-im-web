@@ -1,4 +1,10 @@
 {
+  "workspace": {
+    "globalSearch": "搜索消息、联系人…",
+    "noConversationSelected": "尚未选择会话",
+    "new": "新建",
+    "back": "返回会话列表"
+  },
   "desktopUpdate": {
     "required": "需要更新才能继续使用",
     "check": "检查更新",
@@ -79,6 +85,9 @@
   },
   "agent": {
     "settings": {
+      "title": "Agent 设置",
+      "back": "返回账号设置",
+      "close": "关闭设置",
       "user": "Agent 用户",
       "selectUser": "选择 Agent 用户",
       "changeUser": "更换",
@@ -240,7 +249,7 @@
     "usingFriendVerification": "对方开启了好友验证，你还不是他的好友",
     "confirmDeleteMoment": "确认删除该条朋友圈吗？",
     "uploadFailed": "上传失败！",
-    "somethingError": "似乎出现了一点问题~",
+    "somethingError": "页面暂时无法显示，请重试",
     "getLogFailed": "获取日志文件失败！",
     "publishFailed": "发布失败！",
     "notCanAddFriend": "对方已设置不允许被添加为好友！",
@@ -252,7 +261,7 @@
   "placeholder": {
     "conversation": "会话",
     "leaveMessage": "留言",
-    "recover": "点击恢复",
+    "recover": "重新加载",
     "someInCall": "{{count}}人正在通话",
     "compere": "主持人",
     "watchUser": "全部看他",
@@ -551,6 +560,9 @@
     "atYouPrefix": "[有人@你]",
     "unreadCount": "[{{count}}条]",
     "catchMessage": "[暂未支持的消息类型]",
+    "systemMessage": "[系统通知]",
+    "emptyMessage": "[消息内容为空]",
+    "noMessages": "暂无消息",
     "forwardMessage": "[转发] {{additional}}",
     "addtionalCardMessage": "[名片] {{additional}}",
     "quoteMessageRevoke": "引用内容已被删除",
@@ -595,6 +607,12 @@
     "thisMonth": "本月",
     "earlier": "更早",
     "custom": "自定义"
+  },
+  "chatDate": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "shortFormat": "M月D日",
+    "fullFormat": "YYYY年M月D日"
   },
   "application": {
     "agree": "同意",

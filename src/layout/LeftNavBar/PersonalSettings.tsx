@@ -1,37 +1,35 @@
-import { CloseOutlined, RightOutlined } from "@ant-design/icons";
+import "./personal-settings.scss";
+
 import { AddFriendPermission, MessageReceiveOptType } from "@abd-im/wasm-client-sdk";
-import { Checkbox, Modal } from "antd";
+import { Modal, Segmented, Switch } from "antd";
+import { ArrowLeft, ChevronRight, X } from "lucide-react";
 import {
   forwardRef,
-  ForwardRefRenderFunction,
+  type ForwardRefRenderFunction,
   memo,
-  useCallback,
-  useEffect,
   useRef,
+  useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 
 import { modal } from "@/AntdGlobalComp";
-import { agentUserEx, agentUserIDFromEx } from "@/features/agent/config";
+import { IconButton } from "@/components/ui";
 import i18n from "@/i18n";
 import { IMSDK } from "@/layout/MainContentWrap";
-import type { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import { useUserStore } from "@/store";
 import { LocaleString } from "@/store/type";
 import { feedbackToast } from "@/utils/common";
-import emitter, { emit } from "@/utils/events";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
+import AgentSettings from "./AgentSettings";
 import BlackList from "./BlackList";
 import ChangePassword from "./ChangePassword";
-import SecretaryAccessSettings from "./SecretaryAccessSettings";
 
 const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
   _,
   ref,
 ) => {
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
-
   return (
     <Modal
       title={null}
@@ -41,15 +39,8 @@ const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> 
       onCancel={closeOverlay}
       centered
       destroyOnClose
-      styles={{
-        mask: {
-          opacity: 0,
-          transition: "none",
-        },
-      }}
-      width={600}
-      className="no-padding-modal max-w-[80vw]"
-      maskTransitionName=""
+      width={520}
+      className="no-padding-modal personal-settings-modal"
     >
       <PersonalSettingsContent closeOverlay={closeOverlay} />
     </Modal>
@@ -64,23 +55,22 @@ export const PersonalSettingsContent = ({
   closeOverlay?: () => void;
 }) => {
   const { t } = useTranslation();
+  const [page, setPage] = useState<"general" | "agent">("general");
+  const agentEntryRef = useRef<HTMLButtonElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
   const selfInfo = useUserStore((state) => state.selfInfo);
   const localeStr = useUserStore((state) => state.appSettings.locale);
   const allowBeep = useUserStore((state) => state.appSettings.allowBeep);
   const updateAppSettings = useUserStore((state) => state.updateAppSettings);
   const updateSelfInfo = useUserStore((state) => state.updateSelfInfo);
-  const agentUserID = agentUserIDFromEx(selfInfo.ex);
-
   const backListRef = useRef<OverlayVisibleHandle>(null);
   const changePasswordRef = useRef<OverlayVisibleHandle>(null);
 
-  const localeChange = (checked: boolean, locale: LocaleString) => {
-    if (!checked) return;
+  const localeChange = (locale: LocaleString) => {
     window.electronAPI?.ipcInvoke("changeLanguage", locale);
-    i18n.changeLanguage(locale);
+    void i18n.changeLanguage(locale);
     updateAppSettings({ locale });
   };
-
   const updateGlobalDND = async (checked: boolean) => {
     try {
       const opt = checked
@@ -92,7 +82,6 @@ export const PersonalSettingsContent = ({
       feedbackToast({ error });
     }
   };
-
   const updateAddFriendPermission = async (checked: boolean) => {
     try {
       const permission = checked
@@ -104,27 +93,6 @@ export const PersonalSettingsContent = ({
       feedbackToast({ error });
     }
   };
-
-  const updateAgentUser = useCallback(
-    async (agent: CheckListItem) => {
-      if (!agent.userID) return;
-      try {
-        const ex = agentUserEx(selfInfo.ex, agent.userID);
-        await IMSDK.setSelfInfo({ ex });
-        updateSelfInfo({ ex });
-      } catch (error) {
-        feedbackToast({ error });
-      }
-    },
-    [selfInfo.ex, updateSelfInfo],
-  );
-
-  useEffect(() => {
-    const handler = (agent: CheckListItem) => void updateAgentUser(agent);
-    emitter.on("AGENT_USER_SELECTED", handler);
-    return () => emitter.off("AGENT_USER_SELECTED", handler);
-  }, [updateAgentUser]);
-
   const tryClearAllHistory = () => {
     modal.confirm({
       title: t("placeholder.clearChatHistory"),
@@ -139,163 +107,125 @@ export const PersonalSettingsContent = ({
       },
     });
   };
+  const navigateSettings = (next: "general" | "agent") => {
+    setPage(next);
+    requestAnimationFrame(() =>
+      (next === "agent" ? backRef : agentEntryRef).current?.focus(),
+    );
+  };
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg bg-page-canvas text-foreground pb-6">
+    <div className="personal-settings" data-testid="personal-settings">
       <BlackList ref={backListRef} />
       <ChangePassword ref={changePasswordRef} />
-
-      {/* Header */}
-      <div className="app-drag flex items-center justify-between p-6">
-        <span className="text-xl font-bold text-foreground">
-          {t("placeholder.accountSetting")}
-        </span>
-        <CloseOutlined
-          className="app-no-drag cursor-pointer text-xl text-muted-foreground hover:text-red-500 transition-colors"
-          rev={undefined}
+      <header className="personal-settings-header app-drag">
+        {page === "agent" && (
+          <button
+            ref={backRef}
+            className="ui-button ui-button-ghost ui-button-icon app-no-drag"
+            aria-label={t("agent.settings.back")}
+            onClick={() => navigateSettings("general")}
+          >
+            <ArrowLeft />
+          </button>
+        )}
+        <h2>
+          {t(page === "agent" ? "agent.settings.title" : "placeholder.accountSetting")}
+        </h2>
+        <IconButton
+          className="app-no-drag"
+          label={t("agent.settings.close")}
           onClick={closeOverlay}
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6">
-        {/* Card 1: Core Settings */}
-        <div className="mb-4 text-sm font-bold text-muted-foreground">
-          {t("placeholder.personalSetting")}
-        </div>
-        <div className="mb-6 rounded-lg bg-surface border border-surface-border p-5 shadow-sm">
-          {/* Language Selection */}
-          <div className="mb-6">
-            <div className="mb-4 text-sm font-semibold text-foreground">
-              {t("placeholder.chooseLanguage")}
+        >
+          <X />
+        </IconButton>
+      </header>
+      {page === "agent" ? (
+        <AgentSettings />
+      ) : (
+        <div className="personal-settings-body" data-testid="general-settings">
+          <section className="settings-section">
+            <h3>{t("placeholder.personalSetting")}</h3>
+            <div className="settings-row">
+              <span>{t("placeholder.chooseLanguage")}</span>
+              <Segmented
+                size="small"
+                aria-label={t("placeholder.chooseLanguage")}
+                value={localeStr}
+                options={[
+                  { label: "简体中文", value: "zh-CN" },
+                  { label: "English", value: "en-US" },
+                ]}
+                onChange={(value) => localeChange(value as LocaleString)}
+              />
             </div>
-            <div className="flex gap-12 pl-1">
-              <Checkbox
-                checked={localeStr === "zh-CN"}
-                onChange={(e) => localeChange(e.target.checked, "zh-CN")}
-              >
-                <span className="text-sm font-medium">简体中文</span>
-              </Checkbox>
-              <Checkbox
-                checked={localeStr === "en-US"}
-                onChange={(e) => localeChange(e.target.checked, "en-US")}
-              >
-                <span className="text-sm font-medium">English</span>
-              </Checkbox>
-            </div>
-          </div>
-
-          {/* Notification Settings */}
-          <div className="mb-6">
-            <div className="mb-4 text-sm font-semibold text-foreground">
-              {t("placeholder.messageToast")}
-            </div>
-            <div className="flex gap-12 pl-1">
-              <Checkbox
+            <div className="settings-row">
+              <label htmlFor="settings-beep">{t("placeholder.messageAllowBeep")}</label>
+              <Switch
+                id="settings-beep"
+                size="small"
                 checked={allowBeep}
-                onChange={(e) => updateAppSettings({ allowBeep: e.target.checked })}
-              >
-                <span className="text-sm font-medium">
-                  {t("placeholder.messageAllowBeep")}
-                </span>
-              </Checkbox>
-              <Checkbox
+                onChange={(checked) => updateAppSettings({ allowBeep: checked })}
+              />
+            </div>
+            <div className="settings-row">
+              <label htmlFor="settings-dnd">{t("placeholder.messageNotNotify")}</label>
+              <Switch
+                id="settings-dnd"
+                size="small"
                 checked={selfInfo.globalRecvMsgOpt === MessageReceiveOptType.NotNotify}
-                onChange={(e) => updateGlobalDND(e.target.checked)}
-              >
-                <span className="text-sm font-medium">
-                  {t("placeholder.messageNotNotify")}
-                </span>
-              </Checkbox>
+                onChange={(checked) => void updateGlobalDND(checked)}
+              />
             </div>
-          </div>
-
-          {/* Add Friend Settings */}
-          <div className="mb-6">
-            <div className="mb-4 text-sm font-semibold text-foreground">
-              {t("placeholder.addFriendsSetting")}
-            </div>
-            <div className="pl-1">
-              <Checkbox
+            <div className="settings-row">
+              <label htmlFor="settings-friend-permission">
+                {t("placeholder.refuseAddFriend")}
+              </label>
+              <Switch
+                id="settings-friend-permission"
+                size="small"
                 checked={
                   selfInfo.addFriendPermission === AddFriendPermission.AddFriendDenied
                 }
-                onChange={(e) => updateAddFriendPermission(e.target.checked)}
-              >
-                <span className="text-sm font-medium">
-                  {t("placeholder.refuseAddFriend")}
-                </span>
-              </Checkbox>
+                onChange={(checked) => void updateAddFriendPermission(checked)}
+              />
             </div>
-          </div>
-
-          <div className="border-t border-surface-border pt-6">
-            <div className="mb-1 text-sm font-semibold text-foreground">
-              {t("agent.settings.user")}
-            </div>
-            <div className="flex items-center justify-between gap-4 pl-1">
-              <span className="min-w-0 truncate text-sm text-muted-foreground">
-                {agentUserID || t("agent.settings.notSelected")}
-              </span>
-              <button
-                className="shrink-0 text-sm font-medium text-primary hover:opacity-80"
-                type="button"
-                onClick={() => emit("OPEN_CHOOSE_MODAL", { type: "SELECT_AGENT_USER" })}
-              >
-                {agentUserID
-                  ? t("agent.settings.changeUser")
-                  : t("agent.settings.selectUser")}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 border-t border-surface-border pt-6">
-            <SecretaryAccessSettings />
-          </div>
-        </div>
-
-        {/* Card 2: List Actions */}
-        <div className="mb-4 text-sm font-bold text-muted-foreground">
-          {t("placeholder.securitySetting")}
-        </div>
-        <div className="mb-6 overflow-hidden rounded-lg bg-surface border border-surface-border shadow-sm">
-          <div
-            className="flex cursor-pointer items-center justify-between border-b border-surface-border px-5 py-5 transition-colors hover:bg-surface-hover"
-            onClick={() => backListRef.current?.openOverlay()}
-          >
-            <span className="text-sm font-bold text-foreground">
-              {t("placeholder.blackList")}
-            </span>
-            <RightOutlined className="text-xs text-muted-foreground" rev={undefined} />
-          </div>
-
-          <div
-            className="flex cursor-pointer items-center justify-between px-5 py-5 transition-colors hover:bg-surface-hover"
-            onClick={() => {
-              changePasswordRef.current?.openOverlay();
-            }}
-          >
-            <span className="text-sm font-bold text-foreground">
-              {t("placeholder.changePassword")}
-            </span>
-            <RightOutlined className="text-xs text-muted-foreground" rev={undefined} />
-          </div>
-        </div>
-
-        {/* Card 3: Danger Action */}
-        <div className="mb-4 text-sm font-bold text-muted-foreground">
-          {t("placeholder.otherSetting")}
-        </div>
-        <div className="overflow-hidden rounded-lg bg-surface border border-surface-border shadow-sm">
-          <div
-            className="flex cursor-pointer items-center justify-center px-5 py-5 transition-colors hover:bg-red-50"
-            onClick={tryClearAllHistory}
-          >
-            <span className="text-sm font-bold text-[#ff381f]">
+            <button
+              ref={agentEntryRef}
+              className="settings-row settings-link"
+              onClick={() => navigateSettings("agent")}
+            >
+              <span>{t("agent.settings.title")}</span>
+              <ChevronRight size={15} />
+            </button>
+          </section>
+          <section className="settings-section">
+            <h3>{t("placeholder.securitySetting")}</h3>
+            <button
+              className="settings-row settings-link"
+              onClick={() => backListRef.current?.openOverlay()}
+            >
+              <span>{t("placeholder.blackList")}</span>
+              <ChevronRight size={15} />
+            </button>
+            <button
+              className="settings-row settings-link"
+              onClick={() => changePasswordRef.current?.openOverlay()}
+            >
+              <span>{t("placeholder.changePassword")}</span>
+              <ChevronRight size={15} />
+            </button>
+          </section>
+          <section className="settings-section">
+            <button
+              className="settings-row settings-link settings-danger"
+              onClick={tryClearAllHistory}
+            >
               {t("placeholder.clearChatHistory")}
-            </span>
-          </div>
+            </button>
+          </section>
         </div>
-      </div>
+      )}
     </div>
   );
 };

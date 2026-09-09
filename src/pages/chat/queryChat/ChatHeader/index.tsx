@@ -10,16 +10,18 @@ import {
   Settings,
   UserPlus,
 } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { Fragment, memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import {
   type ChatManagement,
   getBusinessConnection,
   updateChatManagement,
 } from "@/api/secretary";
-import group_member from "@/assets/images/chatHeader/group_member.png";
 import OIMAvatar from "@/components/OIMAvatar";
+import { Button, IconButton } from "@/components/ui";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
 import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
@@ -32,6 +34,7 @@ import SearchHistory from "../SearchHistory";
 import SingleSetting from "../SingleSetting";
 
 const ChatHeader = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const singleSettingRef = useRef<OverlayVisibleHandle>(null);
   const groupSettingRef = useRef<OverlayVisibleHandle>(null);
@@ -220,23 +223,27 @@ const ChatHeader = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <Layout.Header className="relative border-b border-surface-border !bg-surface !px-3 text-foreground shadow-sm">
+    <Layout.Header className="chat-header">
       <div className="flex h-full items-center leading-none">
+        <IconButton
+          label={t("workspace.back")}
+          className="mr-2 min-[601px]:hidden"
+          onClick={() => navigate("/chat")}
+        >
+          <ArrowLeft />
+        </IconButton>
         <div className="flex flex-1 items-center overflow-hidden">
           <OIMAvatar
+            size={32}
             src={currentConversation?.faceURL}
             text={conversationName}
             isgroup={Boolean(currentConversation?.groupID)}
           />
-          <div
-            className={clsx(
-              "ml-3 flex !h-10.5 flex-1 flex-col justify-between overflow-hidden",
-            )}
-          >
-            <div className="truncate text-base font-semibold">{conversationName}</div>
+          <div className={clsx("chat-header-title")}>
+            <div className="truncate text-[13px] font-semibold">{conversationName}</div>
             {isGroupSession && currentUserIsInGroup && (
               <div className="flex items-center text-xs text-[var(--sub-text)]">
-                <img width={20} src={group_member} alt="member" />
+                <Users size={12} className="mr-1" />
                 <span>{currentGroupInfo?.memberCount}</span>
               </div>
             )}
@@ -253,7 +260,7 @@ const ChatHeader = () => {
             )}
           </div>
         </div>
-        <div className="mr-5 flex">
+        <div className="chat-header-actions">
           {isSingleSession && currentConversation && (
             <div
               className={clsx(
@@ -281,7 +288,7 @@ const ChatHeader = () => {
                 }
               >
                 <Bot size={15} strokeWidth={1.8} />
-                {t("secretary.hosting")}
+                <span className="hosting-label">{t("secretary.hosting")}</span>
               </button>
               <Popover
                 trigger="click"
@@ -385,25 +392,25 @@ const ChatHeader = () => {
                     onOpenChange={setCallMenuOpen}
                   >
                     <Tooltip title={t("placeholder.call")}>
-                      <button
-                        type="button"
-                        className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label={t("placeholder.call")}
                       >
                         <Phone size={20} strokeWidth={1.8} />
-                      </button>
+                      </Button>
                     </Tooltip>
                   </Popover>
                 )}
                 <Tooltip title={menu.title}>
-                  <button
-                    type="button"
-                    className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     aria-label={menu.title}
                     onClick={() => menuClick(menu.idx)}
                   >
                     <Icon size={20} strokeWidth={1.8} />
-                  </button>
+                  </Button>
                 </Tooltip>
               </Fragment>
             );

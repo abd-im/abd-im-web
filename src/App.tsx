@@ -1,7 +1,7 @@
-import { App as AntdApp, ConfigProvider, theme } from "antd";
+import { App as AntdApp, ConfigProvider } from "antd";
 import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { RouterProvider } from "react-router-dom";
@@ -10,6 +10,7 @@ import AntdGlobalComp from "./AntdGlobalComp";
 import AppUpdateBar, { MandatoryUpdate } from "./components/AppUpdateBar";
 import { useDesktopUpdates } from "./hooks/useDesktopUpdates";
 import router from "./routes";
+import { AppearanceProvider } from "./components/ui/theme";
 import { useUserStore } from "./store";
 
 function App() {
@@ -27,28 +28,22 @@ function App() {
     <ConfigProvider
       autoInsertSpaceInButton={false}
       locale={locale === "zh-CN" ? zhCN : enUS}
-      theme={{
-        token: {
-          colorPrimary: "#27272a",
-          colorPrimaryHover: "#3f3f46",
-          colorPrimaryActive: "#18181b",
-          colorLink: "#27272a",
-          colorLinkHover: "#3f3f46",
-          colorLinkActive: "#18181b",
-        },
-      }}
     >
-      <QueryClientProvider client={queryClient}>
-        <Suspense fallback={<div>loading...</div>}>
-          <AntdApp>
-            <AntdGlobalComp />
-            <RouterProvider router={router} />
-            <AppUpdateBar />
-            <MandatoryUpdate />
-          </AntdApp>
-        </Suspense>
-        <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
-      </QueryClientProvider>
+      <AppearanceProvider>
+        <QueryClientProvider client={queryClient}>
+          <Suspense fallback={<div>loading...</div>}>
+            <AntdApp>
+              <AntdGlobalComp />
+              <RouterProvider router={router} />
+              <AppUpdateBar />
+              <MandatoryUpdate />
+            </AntdApp>
+          </Suspense>
+          {import.meta.env.DEV && import.meta.env.VITE_QUERY_DEVTOOLS === "true" && (
+            <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+          )}
+        </QueryClientProvider>
+      </AppearanceProvider>
     </ConfigProvider>
   );
 }

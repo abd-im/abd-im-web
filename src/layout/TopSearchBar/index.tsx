@@ -5,16 +5,12 @@ import {
   RtcInvite,
   WSEvent,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Popover } from "antd";
 import i18n, { t } from "i18next";
+import { Plus, Search, SquarePen, UserPlus, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getBusinessUserInfo } from "@/api/login";
-import add_friend from "@/assets/images/topSearchBar/add_friend.png";
-import add_group from "@/assets/images/topSearchBar/add_group.png";
-import create_group from "@/assets/images/topSearchBar/create_group.png";
-import show_more from "@/assets/images/topSearchBar/show_more.png";
+import { Button, Popover } from "@/components/ui";
 import WindowControlBar from "@/components/WindowControlBar";
 import { CustomType } from "@/constants";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
@@ -162,27 +158,35 @@ const TopSearchBar = () => {
   }, []);
 
   return (
-    <div className="no-mobile app-drag flex h-10 min-h-[40px] items-center bg-app-shell border-b border-surface-border text-foreground px-4">
-      <div className="flex w-full items-center justify-center">
-        <div
-          className="app-no-drag flex h-7 w-2/5 max-w-sm cursor-pointer items-center justify-center rounded-md bg-surface border border-surface-border shadow-sm hover:border-brand/40 hover:bg-surface-hover transition-all gap-2 text-muted-foreground hover:text-foreground px-3"
+    <div className="no-mobile app-drag workspace-topbar">
+      <div className="workspace-brand">
+        <img className="workspace-brand-mark" src="./icons/icon.png" alt="" />
+        <span>ABD IM</span>
+      </div>
+      <div className="workspace-search">
+        <button
+          className="app-no-drag workspace-search-trigger"
           onClick={() => globalSearchRef.current?.openOverlay()}
         >
-          <SearchOutlined rev={undefined} className="text-xs text-muted-foreground" />
-          <span className="text-xs text-muted-foreground font-medium">{t("placeholder.search")}</span>
-        </div>
+          <Search size={14} strokeWidth={1.7} />
+          <span>{t("workspace.globalSearch")}</span>
+        </button>
         <Popover
-          content={<ActionPopContent actionClick={actionClick} />}
-          arrow={false}
-          title={null}
-          trigger="click"
-          placement="bottom"
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="app-no-drag workspace-search-action"
+              aria-label={t("workspace.new")}
+              title={t("workspace.new")}
+            >
+              <Plus />
+            </Button>
+          }
           open={actionVisible}
-          onOpenChange={(vis) => setActionVisible(vis)}
+          onOpenChange={setActionVisible}
         >
-          <div className="app-no-drag ml-4 flex h-7 w-7 items-center justify-center rounded-md cursor-pointer text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors">
-            <PlusOutlined rev={undefined} className="text-sm" />
-          </div>
+          <ActionPopContent actionClick={actionClick} />
         </Popover>
       </div>
       <WindowControlBar />
@@ -207,17 +211,17 @@ const actionMenuList = [
   {
     idx: 0,
     title: t("placeholder.addFriends"),
-    icon: add_friend,
+    icon: UserPlus,
   },
   {
     idx: 1,
     title: t("placeholder.addGroup"),
-    icon: add_group,
+    icon: Users,
   },
   {
     idx: 2,
     title: t("placeholder.createGroup"),
-    icon: create_group,
+    icon: SquarePen,
   },
 ];
 
@@ -231,14 +235,14 @@ const ActionPopContent = ({ actionClick }: { actionClick: (idx: number) => void 
   return (
     <div className="p-1">
       {actionMenuList.map((action) => (
-        <div
-          className="flex cursor-pointer items-center rounded-md px-3 py-2 text-xs text-foreground transition-colors hover:bg-surface-hover"
+        <button
+          className="ui-menu-item"
           key={action.idx}
           onClick={() => actionClick?.(action.idx)}
         >
-          <img width={20} src={action.icon} alt="call_video" />
-          <div className="ml-3">{action.title}</div>
-        </div>
+          <action.icon />
+          <span>{action.title}</span>
+        </button>
       ))}
     </div>
   );

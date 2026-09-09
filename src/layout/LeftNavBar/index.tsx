@@ -1,5 +1,5 @@
 import { RightOutlined } from "@ant-design/icons";
-import { Badge, Divider, Layout, Popover, Upload } from "antd";
+import { Badge, Divider, Layout, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
 import { Bot, ContactRound, MessageSquare } from "lucide-react";
@@ -11,6 +11,7 @@ import { modal } from "@/AntdGlobalComp";
 import { updateBusinessUserInfo } from "@/api/login";
 import change_avatar from "@/assets/images/profile/change_avatar.png";
 import OIMAvatar from "@/components/OIMAvatar";
+import { Popover as UIPopover } from "@/components/ui";
 import { splitConversationList } from "@/features/agentWorkspace/conversationLists";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
@@ -147,12 +148,11 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
 
   return (
     <Badge size="small" count={getBadge()}>
-      <div
+      <button
+        type="button"
         data-testid={`nav-${path.slice(1)}`}
-        className={clsx(
-          "mb-3 flex h-[52px] w-12 cursor-pointer flex-col items-center justify-center rounded-lg transition-colors",
-          isActive ? "bg-surface-selected shadow-sm" : "hover:bg-surface-hover",
-        )}
+        className="workspace-nav-item"
+        aria-current={isActive ? "page" : undefined}
         onClick={tryNavigate}
       >
         <div className="flex h-5 items-center justify-center">
@@ -166,7 +166,7 @@ const NavItem = ({ nav: { icon, icon_active, title, path } }: { nav: NavItemType
         >
           {title}
         </div>
-      </div>
+      </button>
     </Badge>
   );
 };
@@ -306,31 +306,32 @@ const LeftNavBar = memo(() => {
 
   return (
     <Sider
-      className="no-mobile border-r border-surface-border !bg-app-shell text-foreground"
-      width={60}
+      className="no-mobile !bg-app-shell text-foreground"
+      width={64}
       theme="light"
     >
-      <div className="mt-6 flex flex-col items-center">
-        <Popover
-          content={ProfileContent}
-          trigger="click"
-          placement="rightBottom"
-          overlayClassName="profile-popover"
-          title={null}
-          arrow={false}
+      <div className="workspace-rail">
+        <UIPopover
+          side="right"
+          align="start"
           open={showProfile}
-          onOpenChange={(vis) => setShowProfile(vis)}
+          onOpenChange={setShowProfile}
+          trigger={
+            <button
+              className="mb-6 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+              aria-label={t("placeholder.myInfo")}
+            >
+              <OIMAvatar size={34} src={selfInfo.faceURL} text={selfInfo.nickname} />
+            </button>
+          }
         >
-          <OIMAvatar
-            className="mb-6 cursor-pointer"
-            src={selfInfo.faceURL}
-            text={selfInfo.nickname}
-          />
-        </Popover>
-
-        {NavList.map((nav) => (
-          <NavItem nav={nav} key={nav.path} />
-        ))}
+          {ProfileContent}
+        </UIPopover>
+        <nav className="workspace-rail-nav">
+          {NavList.map((nav) => (
+            <NavItem nav={nav} key={nav.path} />
+          ))}
+        </nav>
       </div>
       <PersonalSettings ref={personalSettingsRef} />
       <About ref={aboutRef} />

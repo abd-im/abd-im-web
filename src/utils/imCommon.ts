@@ -10,6 +10,7 @@ import { GroupSessionTypes, SystemMessageTypes } from "@/constants/im";
 import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
 import { getUserDisplayName } from "@/hooks/useUserDisplayName";
+import { getMessagePreview } from "@/pages/chat/queryChat/messagePreview";
 
 import { generateAvatar, secondsToTime } from "./common";
 import { beginDesktopTask } from "./desktopTasks";
@@ -462,18 +463,24 @@ export const getConversationContent = (
   resolveDisplayName = getUserDisplayName,
   selfUserID = useUserStore.getState().selfInfo.userID,
 ) => {
+  const content =
+    formatMessageByType(message)?.trim() ||
+    (SystemMessageTypes.includes(message.contentType)
+      ? notificationMessageFormat(message) || t("messageDescription.systemMessage")
+      : getMessagePreview(message)?.trim()) ||
+    t("messageDescription.emptyMessage");
   if (
     !message.groupID ||
     SystemMessageTypes.includes(message.contentType) ||
     message.sendID === selfUserID
   ) {
-    return formatMessageByType(message);
+    return content;
   }
   const senderName = resolveDisplayName({
     userID: message.sendID,
     nickname: message.senderNickname,
   });
-  return `${senderName}：${formatMessageByType(message)}`;
+  return `${senderName}：${content}`;
 };
 
 export const uploadFile = async (file: FileWithPath, path?: string) => {

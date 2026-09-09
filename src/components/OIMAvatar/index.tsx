@@ -1,4 +1,4 @@
-import { TeamOutlined, UserOutlined } from "@ant-design/icons";
+import { Users, UserRound } from "lucide-react";
 import { Avatar as AntdAvatar, AvatarProps } from "antd";
 import clsx from "clsx";
 import * as React from "react";
@@ -17,15 +17,14 @@ interface IOIMAvatarProps extends AvatarProps {
   size?: number;
 }
 
-// Artistic White-Background Black-Text Avatar Style
-const MONOCHROME_AVATAR_BG = "#ffffff";
+const AVATAR_TONES = ["#e7edf5", "#ece8f0", "#e6eeea", "#f0e9e5", "#e8eaed"];
 
 const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
   const {
     src,
     text,
     size = 42,
-    color = "#09090b",
+    color = "#424750",
     bgColor,
     isgroup = false,
     isnotification,
@@ -39,8 +38,12 @@ const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
   }, [text]);
 
   const computedBgColor = useMemo(() => {
-    return MONOCHROME_AVATAR_BG;
-  }, []);
+    const hash = Array.from(text || "").reduce(
+      (sum, char) => sum + char.charCodeAt(0),
+      0,
+    );
+    return bgColor || AVATAR_TONES[hash % AVATAR_TONES.length];
+  }, [bgColor, text]);
 
   const getAvatarUrl = useMemo(() => {
     if (src && !hasError) {
@@ -59,10 +62,10 @@ const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
   }, [src]);
 
   const fallbackIcon = useMemo(() => {
-    if (isgroup) return <TeamOutlined className="text-lg text-foreground" />;
+    if (isgroup) return <Users size={Math.round(size * 0.48)} strokeWidth={1.6} />;
     if (firstLetter) return firstLetter;
-    return <UserOutlined className="text-lg text-foreground" />;
-  }, [firstLetter, isgroup]);
+    return <UserRound size={Math.round(size * 0.48)} strokeWidth={1.6} />;
+  }, [firstLetter, isgroup, size]);
 
   return (
     <AntdAvatar
@@ -72,11 +75,13 @@ const OIMAvatar: React.FC<IOIMAvatarProps> = (props) => {
         minHeight: `${size}px`,
         lineHeight: `${size - 2}px`,
         color,
+        borderRadius: "var(--radius-control)",
+        fontSize: Math.round(size * 0.38),
       }}
       shape="square"
       {...avatarProps}
       className={clsx(
-        "rounded-lg font-serif italic font-bold shadow-sm border border-surface-border select-none flex items-center justify-center",
+        "flex shrink-0 select-none items-center justify-center font-medium",
         {
           "cursor-pointer": Boolean(props.onClick),
         },

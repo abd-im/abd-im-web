@@ -7,7 +7,7 @@
 }
 
 .ant-spin-dot-item {
-  background-color: #27272a !important;
+  background-color: var(--muted-foreground) !important;
 }
 
 .ant-spin-text {
@@ -170,7 +170,7 @@
 
 .global-search-modal {
   .ant-modal-content {
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
   }
 
   .message-drawer-tab {

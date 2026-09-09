@@ -32,6 +32,9 @@ yarn.lock
 /playwright-report/
 /playwright/.cache/
 
+# Generated UI verification screenshots
+/e2e/screenshots/*.png
+
 # sdk core
 open-im-sdk-core.*
 OpenIM_*

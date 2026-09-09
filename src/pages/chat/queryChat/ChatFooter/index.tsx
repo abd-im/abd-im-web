@@ -1,8 +1,8 @@
 import { MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
 import { CloseOutlined, RollbackOutlined, UploadOutlined } from "@ant-design/icons";
 import { useLatest } from "ahooks";
-import { Button } from "antd";
 import { t } from "i18next";
+import { ArrowUp } from "lucide-react";
 import {
   ClipboardEvent,
   DragEvent,
@@ -16,10 +16,11 @@ import {
 
 import CKEditor, { CKEditorRef } from "@/components/CKEditor";
 import { getCleanText } from "@/components/CKEditor/utils";
+import { Button } from "@/components/ui";
+import { useDesktopDraft } from "@/hooks/useDesktopDraft";
 import { useUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
-import { useDesktopDraft } from "@/hooks/useDesktopDraft";
 import { feedbackToast } from "@/utils/common";
 import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
@@ -175,7 +176,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
 
   return (
     <footer
-      className="relative h-full bg-surface px-3 pb-3 pt-2 text-foreground"
+      className="chat-composer"
       onPasteCapture={handlePaste}
       onDragEnterCapture={handleDragEnter}
       onDragOverCapture={handleDragOver}
@@ -191,12 +192,9 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
           <UploadOutlined className="text-3xl text-brand" />
         </div>
       )}
-      <div className="flex h-full flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-raised shadow-sm">
+      <div className="chat-composer-box">
         {quoteMessage && (
-          <div
-            className="mx-3 flex min-h-14 items-center gap-3 border-b border-surface-border px-1 py-2"
-            data-testid="composer-reply"
-          >
+          <div className="chat-composer-reply" data-testid="composer-reply">
             <RollbackOutlined className="shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <strong className="block truncate text-xs font-semibold text-foreground">
@@ -207,20 +205,16 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
               </span>
             </div>
             <Button
-              type="text"
-              shape="circle"
-              icon={<CloseOutlined />}
+              variant="ghost"
+              size="icon"
               title={`${t("cancel")} ${t("placeholder.reply")}`}
               aria-label={`${t("cancel")} ${t("placeholder.reply")}`}
               onClick={() => updateQuoteMessage()}
-            />
+            >
+              <CloseOutlined />
+            </Button>
           </div>
         )}
-        <SendActionBar
-          sendMessage={sendMessage}
-          sendFiles={sendFiles}
-          onSelectEmoji={onSelectEmoji}
-        />
         <div className="relative flex flex-1 flex-col overflow-hidden">
           <CKEditor
             ref={ckEditorRef}
@@ -228,13 +222,20 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
             onEnter={() => void enterToSend()}
             onChange={onChange}
           />
-          <div className="flex items-center justify-end py-2 pr-3">
+          <div className="chat-composer-bottom">
+            <SendActionBar
+              sendMessage={sendMessage}
+              sendFiles={sendFiles}
+              onSelectEmoji={onSelectEmoji}
+            />
             <Button
-              className="w-fit px-6 py-1"
-              type="primary"
+              variant="primary"
+              size="small"
+              disabled={!getCleanText(html || "")}
               onClick={() => void enterToSend()}
             >
               {t("placeholder.send")}
+              <ArrowUp />
             </Button>
           </div>
         </div>

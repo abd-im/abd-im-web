@@ -35,9 +35,11 @@ export const MainContentLayout = () => {
     <Spin className="!max-h-none" spinning={showLockLoading} tip={loadingTip}>
       <Layout className="h-full">
         <TopSearchBar />
-        <Layout>
+        <Layout className="workspace-main">
           <LeftNavBar />
-          <Outlet />
+          <div className="workspace-content">
+            <Outlet />
+          </div>
         </Layout>
       </Layout>
     </Spin>

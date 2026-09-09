@@ -1,4 +1,10 @@
 {
+  "workspace": {
+    "globalSearch": "Search messages, people...",
+    "noConversationSelected": "No conversation selected",
+    "new": "New",
+    "back": "Back to conversations"
+  },
   "desktopUpdate": {
     "required": "Update required to continue",
     "check": "Check for updates",
@@ -79,6 +85,9 @@
   },
   "agent": {
     "settings": {
+      "title": "Agent Settings",
+      "back": "Back to account settings",
+      "close": "Close settings",
       "user": "Agent user",
       "selectUser": "Select Agent user",
       "changeUser": "Change",
@@ -240,7 +249,7 @@
     "usingFriendVerification": "Friend verification is enabled, you are not yet their friend!",
     "confirmDeleteMoment": "Are you sure you want to delete this moment?",
     "uploadFailed": "Upload failed!",
-    "somethingError": "Seems like there was a small issue~",
+    "somethingError": "This page could not be displayed. Please try again.",
     "getLogFailed": "Failed to retrieve the log file!",
     "publishFailed": "Failed to publish!",
     "notCanAddFriend": "The other party has been set up not to be added as a friend!",
@@ -251,7 +260,7 @@
   "placeholder": {
     "conversation": "Conversation",
     "leaveMessage": "Leave a message",
-    "recover": "Click to recover",
+    "recover": "Reload",
     "someInCall": "{{count}} people are on a call",
     "compere": "Host",
     "watchUser": "Watch him only",
@@ -550,6 +559,9 @@
     "atYouPrefix": "[Someone @you]",
     "unreadCount": "[{{count}} messages]",
     "catchMessage": "[Unsupported Message Type]",
+    "systemMessage": "[System notification]",
+    "emptyMessage": "[Empty message]",
+    "noMessages": "No messages yet",
     "forwardMessage": "[Forward] {{additional}}",
     "addtionalCardMessage": "[Card] {{additional}}",
     "quoteMessageRevoke": "The cited content has been deleted",
@@ -594,6 +606,12 @@
     "thisMonth": "This month",
     "earlier": "Earlier",
     "custom": "Custom"
+  },
+  "chatDate": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "shortFormat": "MMM D",
+    "fullFormat": "MMM D, YYYY"
   },
   "application": {
     "agree": "Agree",

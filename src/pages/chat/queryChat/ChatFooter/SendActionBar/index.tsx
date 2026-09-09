@@ -1,16 +1,12 @@
-import { Popover, PopoverProps, Upload } from "antd";
+import { PopoverProps, Upload } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
-import clsx from "clsx";
 import i18n, { t } from "i18next";
+import { ContactRound, Film, Image, Paperclip, Smile } from "lucide-react";
 import { UploadRequestOption } from "rc-upload/lib/interface";
 import { memo, ReactNode, useEffect, useState } from "react";
 import React from "react";
 
-import card from "@/assets/images/chatFooter/card.png";
-import emoji from "@/assets/images/chatFooter/emoji.png";
-import file from "@/assets/images/chatFooter/file.png";
-import image from "@/assets/images/chatFooter/image.png";
-import video from "@/assets/images/chatFooter/video.png";
+import { Button, Popover as UIPopover } from "@/components/ui";
 import { getUserDisplayName } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
@@ -24,7 +20,7 @@ import EmojiPicker from "./EmojiPicker";
 const sendActionList = [
   {
     title: t("placeholder.emoji"),
-    icon: emoji,
+    icon: Smile,
     key: "emoji",
     accept: undefined,
     comp: null, // Initialized in component
@@ -32,7 +28,7 @@ const sendActionList = [
   },
   {
     title: t("placeholder.image"),
-    icon: image,
+    icon: Image,
     key: "image",
     accept: "image/*",
     comp: null,
@@ -40,7 +36,7 @@ const sendActionList = [
   },
   {
     title: t("placeholder.video"),
-    icon: video,
+    icon: Film,
     key: "video",
     accept: "video/*",
     comp: null,
@@ -48,7 +44,7 @@ const sendActionList = [
   },
   {
     title: t("placeholder.card"),
-    icon: card,
+    icon: ContactRound,
     key: "card",
     accept: undefined,
     comp: null,
@@ -56,7 +52,7 @@ const sendActionList = [
   },
   {
     title: t("placeholder.file"),
-    icon: file,
+    icon: Paperclip,
     key: "file",
     accept: "*",
     comp: null,
@@ -118,8 +114,9 @@ const SendActionBar = ({
   };
 
   return (
-    <div className="flex items-center px-4.5 pt-2">
+    <div className="chat-composer-tools">
       {sendActionList.map((action) => {
+        const Icon = action.icon;
         const popProps: PopoverProps = {
           placement: action.placement as TooltipPlacement,
           content:
@@ -154,14 +151,10 @@ const SendActionBar = ({
               void sendFiles([options.file as File], action.key as AttachmentType)
             }
           >
-            <button
-              type="button"
-              className={clsx(
-                "flex cursor-pointer items-center border-0 bg-transparent p-0 last:mr-0",
-                {
-                  "mr-5": !action.accept,
-                },
-              )}
+            <Button
+              variant="ghost"
+              size="icon"
+              title={action.title}
               aria-label={action.title}
               onClick={
                 action.key === "card"
@@ -169,8 +162,8 @@ const SendActionBar = ({
                   : undefined
               }
             >
-              <img src={action.icon} width={20} alt={action.title} />
-            </button>
+              <Icon />
+            </Button>
           </ActionWrap>
         );
       })}
@@ -197,14 +190,20 @@ const ActionWrap = ({
       customRequest={fileHandle}
       accept={accept}
       multiple
-      className="mr-5 flex"
+      className="flex"
     >
       {children}
     </Upload>
   ) : popProps ? (
-    <Popover {...popProps} overlayClassName="emoji-popover">
-      {children}
-    </Popover>
+    <UIPopover
+      open={popProps.open}
+      onOpenChange={popProps.onOpenChange}
+      side="top"
+      align="start"
+      trigger={children as React.ReactElement}
+    >
+      {popProps.content as ReactNode}
+    </UIPopover>
   ) : (
     <>{children}</>
   );

@@ -10,6 +10,7 @@ import {
   updateChatManagement,
 } from "@/api/secretary";
 import OIMAvatar from "@/components/OIMAvatar";
+import { Button } from "@/components/ui";
 import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useConversationStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
@@ -74,8 +75,8 @@ const SecretaryAccessSettings = () => {
   };
 
   return (
-    <div className="mb-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="agent-access-settings">
+      <div className="agent-access-heading">
         <div>
           <div className="text-sm font-semibold text-foreground">
             {t("secretary.historyAccess")}
@@ -84,9 +85,8 @@ const SecretaryAccessSettings = () => {
             {t("secretary.selectedCount", { count: selectedIDs.size })}
           </div>
         </div>
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-sm font-medium text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+        <Button
+          size="small"
           disabled={loading || saving || accessibleConversations.length === 0}
           onClick={() =>
             void save(
@@ -99,10 +99,10 @@ const SecretaryAccessSettings = () => {
         >
           {allSelected ? <Square size={15} /> : <CheckSquare size={15} />}
           {allSelected ? t("secretary.disableAll") : t("secretary.enableAll")}
-        </button>
+        </Button>
       </div>
 
-      <div className="max-h-64 overflow-y-auto rounded-md border border-surface-border">
+      <div className="agent-access-list">
         {accessibleConversations.map((conversation) => {
           const checked = selectedIDs.has(conversation.conversationID);
           const displayName =
@@ -115,11 +115,11 @@ const SecretaryAccessSettings = () => {
           return (
             <label
               key={conversation.conversationID}
-              className="flex min-h-[52px] cursor-pointer items-center gap-3 border-b border-surface-border px-3 last:border-b-0 hover:bg-surface-hover"
+              className="flex min-h-[48px] cursor-pointer items-center gap-3 border-b border-surface-border px-1 last:border-b-0 hover:bg-surface-hover"
             >
               <Checkbox
                 checked={checked}
-                disabled={saving}
+                disabled={loading || saving}
                 onChange={(event) =>
                   void save([
                     {

@@ -14,7 +14,7 @@ const FlexibleSider = ({
 }) => (
   <aside
     className={clsx(
-      "relative bg-app-shell border-r border-surface-border text-foreground",
+      "relative h-full min-h-0 flex-initial border-r border-surface-border bg-page-canvas text-foreground",
       { "max-[600px]:hidden": needHidden },
       { "max-[600px]:!max-w-none max-[600px]:!basis-full": !needHidden },
     )}
@@ -27,7 +27,6 @@ const FlexibleSider = ({
       {children}
     </div>
     <div className={styles.sider_resize}></div>
-    <div className={styles.sider_bar}></div>
   </aside>
 );
 

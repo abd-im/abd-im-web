@@ -24,19 +24,22 @@ export const QueryChat = () => {
   });
 
   return (
-    <Layout id="chat-container" className="relative h-full overflow-hidden bg-page-canvas">
+    <Layout
+      id="chat-container"
+      className="relative h-full overflow-hidden bg-page-canvas"
+    >
       <ChatHeader />
       <PanelGroup direction="vertical">
         <Panel id="chat-main" order={0} className="relative">
           <ChatContent />
         </Panel>
-        <PanelResizeHandle />
+        <PanelResizeHandle className="chat-resize-handle" />
         <Panel
           id="chat-footer"
           order={1}
-          defaultSize={25}
+          defaultSize={22}
           maxSize={60}
-          className="min-h-[200px]"
+          className="min-h-[144px]"
         >
           <ChatFooter />
         </Panel>

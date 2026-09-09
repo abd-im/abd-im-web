@@ -5,9 +5,9 @@ import {
   SmileOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Dropdown } from "antd";
+import { Dropdown, Popover } from "antd";
 import clsx from "clsx";
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { MessageReactionSummary } from "@/api/messageReactionTypes";
@@ -43,54 +43,24 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
   const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const reactions = summary?.reactions ?? [];
   const hasReactions = canReact && reactions.length > 0;
-
-  const openPicker = () => {
-    clearTimeout(closeTimer.current);
-    setMoreOpen(false);
-    setPickerOpen(true);
-  };
-
-  const schedulePickerClose = () => {
-    clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setPickerOpen(false), 500);
-  };
 
   useEffect(() => {
     if (!pickerOpen) return;
 
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (wrapperRef.current?.contains(target)) return;
-      setPickerOpen(false);
-    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPickerOpen(false);
     };
 
-    document.addEventListener("pointerdown", closeOnOutsidePress);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
-      clearTimeout(closeTimer.current);
     };
   }, [pickerOpen]);
 
   const picker = (
-    <div
-      className={clsx(
-        styles["reaction-picker"],
-        pickerOpen && styles["reaction-picker-open"],
-      )}
-      role="menu"
-      onMouseEnter={() => clearTimeout(closeTimer.current)}
-      onMouseLeave={schedulePickerClose}
-    >
+    <div className={styles["reaction-picker"]} role="menu">
       {ALLOWED_REACTION_EMOJIS.map((emoji) => {
         const reaction = reactions.find((item) => item.emoji === emoji);
         const pending = isPending?.(emoji) ?? false;
@@ -122,7 +92,6 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
 
   return (
     <div
-      ref={wrapperRef}
       className={clsx(
         styles["reaction-wrapper"],
         isSender && styles["reaction-wrapper-sender"],
@@ -162,23 +131,40 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
           )}
         >
           {canReact && (
-            <button
-              type="button"
-              data-testid="add-message-reaction"
-              className={styles["reaction-action"]}
-              title={t("placeholder.addReaction")}
-              aria-label={t("placeholder.addReaction")}
-              aria-haspopup="menu"
-              aria-expanded={pickerOpen}
-              onMouseEnter={openPicker}
-              onMouseLeave={schedulePickerClose}
-              onClick={openPicker}
+            <Popover
+              content={picker}
+              trigger={["hover", "click"]}
+              placement={isSender ? "bottomRight" : "bottomLeft"}
+              arrow={false}
+              autoAdjustOverflow
+              getPopupContainer={() => document.body}
+              overlayInnerStyle={{
+                padding: 0,
+                background: "transparent",
+                boxShadow: "none",
+              }}
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0.5}
+              open={pickerOpen}
+              onOpenChange={(open) => {
+                setPickerOpen(open);
+                if (open) setMoreOpen(false);
+              }}
             >
-              <span className={styles["reaction-add-icon"]} aria-hidden>
-                <SmileOutlined />
-                <PlusOutlined className={styles["reaction-add-plus"]} />
-              </span>
-            </button>
+              <button
+                type="button"
+                data-testid="add-message-reaction"
+                className={styles["reaction-action"]}
+                aria-label={t("placeholder.addReaction")}
+                aria-haspopup="menu"
+                aria-expanded={pickerOpen}
+              >
+                <span className={styles["reaction-add-icon"]} aria-hidden>
+                  <SmileOutlined />
+                  <PlusOutlined className={styles["reaction-add-plus"]} />
+                </span>
+              </button>
+            </Popover>
           )}
           <button
             type="button"
@@ -213,7 +199,6 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
           </Dropdown>
         </div>
       )}
-      {canReact && !actionsDisabled && picker}
     </div>
   );
 };
