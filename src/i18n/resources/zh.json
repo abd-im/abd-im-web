@@ -38,7 +38,14 @@
     "globalSearch": "搜索消息、联系人…",
     "noConversationSelected": "尚未选择会话",
     "new": "新建",
-    "back": "返回会话列表"
+    "back": "返回会话列表",
+    "windowControls": {
+      "label": "窗口控制",
+      "minimize": "最小化",
+      "maximize": "最大化",
+      "restore": "向下还原",
+      "close": "关闭"
+    }
   },
   "desktopUpdate": {
     "required": "需要更新才能继续使用",

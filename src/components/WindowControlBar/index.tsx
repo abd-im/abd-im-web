@@ -1,46 +1,85 @@
 import { Platform } from "@abd-im/wasm-client-sdk";
 import { useKeyPress } from "ahooks";
-
-import win_close from "@/assets/images/topSearchBar/win_close.png";
-import win_max from "@/assets/images/topSearchBar/win_max.png";
-import win_min from "@/assets/images/topSearchBar/win_min.png";
+import { t } from "i18next";
+import { Copy, Minus, Square, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const WindowControlBar = () => {
+  const [isMaximized, setIsMaximized] = useState(false);
+  const isMacOS = window.electronAPI?.getPlatform() === Platform.MacOSX;
+
   useKeyPress("esc", (event) => {
-    if (event.defaultPrevented || document.querySelector('[role="dialog"], .app-update-popover:not(.ant-popover-hidden)')) return;
+    if (
+      event.defaultPrevented ||
+      document.querySelector(
+        '[role="dialog"], .app-update-popover:not(.ant-popover-hidden)',
+      )
+    )
+      return;
     window.electronAPI?.ipcInvoke("minimizeWindow");
   });
 
-  if (!window.electronAPI || window.electronAPI?.getPlatform() === Platform.MacOSX) {
+  useEffect(() => {
+    if (!window.electronAPI || isMacOS) return;
+    return window.electronAPI.subscribe("windowMaximizedChanged", setIsMaximized);
+  }, [isMacOS]);
+
+  if (!window.electronAPI || isMacOS) {
     return null;
   }
+
+  const toggleMaximize = async () => {
+    const maximized = await window.electronAPI?.ipcInvoke<boolean>("maxmizeWindow");
+    if (typeof maximized === "boolean") {
+      setIsMaximized(maximized);
+    }
+  };
+
+  const minimizeLabel = t("workspace.windowControls.minimize");
+  const maximizeLabel = t(
+    isMaximized
+      ? "workspace.windowControls.restore"
+      : "workspace.windowControls.maximize",
+  );
+  const closeLabel = t("workspace.windowControls.close");
+
   return (
-    <div className="absolute right-3 top-3.5 z-[99999999] flex h-fit items-center">
-      <div
-        className="app-no-drag flex h-[14px] cursor-pointer items-center"
-        onClick={() => window.electronAPI?.ipcInvoke("minimizeWindow")}
+    <div
+      className="app-no-drag window-controls"
+      role="group"
+      aria-label={t("workspace.windowControls.label")}
+    >
+      <button
+        type="button"
+        className="window-control-button"
+        aria-label={minimizeLabel}
+        title={minimizeLabel}
+        onClick={() => void window.electronAPI?.ipcInvoke("minimizeWindow")}
       >
-        <img
-          className="app-no-drag cursor-pointer"
-          width={14}
-          src={win_min}
-          alt="win_min"
-        />
-      </div>
-      <img
-        className="app-no-drag mx-3 cursor-pointer"
-        width={13}
-        src={win_max}
-        alt="win_max"
-        onClick={() => window.electronAPI?.ipcInvoke("maxmizeWindow")}
-      />
-      <img
-        className="app-no-drag cursor-pointer"
-        width={12}
-        src={win_close}
-        alt="win_close"
-        onClick={() => window.electronAPI?.ipcInvoke("closeWindow")}
-      />
+        <Minus size={15} strokeWidth={1.4} />
+      </button>
+      <button
+        type="button"
+        className="window-control-button"
+        aria-label={maximizeLabel}
+        title={maximizeLabel}
+        onClick={() => void toggleMaximize()}
+      >
+        {isMaximized ? (
+          <Copy size={12} strokeWidth={1.35} />
+        ) : (
+          <Square size={11} strokeWidth={1.35} />
+        )}
+      </button>
+      <button
+        type="button"
+        className="window-control-button window-control-close"
+        aria-label={closeLabel}
+        title={closeLabel}
+        onClick={() => void window.electronAPI?.ipcInvoke("closeWindow")}
+      >
+        <X size={15} strokeWidth={1.35} />
+      </button>
     </div>
   );
 };
