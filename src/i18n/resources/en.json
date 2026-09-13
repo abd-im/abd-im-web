@@ -1,4 +1,39 @@
 {
+  "calls": {
+    "errors": {
+      "20201": "You are no longer a group member.",
+      "20202": "This group is no longer available.",
+      "20203": "This call has ended. Refresh its status.",
+      "20205": "Calls are temporarily unavailable."
+    },
+    "failed": "Call operation failed. Please try again.",
+    "busy": "Another call or device check is in progress.",
+    "switchTitle": "Switch calls?",
+    "switchDescription": "Leave the current group call before joining the other call.",
+    "people": "{{count}} people in the call",
+    "stale": "Awaiting update",
+    "expand": "Expand",
+    "join": "Join",
+    "accept": "Accept",
+    "reject": "Decline",
+    "rejoin": "Rejoin",
+    "leave": "Leave",
+    "microphone": "Microphone",
+    "camera": "Camera",
+    "playAudio": "Play call audio",
+    "deviceFailed": "Could not access the device. Check permissions.",
+    "current": "Current call",
+    "previous": "Previous",
+    "next": "Next",
+    "phase": {
+      "checking": "Checking devices",
+      "incoming": "Incoming call",
+      "outgoing": "Waiting for an answer",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "disconnected": "Disconnected. Rejoin when ready."
+    }
+  },
   "workspace": {
     "globalSearch": "Search messages, people...",
     "noConversationSelected": "No conversation selected",
@@ -490,8 +525,7 @@
     "launch": "Launched by",
     "launchPerson": "Launcher",
     "inviteYou": "Invites you for",
-    "videoCall": "Video Call",
-    "voiceCall": "Voice Call",
+    "call": "Call",
     "meeting": "Video Meeting",
     "meetingSetting": "Meeting Settings",
     "someInMeeting": "{{count}} people are in the meeting",

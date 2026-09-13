@@ -397,16 +397,6 @@ export function useGlobalEvent() {
       playNewMsgSound();
     }
 
-    if (newServerMsg.contentType === MessageType.CustomMessage) {
-      const customData = JSON.parse(newServerMsg.customElem!.data);
-      if (
-        CustomType.CallingInvite <= customData.customType &&
-        customData.customType <= CustomType.CallingHungup
-      ) {
-        return;
-      }
-    }
-
     if (shouldAlert && !notPushType.includes(newServerMsg.contentType)) {
       showMessageNotification(newServerMsg);
     }

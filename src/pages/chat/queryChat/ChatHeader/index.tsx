@@ -369,6 +369,22 @@ const ChatHeader = () => {
               </Popover>
             </div>
           )}
+          {(isSingleSession || inGroup) && (
+            <Popover
+              arrow={false}
+              content={<CallPopContent closeAllPop={() => setCallMenuOpen(false)} />}
+              open={callMenuOpen}
+              placement="bottomRight"
+              trigger="click"
+              onOpenChange={setCallMenuOpen}
+            >
+              <Tooltip title={t("placeholder.call")}>
+                <Button variant="ghost" size="icon" aria-label={t("placeholder.call")}>
+                  <Phone size={20} strokeWidth={1.8} />
+                </Button>
+              </Tooltip>
+            </Popover>
+          )}
           {menuList.map((menu) => {
             if (menu.idx === 1 && (isSingleSession || (!inGroup && !isSingleSession))) {
               return null;
@@ -380,28 +396,6 @@ const ChatHeader = () => {
 
             return (
               <Fragment key={menu.idx}>
-                {menu.idx === 0 && (
-                  <Popover
-                    arrow={false}
-                    content={
-                      <CallPopContent closeAllPop={() => setCallMenuOpen(false)} />
-                    }
-                    open={callMenuOpen}
-                    placement="bottomRight"
-                    trigger="click"
-                    onOpenChange={setCallMenuOpen}
-                  >
-                    <Tooltip title={t("placeholder.call")}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t("placeholder.call")}
-                      >
-                        <Phone size={20} strokeWidth={1.8} />
-                      </Button>
-                    </Tooltip>
-                  </Popover>
-                )}
                 <Tooltip title={menu.title}>
                   <Button
                     variant="ghost"

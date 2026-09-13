@@ -1,14 +1,16 @@
+import { SessionType } from "@abd-im/wasm-client-sdk";
 import type {
   ConversationItem as ConversationItemType,
   MessageItem,
 } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import clsx from "clsx";
 import { t } from "i18next";
-import { Bot } from "lucide-react";
+import { Bot, Phone } from "lucide-react";
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import OIMAvatar from "@/components/OIMAvatar";
+import { useCallSummary } from "@/features/call/CallProvider";
 import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { useConversationStore, useUserStore } from "@/store";
 import { formatConversionTime, getConversationContent } from "@/utils/imCommon";
@@ -23,6 +25,11 @@ interface IConversationProps {
 
 const ConversationItem = ({ isActive, isHosted, conversation }: IConversationProps) => {
   const navigate = useNavigate();
+  const callSummary = useCallSummary(
+    conversation.groupID
+      ? { type: SessionType.Group, id: conversation.groupID }
+      : undefined,
+  );
   const updateCurrentConversation = useConversationStore(
     (state) => state.updateCurrentConversation,
   );
@@ -78,8 +85,17 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
           void toSpecifiedConversation();
         }
       }}
-      onClick={toSpecifiedConversation}
+      onClick={() => void toSpecifiedConversation()}
     >
+      {callSummary?.call && (
+        <span
+          title={t("calls.people", { count: callSummary.call.participantCount })}
+          className="flex items-center gap-1 text-xs text-foreground"
+        >
+          <Phone size={12} />
+          {callSummary.call.participantCount}
+        </span>
+      )}
       <OIMAvatar
         size={36}
         src={conversation.faceURL}

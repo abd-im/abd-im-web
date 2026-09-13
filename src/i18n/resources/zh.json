@@ -1,4 +1,39 @@
 {
+  "calls": {
+    "errors": {
+      "20201": "你已不是群成员",
+      "20202": "群聊已解散或不存在",
+      "20203": "通话已结束，请刷新状态",
+      "20205": "通话服务暂不可用"
+    },
+    "failed": "通话操作失败，请重试",
+    "busy": "当前已有通话或正在检查设备",
+    "switchTitle": "切换通话？",
+    "switchDescription": "将先退出当前群通话，再加入另一场通话。",
+    "people": "{{count}} 人正在通话",
+    "stale": "状态待更新",
+    "expand": "展开",
+    "join": "加入",
+    "accept": "接听",
+    "reject": "拒绝",
+    "rejoin": "重新加入",
+    "leave": "离开",
+    "microphone": "麦克风",
+    "camera": "摄像头",
+    "playAudio": "播放通话声音",
+    "deviceFailed": "设备操作失败，请检查设备权限",
+    "current": "当前通话",
+    "previous": "上一页",
+    "next": "下一页",
+    "phase": {
+      "checking": "正在检查设备",
+      "incoming": "来电等待接听",
+      "outgoing": "等待对方接听",
+      "connecting": "正在连接",
+      "connected": "通话中",
+      "disconnected": "连接已断开，请主动重新加入"
+    }
+  },
   "workspace": {
     "globalSearch": "搜索消息、联系人…",
     "noConversationSelected": "尚未选择会话",
@@ -491,8 +526,7 @@
     "launch": "发起的",
     "launchPerson": "发起人",
     "inviteYou": "邀请你进行",
-    "videoCall": "视频通话",
-    "voiceCall": "语音通话",
+    "call": "通话",
     "meeting": "视频会议",
     "meetingSetting": "会议设置",
     "someInMeeting": "{{count}}人正在开会",

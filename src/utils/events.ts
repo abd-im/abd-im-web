@@ -2,7 +2,6 @@ import { ChooseModalState } from "@/pages/common/ChooseModal";
 import { CheckListItem } from "@/pages/common/ChooseModal/ChooseBox/CheckItem";
 import mitt from "mitt";
 import { GroupItem, MessageItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
-import { InviteData } from "@/pages/common/RtcCallModal/data";
 import type { MessageReactionUpdatedEvent } from "@/api/messageReaction";
 import type { MessageSenderProfile } from "@/pages/chat/queryChat/historyMessageState";
 
@@ -12,7 +11,6 @@ type EmitterEvents = {
   OPEN_CHOOSE_MODAL: ChooseModalState;
   CHAT_LIST_SCROLL_TO_BOTTOM: void;
   LOCATE_QUOTED_MESSAGE: QuoteLocation;
-  OPEN_RTC_MODAL: InviteData;
   // message store
   PUSH_NEW_MSG: MessageItem;
   UPDATE_ONE_MSG: MessageItem;

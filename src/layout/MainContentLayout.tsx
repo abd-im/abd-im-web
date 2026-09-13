@@ -3,6 +3,8 @@ import { Layout, Spin } from "antd";
 import { t } from "i18next";
 import { Outlet, useMatches, useNavigate } from "react-router-dom";
 
+import { CallProvider, CallHost } from "@/features/call/CallProvider";
+
 import { useUserStore } from "@/store";
 
 import LeftNavBar from "./LeftNavBar";
@@ -32,16 +34,19 @@ export const MainContentLayout = () => {
   const showLockLoading = isLogining || (reinstall && syncState === "loading");
 
   return (
-    <Spin className="!max-h-none" spinning={showLockLoading} tip={loadingTip}>
-      <Layout className="h-full">
-        <TopSearchBar />
-        <Layout className="workspace-main">
-          <LeftNavBar />
-          <div className="workspace-content">
-            <Outlet />
-          </div>
+    <CallProvider>
+      <Spin className="!max-h-none" spinning={showLockLoading} tip={loadingTip}>
+        <Layout className="h-full">
+          <TopSearchBar />
+          <Layout className="workspace-main">
+            <LeftNavBar />
+            <div className="workspace-content">
+              <Outlet />
+            </div>
+          </Layout>
+          <CallHost />
         </Layout>
-      </Layout>
-    </Spin>
+      </Spin>
+    </CallProvider>
   );
 };

@@ -1,28 +1,17 @@
-import { CbEvents, MessageType } from "@abd-im/wasm-client-sdk";
-import {
-  GroupItem,
-  MessageItem,
-  RtcInvite,
-  WSEvent,
-} from "@abd-im/wasm-client-sdk/lib/types/entity";
+import { GroupItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import i18n, { t } from "i18next";
 import { Plus, Search, SquarePen, UserPlus, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getBusinessUserInfo } from "@/api/login";
 import { Button, Popover } from "@/components/ui";
 import WindowControlBar from "@/components/WindowControlBar";
-import { CustomType } from "@/constants";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
 import ChooseModal, { ChooseModalState } from "@/pages/common/ChooseModal";
 import GroupCardModal from "@/pages/common/GroupCardModal";
-import RtcCallModal from "@/pages/common/RtcCallModal";
-import { InviteData } from "@/pages/common/RtcCallModal/data";
 import UserCardModal, { CardInfo } from "@/pages/common/UserCardModal";
 import { useContactStore, useUserStore } from "@/store";
 import emitter, { OpenUserCardParams } from "@/utils/events";
 
-import { IMSDK } from "../MainContentWrap";
 import GlobalSearchModal from "./GlobalSearchModal";
 import SearchUserOrGroup from "./SearchUserOrGroup";
 
@@ -35,7 +24,6 @@ const TopSearchBar = () => {
   const groupCardRef = useRef<OverlayVisibleHandle>(null);
   const chooseModalRef = useRef<OverlayVisibleHandle>(null);
   const searchModalRef = useRef<OverlayVisibleHandle>(null);
-  const rtcRef = useRef<OverlayVisibleHandle>(null);
   const globalSearchRef = useRef<OverlayVisibleHandle>(null);
   const [chooseModalState, setChooseModalState] = useState<ChooseModalState>({
     type: "CRATE_GROUP",
@@ -46,7 +34,6 @@ const TopSearchBar = () => {
   >();
   const [actionVisible, setActionVisible] = useState(false);
   const [isSearchGroup, setIsSearchGroup] = useState(false);
-  const [inviteData, setInviteData] = useState<InviteData>({} as InviteData);
 
   useEffect(() => {
     const userCardHandler = (params: OpenUserCardParams) => {
@@ -57,67 +44,13 @@ const TopSearchBar = () => {
       setChooseModalState({ ...params });
       chooseModalRef.current?.openOverlay();
     };
-    const callRtcHandler = (inviteData: InviteData) => {
-      if (rtcRef.current?.isOverlayOpen) return;
-      setInviteData(inviteData);
-      rtcRef.current?.openOverlay();
-    };
-    const handleCallMessages = (data: MessageItem | MessageItem[]) => {
-      if (rtcRef.current?.isOverlayOpen) return;
-      let rtcInvite = undefined as undefined | RtcInvite;
-      const messages = Array.isArray(data) ? data : [data];
-      messages.forEach((message) => {
-        if (message.contentType === MessageType.CustomMessage) {
-          const customData = JSON.parse(message.customElem!.data);
-          if (
-            customData.customType === CustomType.CallingInvite &&
-            customData.data?.inviterUserID === message.sendID &&
-            customData.data?.inviteeUserIDList?.includes(
-              useUserStore.getState().selfInfo.userID,
-            )
-          ) {
-            rtcInvite = customData.data;
-          }
-        }
-      });
-      if (rtcInvite) {
-        getBusinessUserInfo([rtcInvite.inviterUserID]).then(({ data: { users } }) => {
-          if (users.length === 0) return;
-          setInviteData({
-            invitation: rtcInvite,
-            participant: {
-              userInfo: {
-                nickname: users[0].nickname,
-                faceURL: users[0].faceURL,
-                userID: users[0].userID,
-                ex: "",
-              },
-            },
-          });
-          rtcRef.current?.openOverlay();
-        });
-      }
-    };
-    const newMessageHandler = ({ data }: WSEvent<MessageItem[]>) => {
-      handleCallMessages(data);
-    };
-    const onlineOnlyMessageHandler = ({ data }: WSEvent<MessageItem>) => {
-      handleCallMessages(data);
-    };
-
     emitter.on("OPEN_USER_CARD", userCardHandler);
     emitter.on("OPEN_GROUP_CARD", openGroupCardWithData);
     emitter.on("OPEN_CHOOSE_MODAL", chooseModalHandler);
-    emitter.on("OPEN_RTC_MODAL", callRtcHandler);
-    IMSDK.on(CbEvents.OnRecvNewMessages, newMessageHandler);
-    IMSDK.on(CbEvents.OnRecvOnlineOnlyMessage, onlineOnlyMessageHandler);
     return () => {
       emitter.off("OPEN_USER_CARD", userCardHandler);
       emitter.off("OPEN_GROUP_CARD", openGroupCardWithData);
       emitter.off("OPEN_CHOOSE_MODAL", chooseModalHandler);
-      emitter.off("OPEN_RTC_MODAL", callRtcHandler);
-      IMSDK.off(CbEvents.OnRecvNewMessages, newMessageHandler);
-      IMSDK.off(CbEvents.OnRecvOnlineOnlyMessage, onlineOnlyMessageHandler);
     };
   }, []);
 
@@ -199,7 +132,6 @@ const TopSearchBar = () => {
         openUserCardWithData={openUserCardWithData}
         openGroupCardWithData={openGroupCardWithData}
       />
-      <RtcCallModal ref={rtcRef} inviteData={inviteData} />
       <GlobalSearchModal ref={globalSearchRef} />
     </div>
   );

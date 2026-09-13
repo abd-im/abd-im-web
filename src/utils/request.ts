@@ -43,10 +43,10 @@ const createAxiosInstance = (baseURL: string, imToken = true) => {
     },
     (err) => {
       if (err.message.includes("timeout")) {
-        console.error("error", err);
+        console.error("request failed", err.code);
       }
       if (err.message.includes("Network Error")) {
-        console.error("error", err);
+        console.error("request failed", err.code);
       }
       return Promise.reject(err);
     },

@@ -5,6 +5,8 @@ import { Layout } from "antd";
 import { t } from "i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
+import { GroupCallBar } from "@/features/call/CallProvider";
+
 import { useConversationStore } from "@/store";
 
 import ChatContent from "./ChatContent";
@@ -29,6 +31,7 @@ export const QueryChat = () => {
       className="relative h-full overflow-hidden bg-page-canvas"
     >
       <ChatHeader />
+      <GroupCallBar />
       <PanelGroup direction="vertical">
         <Panel id="chat-main" order={0} className="relative">
           <ChatContent />
