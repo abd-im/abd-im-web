@@ -64,12 +64,17 @@ const electronMocks = vi.hoisted(() => {
     notifications,
     windows,
     quit: vi.fn(),
+    setBadgeCount: vi.fn(),
     getIsForceQuit: vi.fn(() => false),
   };
 });
 
 vi.mock("electron", () => ({
-  app: { getName: () => "ABD IM", quit: electronMocks.quit },
+  app: {
+    getName: () => "ABD IM",
+    quit: electronMocks.quit,
+    setBadgeCount: electronMocks.setBadgeCount,
+  },
   BrowserWindow: electronMocks.BrowserWindow,
   Notification: electronMocks.Notification,
   shell: { openExternal: vi.fn() },
@@ -88,8 +93,9 @@ vi.mock("../../electron/main", () => ({
 
 import {
   createMainWindow,
-  showMessageNotification,
   getMainWindow,
+  showMessageNotification,
+  updateBadgeCount,
 } from "../../electron/main/windowManage";
 
 describe("message notifications", () => {
@@ -100,6 +106,7 @@ describe("message notifications", () => {
     electronMocks.notifications.length = 0;
     electronMocks.windows.length = 0;
     electronMocks.quit.mockClear();
+    electronMocks.setBadgeCount.mockClear();
     electronMocks.getIsForceQuit.mockReturnValue(false);
     runtime.forceQuit = false;
     global.pathConfig = {
@@ -112,6 +119,17 @@ describe("message notifications", () => {
       preload: "/public/preload.js",
     };
     createMainWindow();
+  });
+
+  it("updates the app badge with a non-negative integer", () => {
+    updateBadgeCount(3.8);
+    expect(electronMocks.setBadgeCount).toHaveBeenLastCalledWith(3);
+
+    updateBadgeCount(-1);
+    expect(electronMocks.setBadgeCount).toHaveBeenLastCalledWith(0);
+
+    updateBadgeCount(Number.NaN);
+    expect(electronMocks.setBadgeCount).toHaveBeenLastCalledWith(0);
   });
 
   it("keeps the window alive until quit preparation has completed", () => {
