@@ -11,4 +11,5 @@ export const IpcRenderToMain = {
   getKeyStoreSync: "getKeyStoreSync",
   getDataPath: "getDataPath",
   showMessageNotification: "showMessageNotification",
+  updateBadgeCount: "updateBadgeCount",
 };

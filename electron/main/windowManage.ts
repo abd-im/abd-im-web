@@ -147,6 +147,11 @@ export const sendEvent = (name: string, ...args: any[]) => {
   mainWindow.webContents.send(name, ...args);
 };
 
+export const updateBadgeCount = (count: number) => {
+  const badgeCount = Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
+  app.setBadgeCount(badgeCount);
+};
+
 export const showMessageNotification = (params: MessageNotificationParams) => {
   if (!mainWindow || mainWindow.isFocused() || !Notification.isSupported()) {
     return;

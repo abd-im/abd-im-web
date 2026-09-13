@@ -12,18 +12,21 @@ const openIMSDK = getSDK({
   coreWasmPath: "./openIM.wasm",
   // The production worker runs from dist/assets and resolves this path itself.
   sqlWasmPath:
-    window.electronAPI && import.meta.env.PROD
-      ? "../sql-wasm.wasm"
-      : "/sql-wasm.wasm",
+    window.electronAPI && import.meta.env.PROD ? "../sql-wasm.wasm" : "/sql-wasm.wasm",
 });
 
 export const IMSDK = openIMSDK;
 
 export const MainContentWrap = () => {
   const updateAppSettings = useUserStore((state) => state.updateAppSettings);
+  const unReadCount = useConversationStore((state) => state.unReadCount);
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    void window.electronAPI?.ipcInvoke("updateBadgeCount", unReadCount);
+  }, [unReadCount]);
 
   useEffect(() => {
     const loginCheck = async () => {

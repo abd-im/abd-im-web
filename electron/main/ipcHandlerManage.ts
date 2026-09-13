@@ -4,6 +4,7 @@ import {
   minimize,
   showMessageNotification,
   splashEnd,
+  updateBadgeCount,
   updateMaximize,
 } from "./windowManage";
 import { IpcRenderToMain } from "../constants";
@@ -34,6 +35,9 @@ export const setIpcMainListener = () => {
   });
   ipcMain.handle(IpcRenderToMain.showMessageNotification, (_, params) => {
     showMessageNotification(params);
+  });
+  ipcMain.handle(IpcRenderToMain.updateBadgeCount, (_, count: number) => {
+    updateBadgeCount(count);
   });
   ipcMain.handle(IpcRenderToMain.getKeyStore, (_, { key }) => {
     return store.get(key);
