@@ -8,6 +8,54 @@
   gap: 16px;
   background: var(--app-shell);
 }
+.workspace-shell-mac > .workspace-topbar {
+  padding-left: 88px;
+}
+.window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  height: 44px;
+  color: var(--foreground);
+}
+.window-control-button {
+  display: grid;
+  width: 46px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+
+  &:hover {
+    background: var(--surface-selected);
+  }
+  &:active {
+    background: var(--surface-border);
+  }
+  &:focus-visible {
+    z-index: 1;
+    outline: 1px solid var(--foreground);
+    outline-offset: -2px;
+  }
+  svg {
+    pointer-events: none;
+  }
+}
+.window-control-close {
+  &:hover {
+    background: #c42b1c;
+    color: #fff;
+  }
+  &:active {
+    background: #a51d13;
+    color: #fff;
+  }
+}
 .workspace-main {
   min-height: 0;
   overflow: hidden;

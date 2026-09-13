@@ -28,7 +28,7 @@ export const setIpcMainListener = () => {
     minimize();
   });
   ipcMain.handle(IpcRenderToMain.maxmizeWindow, () => {
-    updateMaximize();
+    return updateMaximize();
   });
   ipcMain.handle(IpcRenderToMain.closeWindow, () => {
     closeWindow();

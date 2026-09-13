@@ -38,7 +38,14 @@
     "globalSearch": "Search messages, people...",
     "noConversationSelected": "No conversation selected",
     "new": "New",
-    "back": "Back to conversations"
+    "back": "Back to conversations",
+    "windowControls": {
+      "label": "Window controls",
+      "minimize": "Minimize",
+      "maximize": "Maximize",
+      "restore": "Restore down",
+      "close": "Close"
+    }
   },
   "desktopUpdate": {
     "required": "Update required to continue",

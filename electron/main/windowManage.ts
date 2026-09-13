@@ -104,6 +104,14 @@ export function createMainWindow() {
     unregisterShortcuts();
   });
 
+  mainWindow.on("maximize", () => {
+    sendEvent(IpcMainToRender.windowMaximizedChanged, true);
+  });
+
+  mainWindow.on("unmaximize", () => {
+    sendEvent(IpcMainToRender.windowMaximizedChanged, false);
+  });
+
   mainWindow.on("close", (e) => {
     const window = mainWindow;
     if (!window) return;
@@ -207,12 +215,13 @@ export const minimize = () => {
   mainWindow.minimize();
 };
 export const updateMaximize = () => {
-  if (!mainWindow) return;
+  if (!mainWindow) return false;
   if (mainWindow.isMaximized()) {
     mainWindow.unmaximize();
   } else {
     mainWindow.maximize();
   }
+  return mainWindow.isMaximized();
 };
 export const showWindow = () => {
   if (!mainWindow) return;

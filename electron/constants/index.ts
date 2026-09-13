@@ -1,6 +1,7 @@
 export const IpcMainToRender = {
   appResume: "appResume",
   messageNotificationClicked: "messageNotificationClicked",
+  windowMaximizedChanged: "windowMaximizedChanged",
 };
 
 export const IpcRenderToMain = {

@@ -6,7 +6,10 @@ const electronMocks = vi.hoisted(() => {
   const windows: Array<{
     handlers: Map<string, (...args: unknown[]) => void>;
     isFocused: ReturnType<typeof vi.fn>;
+    isMaximized: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
+    maximize: ReturnType<typeof vi.fn>;
+    unmaximize: ReturnType<typeof vi.fn>;
     webContents: {
       send: ReturnType<typeof vi.fn>;
       setWindowOpenHandler: ReturnType<typeof vi.fn>;
@@ -20,6 +23,7 @@ const electronMocks = vi.hoisted(() => {
   }> = [];
 
   const BrowserWindow = vi.fn(() => {
+    let maximized = false;
     const window = {
       handlers: new Map<string, (...args: unknown[]) => void>(),
       loadFile: vi.fn(),
@@ -28,12 +32,21 @@ const electronMocks = vi.hoisted(() => {
         window.handlers.set(event, handler);
       }),
       isFocused: vi.fn(() => false),
+      isMaximized: vi.fn(() => maximized),
       flashFrame: vi.fn(),
       isVisible: vi.fn(() => true),
       isMinimized: vi.fn(() => false),
       focus: vi.fn(),
       show: vi.fn(),
       restore: vi.fn(),
+      maximize: vi.fn(() => {
+        maximized = true;
+        window.handlers.get("maximize")?.();
+      }),
+      unmaximize: vi.fn(() => {
+        maximized = false;
+        window.handlers.get("unmaximize")?.();
+      }),
       webContents: {
         send: vi.fn(),
         setWindowOpenHandler: vi.fn(),
@@ -96,6 +109,7 @@ import {
   getMainWindow,
   showMessageNotification,
   updateBadgeCount,
+  updateMaximize,
 } from "../../electron/main/windowManage";
 
 describe("message notifications", () => {
@@ -132,10 +146,29 @@ describe("message notifications", () => {
     expect(electronMocks.setBadgeCount).toHaveBeenLastCalledWith(0);
   });
 
+  it("toggles maximize state and notifies the renderer", () => {
+    const mainWindow = electronMocks.windows[1];
+
+    expect(updateMaximize()).toBe(true);
+    expect(mainWindow.maximize).toHaveBeenCalledOnce();
+    expect(mainWindow.webContents.send).toHaveBeenLastCalledWith(
+      "windowMaximizedChanged",
+      true,
+    );
+
+    expect(updateMaximize()).toBe(false);
+    expect(mainWindow.unmaximize).toHaveBeenCalledOnce();
+    expect(mainWindow.webContents.send).toHaveBeenLastCalledWith(
+      "windowMaximizedChanged",
+      false,
+    );
+  });
+
   it("keeps the window alive until quit preparation has completed", () => {
     electronMocks.getIsForceQuit.mockReturnValue(true);
     const preventDefault = vi.fn();
-    const close = electronMocks.windows[1].handlers.get("close")!;
+    const close = electronMocks.windows[1].handlers.get("close");
+    if (!close) throw new Error("close handler was not registered");
     close({ preventDefault });
     expect(preventDefault).toHaveBeenCalledOnce();
     expect(electronMocks.quit).toHaveBeenCalledOnce();
