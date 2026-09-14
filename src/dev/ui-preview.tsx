@@ -117,9 +117,9 @@ async function startPreview() {
     updatedAt: now,
   };
   const summaries = new Map<
-    string,
+    number,
     {
-      clientMsgID: string;
+      seq: number;
       version: number;
       reactions: Array<{ emoji: string; count: number; reactedByMe: boolean }>;
     }
@@ -129,8 +129,8 @@ async function startPreview() {
     const body: {
       items?: Array<Record<string, unknown>>;
       userIDs?: string[];
-      clientMsgIDs?: string[];
-      clientMsgID: string;
+      seqs?: number[];
+      seq: number;
       emoji: string;
     } =
       typeof config.data === "string"
@@ -148,17 +148,16 @@ async function startPreview() {
       data = { connection };
     } else if (config.url?.includes("get_reaction_summaries")) {
       data = {
-        summaries: (body.clientMsgIDs || []).map(
-          (id: string) =>
-            summaries.get(id) || { clientMsgID: id, version: 0, reactions: [] },
+        summaries: (body.seqs || []).map(
+          (seq: number) => summaries.get(seq) || { seq, version: 0, reactions: [] },
         ),
       };
     } else if (
       config.url?.includes("add_reaction") ||
       config.url?.includes("remove_reaction")
     ) {
-      const summary = summaries.get(body.clientMsgID) || {
-        clientMsgID: body.clientMsgID,
+      const summary = summaries.get(body.seq) || {
+        seq: body.seq,
         version: 0,
         reactions: [],
       };
@@ -166,7 +165,7 @@ async function startPreview() {
         ? [{ emoji: body.emoji, count: 1, reactedByMe: true }]
         : [];
       summary.version += 1;
-      summaries.set(body.clientMsgID, summary);
+      summaries.set(body.seq, summary);
       data = { summary };
     } else if (config.url?.includes("user")) {
       const users = body.userIDs

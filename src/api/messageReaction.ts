@@ -25,13 +25,13 @@ export {
 
 export interface ChangeReactionParams {
   conversationID: string;
-  clientMsgID: string;
+  seq: number;
   emoji: string;
 }
 
 export interface GetReactionSummariesParams {
   conversationID: string;
-  clientMsgIDs: string[];
+  seqs: number[];
 }
 
 interface ChangeReactionResponse {

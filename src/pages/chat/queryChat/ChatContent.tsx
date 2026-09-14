@@ -251,13 +251,15 @@ const ChatContent = () => {
               REACTABLE_MESSAGE_TYPES.has(message.contentType) &&
               message.status === MessageStatus.Succeed &&
               Boolean(message.serverMsgID) &&
+              Number.isSafeInteger(message.seq) &&
+              message.seq > 0 &&
               !message.attachedInfoElem?.isPrivateChat,
           )
         : [],
     [loadState.messageList, reactionsEnabled],
   );
-  const reactableMessageIDs = useMemo(
-    () => new Set(reactableMessages.map((message) => message.clientMsgID)),
+  const reactableMessageSeqs = useMemo(
+    () => new Set(reactableMessages.map((message) => message.seq)),
     [reactableMessages],
   );
   const { summaries, isPending, toggleReaction } = useMessageReactions(
@@ -498,7 +500,7 @@ const ChatContent = () => {
           computeItemKey={(_, item) => item.clientMsgID}
           itemContent={(index, message, reactionSummaries) => {
             const previous = displayMessages[index - loadState.firstItemIndex - 1];
-            const canReact = reactableMessageIDs.has(message.clientMsgID);
+            const canReact = reactableMessageSeqs.has(message.seq);
             const avatarText = message.senderNickname;
             return (
               <>
@@ -517,16 +519,14 @@ const ChatContent = () => {
                     conversationID={conversationID}
                     message={message}
                     avatarText={avatarText}
-                    reactionSummary={reactionSummaries[message.clientMsgID]}
+                    reactionSummary={reactionSummaries[message.seq]}
                     isReactionPending={
-                      canReact
-                        ? (emoji) => isPending(message.clientMsgID, emoji)
-                        : undefined
+                      canReact ? (emoji) => isPending(message.seq, emoji) : undefined
                     }
                     onToggleReaction={
                       canReact
                         ? (emoji, reactedByMe) =>
-                            toggleReaction(message.clientMsgID, emoji, reactedByMe)
+                            toggleReaction(message.seq, emoji, reactedByMe)
                         : undefined
                     }
                     messageUpdateFlag={

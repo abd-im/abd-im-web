@@ -40,8 +40,8 @@
 
 ## 3. 现有集成点
 
-- Web 视图通过 `conversationID` 和 `clientMsgID` 标识消息；当前历史消息每页为
-  20 条。
+- Web 消息对象包含服务端分配的 `seq`；反应通过 `conversationID` 和 `seq`
+  标识已持久化消息。当前历史消息每页为 20 条。
 - API 网关已经使用 Web IM Token 鉴权，并暴露 `/msg/*` 路由。
 - 服务端已支持 `BusinessNotification` 投递。SDK Core 将其转换为
   `OnRecvCustomBusinessMessage`，已安装的 Web SDK 已在运行时注册该回调。
@@ -60,24 +60,24 @@
 | 字段              | 含义                               |
 | ----------------- | ---------------------------------- |
 | `conversation_id` | 原消息所在会话。                   |
-| `client_msg_id`   | 原消息 ID。                        |
+| `seq`             | 消息在会话内的服务端序列号。       |
 | `user_id`         | 添加反应的用户，从访问令牌中取得。 |
 | `emoji`           | 一个允许使用的表情。               |
 | `created_at`      | 创建时间，用于审计和排查。         |
 
 约束与索引：
 
-- 唯一键：`(conversation_id, client_msg_id, user_id, emoji)`。
-- 聚合同种表情的查询索引：`(conversation_id, client_msg_id, emoji)`。
-- 批量摘要查询索引：`(conversation_id, client_msg_id)`。
+- 唯一键：`(conversation_id, seq, user_id, emoji)`。
+- 聚合同种表情的查询索引：`(conversation_id, seq, emoji)`。
+- 批量摘要查询索引：`(conversation_id, seq)`。
 
 ### `message_reaction_state`
 
-| 字段                               | 含义                         |
-| ---------------------------------- | ---------------------------- |
-| `conversation_id`、`client_msg_id` | 原消息身份。                 |
-| `version`                          | 每条消息单调递增的反应版本。 |
-| `updated_at`                       | 最近一次变更时间。           |
+| 字段                     | 含义                         |
+| ------------------------ | ---------------------------- |
+| `conversation_id`、`seq` | 原消息身份。                 |
+| `version`                | 每条消息单调递增的反应版本。 |
+| `updated_at`             | 最近一次变更时间。           |
 
 每次实际添加或取消反应的存储操作须变更反应记录并递增 `version`。重复添加或
 重复取消只返回当前状态，不递增 `version`，也不发布实时事件。最后一个反应被
@@ -96,6 +96,11 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 服务端拥有计数和版本的最终解释权。Web 客户端不得提交计数、目标参与者列表、
 `user_id` 或版本号。
 
+已有 `client_msg_id` 反应数据的部署必须在反应接口停写期间运行
+`abd-im-server/scripts/migrations/message_reactions_to_seq.js`，按
+`abd-im-server/docs/message-reaction-seq-rollout.md` 完成预检、影子集合构建、切换和
+回滚窗口管理。全新部署由服务端直接创建基于 `seq` 的集合与索引。
+
 ## 5. HTTP API
 
 遵循现有网关已鉴权的 `POST /msg/*` 路由约定。所有响应使用标准 API 包装；以下
@@ -108,7 +113,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 ```json
 {
   "conversationID": "si_user-a_user-b",
-  "clientMsgID": "msg-123",
+  "seq": 123,
   "emoji": "\ud83d\udc4d"
 }
 ```
@@ -120,7 +125,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 ```json
 {
   "conversationID": "si_user-a_user-b",
-  "clientMsgID": "msg-123",
+  "seq": 123,
   "emoji": "\ud83d\udc4d"
 }
 ```
@@ -135,7 +140,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 ```json
 {
   "conversationID": "si_user-a_user-b",
-  "clientMsgIDs": ["msg-123", "msg-124"]
+  "seqs": [123, 124]
 }
 ```
 
@@ -148,7 +153,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 {
   "summaries": [
     {
-      "clientMsgID": "msg-123",
+      "seq": 123,
       "version": 7,
       "reactions": [
         { "emoji": "\ud83d\udc4d", "count": 3, "reactedByMe": true },
@@ -159,7 +164,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 }
 ```
 
-`reactedByMe` 由已鉴权用户决定。服务端必须为每个有效请求的消息 ID 返回一个
+`reactedByMe` 由已鉴权用户决定。服务端必须为每个有效请求的消息序列号返回一个
 摘要：从未有过反应的消息返回 `version: 0` 和空 `reactions`；状态记录存在但已无
 任何反应的消息返回其当前版本和空 `reactions`。客户端因此可以将每个已加载消息的
 摘要视为已知状态，而不是区分“无反应”和“服务端未返回”。
@@ -168,7 +173,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 
 每次变更或查询前，服务端必须验证：
 
-1. `conversationID` 和 `clientMsgID` 确实标识同一条已持久化消息。
+1. `conversationID` 和 `seq` 确实标识同一条已持久化消息。
 2. 调用者有权读取该会话，即单聊参与者或当前群成员。
 3. 原消息是允许反应的用户消息，且未撤回、删除、标记为私密或阅后即焚。
 4. `emoji` 属于六种固定表情之一。
@@ -186,7 +191,7 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
   "key": "message.reaction.updated",
   "data": {
     "conversationID": "si_user-a_user-b",
-    "clientMsgID": "msg-123",
+    "seq": 123,
     "emoji": "\ud83d\udc4d",
     "action": "added",
     "actorUserID": "user-a",
@@ -216,9 +221,9 @@ MongoDB 始终是事实源，不增加进程内 reaction LRU。
 1. 新增 `src/api/messageReaction.ts`，使用 `RUNTIME_API_URL` 和现有 IM Token
    Axios 工具。
 2. 在聊天历史 Hook 旁新增 `useMessageReactions`。它为当前会话保存
-   `Record<clientMsgID, MessageReactionSummary>`，批量加载摘要，并按
-   `(clientMsgID, emoji)` 跟踪请求中的变更。
-3. 初次加载历史消息或加载更早一页时，仅为新增的消息 ID 请求一次摘要；只合并
+   `Record<number, MessageReactionSummary>`，批量加载摘要，并按
+   `(seq, emoji)` 跟踪请求中的变更。
+3. 初次加载历史消息或加载更早一页时，仅为新增的消息序列号请求一次摘要；只合并
    版本更高的摘要。
 4. 在 `useGlobalEvents` 中订阅 `OnRecvCustomBusinessMessage`，只解析
    `message.reaction.updated`，校验数据形状后发出本地反应更新事件。活动会话的

@@ -74,7 +74,7 @@ description: "Task list for Web message reactions"
 
 ### Tests
 
-- [x] T017 [US2] 在 `abd-im-server/internal/rpc/msg/reaction_test.go` 增加批量大小、跨会话消息 ID、非成员和空摘要测试。
+- [x] T017 [US2] 在 `abd-im-server/internal/rpc/msg/reaction_test.go` 增加批量大小、跨会话消息序列号、非成员和空摘要测试。
 - [x] T018 [US2] 在 `abd-im-server/internal/api/msg_reaction_test.go` 增加 `/msg/get_reaction_summaries` 响应契约测试。
 
 ### Implementation
@@ -102,7 +102,7 @@ description: "Task list for Web message reactions"
 
 - [x] T024 [US3] 在 `abd-im-server/internal/rpc/msg/reaction.go` 事务提交后 best-effort 发送不持久化、不计未读、无离线推送的 `BusinessNotification`。
 - [x] T025 [US3] 在 `abd-im-web/src/layout/useGlobalEvents.tsx` 注册并释放 `OnRecvCustomBusinessMessage`，校验 `message.reaction.updated` 数据后发布本地事件。
-- [x] T026 [US3] 在 `abd-im-web/src/pages/chat/queryChat/useMessageReactions.ts` 实现按会话的摘要状态、版本合并、跳跃回查和 `(clientMsgID, emoji)` 请求中状态。
+- [x] T026 [US3] 在 `abd-im-web/src/pages/chat/queryChat/useMessageReactions.ts` 实现按会话的摘要状态、版本合并、跳跃回查和 `(seq, emoji)` 请求中状态。
 
 **Checkpoint**: US3 的通知只负责加速；刷新、重连和回查可恢复权威状态。
 
@@ -123,7 +123,7 @@ description: "Task list for Web message reactions"
 
 - [x] T029 [P] [US4] 在 `abd-im-web/src/pages/chat/queryChat/MessageItem/MessageReactionBar.tsx` 与 `message-item.module.scss` 实现固定六表情 Popover、反应条、选中态和稳定尺寸。
 - [x] T030 [US4] 在 `abd-im-web/src/pages/chat/queryChat/MessageItem/index.tsx` 接入反应条和添加控件，只对允许的已持久化用户消息显示。
-- [x] T031 [US4] 在 `abd-im-web/src/pages/chat/queryChat/ChatContent.tsx` 或相邻会话容器接入 `useMessageReactions`，初始、翻页和重连时仅批量加载新增消息 ID。
+- [x] T031 [US4] 在 `abd-im-web/src/pages/chat/queryChat/ChatContent.tsx` 或相邻会话容器接入 `useMessageReactions`，初始、翻页和重连时仅批量加载新增消息序列号。
 - [x] T032 [US4] 使用现有构建目标判断限制功能只在 Web 显示，避免 Electron 共享组件意外启用。
 
 **Checkpoint**: US4 在 Web 中完成添加、取消、实时更新和恢复闭环。

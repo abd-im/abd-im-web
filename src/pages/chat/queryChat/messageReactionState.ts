@@ -9,15 +9,16 @@ const reactionOrder = new Map<string, number>(
   ALLOWED_REACTION_EMOJIS.map((emoji, index) => [emoji, index]),
 );
 
-export const selectReactionSummaryMessageIDs = (
-  messageIDs: string[],
-  loadedMessageIDs: ReadonlySet<string>,
+export const selectReactionSummaryMessageSeqs = (
+  messageSeqs: number[],
+  loadedMessageSeqs: ReadonlySet<number>,
   connectionReady: boolean,
   forceRefresh: boolean,
 ) => {
-  return connectionReady && forceRefresh
-    ? messageIDs
-    : messageIDs.filter((clientMsgID) => !loadedMessageIDs.has(clientMsgID));
+  if (!connectionReady) return [];
+  return forceRefresh
+    ? messageSeqs
+    : messageSeqs.filter((seq) => !loadedMessageSeqs.has(seq));
 };
 
 export const sortMessageReactions = (reactions: MessageReaction[]) =>
@@ -64,7 +65,9 @@ export const parseReactionUpdatedEvent = (
     const event = data as Partial<MessageReactionUpdatedEvent>;
     if (
       typeof event.conversationID !== "string" ||
-      typeof event.clientMsgID !== "string" ||
+      typeof event.seq !== "number" ||
+      !Number.isSafeInteger(event.seq) ||
+      event.seq <= 0 ||
       typeof event.emoji !== "string" ||
       !reactionOrder.has(event.emoji) ||
       (event.action !== "added" && event.action !== "removed") ||

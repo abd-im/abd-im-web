@@ -9,7 +9,7 @@ export interface MessageReaction {
 }
 
 export interface MessageReactionSummary {
-  clientMsgID: string;
+  seq: number;
   version: number;
   reactions: MessageReaction[];
 }
@@ -30,7 +30,7 @@ export const normalizeMessageReactionSummary = (
 
 export interface MessageReactionUpdatedEvent {
   conversationID: string;
-  clientMsgID: string;
+  seq: number;
   emoji: string;
   action: MessageReactionAction;
   actorUserID: string;
