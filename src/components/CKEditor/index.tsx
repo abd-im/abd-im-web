@@ -63,7 +63,7 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
     const editor = ckEditor.current;
     if (editor) {
       editor.model.change((writer) => {
-        writer.insertText(emoji, editor.model.document.selection.getFirstPosition()!);
+        editor.model.insertContent(writer.createText(emoji));
       });
       editor.editing.view.focus();
     }
