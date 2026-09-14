@@ -15,6 +15,7 @@ import { ALLOWED_REACTION_EMOJIS } from "@/api/messageReactionTypes";
 import emitter from "@/utils/events";
 
 import {
+  haveSameMessageReactions,
   reduceMessageReactionEvent,
   replaceReaction,
   selectReactionSummaryMessageIDs,
@@ -154,6 +155,14 @@ export function useMessageReactions(
       if (next === current) return;
 
       summariesRef.current = next;
+      const messageIDs = new Set([...Object.keys(current), ...Object.keys(next)]);
+      if (
+        [...messageIDs].every((clientMsgID) =>
+          haveSameMessageReactions(current[clientMsgID], next[clientMsgID]),
+        )
+      ) {
+        return;
+      }
       setReactionState({ conversationID: expectedConversationID, summaries: next });
     },
     [],
@@ -235,8 +244,13 @@ export function useMessageReactions(
     loadGenerationRef.current += 1;
     pendingKeysRef.current = new Set();
     reconnectRefreshPendingRef.current = false;
-    setReactionState({ conversationID, summaries: {} });
-    setPendingKeys(new Set());
+    setReactionState((current) =>
+      current.conversationID === conversationID &&
+      Object.keys(current.summaries).length === 0
+        ? current
+        : { conversationID, summaries: {} },
+    );
+    setPendingKeys((current) => (current.size === 0 ? current : new Set()));
   }, [conversationID]);
 
   useEffect(() => {

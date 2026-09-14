@@ -6,6 +6,7 @@ import type {
 } from "../src/api/messageReactionTypes";
 import { normalizeMessageReactionSummary } from "../src/api/messageReactionTypes";
 import {
+  haveSameMessageReactions,
   parseReactionUpdatedEvent,
   reduceMessageReactionEvent,
   selectReactionSummaryMessageIDs,
@@ -28,6 +29,19 @@ const event = (
   count: 3,
   version: 4,
   ...overrides,
+});
+
+test("treats reaction metadata updates as visually unchanged", () => {
+  expect(haveSameMessageReactions(undefined, { ...summary(), reactions: [] })).toBe(
+    true,
+  );
+  expect(haveSameMessageReactions(summary(), { ...summary(), version: 4 })).toBe(true);
+  expect(
+    haveSameMessageReactions(summary(), {
+      ...summary(),
+      reactions: [{ emoji: "👍", count: 3, reactedByMe: false }],
+    }),
+  ).toBe(false);
 });
 
 test("applies only the next reaction version", () => {

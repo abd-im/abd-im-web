@@ -27,6 +27,25 @@ export const sortMessageReactions = (reactions: MessageReaction[]) =>
       (reactionOrder.get(right.emoji) ?? Number.MAX_SAFE_INTEGER),
   );
 
+export const haveSameMessageReactions = (
+  current: MessageReactionSummary | undefined,
+  next: MessageReactionSummary | undefined,
+) => {
+  const currentReactions = current?.reactions ?? [];
+  const nextReactions = next?.reactions ?? [];
+  return (
+    currentReactions.length === nextReactions.length &&
+    currentReactions.every((reaction, index) => {
+      const nextReaction = nextReactions[index];
+      return (
+        reaction.emoji === nextReaction.emoji &&
+        reaction.count === nextReaction.count &&
+        reaction.reactedByMe === nextReaction.reactedByMe
+      );
+    })
+  );
+};
+
 export const replaceReaction = (
   reactions: MessageReaction[],
   emoji: string,
