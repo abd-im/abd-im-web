@@ -15,6 +15,10 @@ import { ALLOWED_REACTION_EMOJIS } from "@/api/messageReactionTypes";
 import emitter from "@/utils/events";
 
 import {
+  getCachedReactionSummaries,
+  setCachedReactionSummaries,
+} from "./messageReactionCache";
+import {
   haveSameMessageReactions,
   reduceMessageReactionEvent,
   replaceReaction,
@@ -27,6 +31,11 @@ type ReactionSummaries = Record<string, MessageReactionSummary>;
 interface ReactionState {
   conversationID?: string;
   summaries: ReactionSummaries;
+}
+
+interface ReactionCacheState {
+  conversationID?: string;
+  ready: boolean;
 }
 
 const pendingKey = (clientMsgID: string, emoji: string) => `${clientMsgID}\0${emoji}`;
@@ -123,6 +132,7 @@ export function useMessageReactions(
   const loadGenerationRef = useRef(0);
   const pendingKeysRef = useRef(new Set<string>());
   const reconnectRefreshPendingRef = useRef(false);
+  const cacheLoadGenerationRef = useRef(0);
 
   if (summariesConversationIDRef.current !== conversationID) {
     summariesConversationIDRef.current = conversationID;
@@ -142,11 +152,21 @@ export function useMessageReactions(
   });
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [refreshRevision, setRefreshRevision] = useState(0);
+  const [cacheState, setCacheState] = useState<ReactionCacheState>({
+    conversationID,
+    ready: !conversationID || !selfUserID,
+  });
+  const isCacheReady =
+    !conversationID ||
+    !selfUserID ||
+    (cacheState.conversationID === conversationID && cacheState.ready) ||
+    summariesByConversationRef.current.has(conversationID);
 
   const commitSummaries = useCallback(
     (
       expectedConversationID: string,
       update: (current: ReactionSummaries) => ReactionSummaries,
+      persist = true,
     ) => {
       if (
         conversationIDRef.current !== expectedConversationID ||
@@ -161,6 +181,13 @@ export function useMessageReactions(
 
       summariesRef.current = next;
       summariesByConversationRef.current.set(expectedConversationID, next);
+      if (persist && selfUserIDRef.current) {
+        void setCachedReactionSummaries(
+          selfUserIDRef.current,
+          expectedConversationID,
+          next,
+        ).catch(() => undefined);
+      }
       const messageIDs = new Set([...Object.keys(current), ...Object.keys(next)]);
       if (
         [...messageIDs].every((clientMsgID) =>
@@ -244,6 +271,42 @@ export function useMessageReactions(
   );
 
   useEffect(() => {
+    const generation = ++cacheLoadGenerationRef.current;
+    if (!conversationID || !selfUserID) {
+      setCacheState({ conversationID, ready: true });
+      return;
+    }
+    if (summariesByConversationRef.current.has(conversationID)) {
+      setCacheState({ conversationID, ready: true });
+      return;
+    }
+
+    setCacheState({ conversationID, ready: false });
+    void getCachedReactionSummaries(selfUserID, conversationID)
+      .then((summaries) => {
+        if (
+          cacheLoadGenerationRef.current !== generation ||
+          conversationIDRef.current !== conversationID
+        ) {
+          return;
+        }
+        if (summariesByConversationRef.current.has(conversationID)) {
+          setCacheState({ conversationID, ready: true });
+          return;
+        }
+        summariesByConversationRef.current.set(conversationID, summaries);
+        summariesRef.current = summaries;
+        setReactionState({ conversationID, summaries });
+        setCacheState({ conversationID, ready: true });
+      })
+      .catch(() => {
+        if (cacheLoadGenerationRef.current === generation) {
+          setCacheState({ conversationID, ready: true });
+        }
+      });
+  }, [conversationID, selfUserID]);
+
+  useEffect(() => {
     loadedMessageIDsRef.current = new Set();
     loadingMessageIDsRef.current = new Set();
     loadGenerationRef.current += 1;
@@ -253,7 +316,7 @@ export function useMessageReactions(
   }, [conversationID]);
 
   useEffect(() => {
-    if (!conversationID) return;
+    if (!conversationID || !isCacheReady) return;
     if (!connectionReady) {
       reconnectRefreshPendingRef.current = true;
     }
@@ -264,14 +327,16 @@ export function useMessageReactions(
         loadedMessageIDsRef.current.delete(clientMsgID);
       }
     });
-    commitSummaries(conversationID, (current) => {
-      const entries = Object.entries(current).filter(([clientMsgID]) =>
-        currentMessageIDs.has(clientMsgID),
-      );
-      return entries.length === Object.keys(current).length
-        ? current
-        : Object.fromEntries(entries);
-    });
+    if (currentMessageIDs.size > 0) {
+      commitSummaries(conversationID, (current) => {
+        const entries = Object.entries(current).filter(([clientMsgID]) =>
+          currentMessageIDs.has(clientMsgID),
+        );
+        return entries.length === Object.keys(current).length
+          ? current
+          : Object.fromEntries(entries);
+      });
+    }
 
     const forceRefresh = connectionReady && reconnectRefreshPendingRef.current;
     const loadedOrLoadingMessageIDs = new Set([
@@ -328,6 +393,7 @@ export function useMessageReactions(
     connectionReady,
     conversationID,
     fetchSummaries,
+    isCacheReady,
     messageIDs,
     refreshRevision,
   ]);
@@ -394,15 +460,19 @@ export function useMessageReactions(
       const added = !reactedByMe;
       pendingKeysRef.current.add(key);
       setPendingKeys(new Set(pendingKeysRef.current));
-      commitSummaries(expectedConversationID, (current) => ({
-        ...current,
-        [clientMsgID]: optimisticSummary(
-          current[clientMsgID],
-          clientMsgID,
-          emoji,
-          added,
-        ),
-      }));
+      commitSummaries(
+        expectedConversationID,
+        (current) => ({
+          ...current,
+          [clientMsgID]: optimisticSummary(
+            current[clientMsgID],
+            clientMsgID,
+            emoji,
+            added,
+          ),
+        }),
+        false,
+      );
 
       try {
         const changeReaction = added ? addReaction : removeReaction;
@@ -413,14 +483,19 @@ export function useMessageReactions(
         });
         mergeSummaries(expectedConversationID, [summary], true);
       } catch {
-        commitSummaries(expectedConversationID, (current) => {
-          const summary = current[clientMsgID];
-          if (!summary || summary.version !== (previous?.version ?? 0)) return current;
-          return {
-            ...current,
-            [clientMsgID]: restoreReaction(summary, previous, emoji),
-          };
-        });
+        commitSummaries(
+          expectedConversationID,
+          (current) => {
+            const summary = current[clientMsgID];
+            if (!summary || summary.version !== (previous?.version ?? 0))
+              return current;
+            return {
+              ...current,
+              [clientMsgID]: restoreReaction(summary, previous, emoji),
+            };
+          },
+          false,
+        );
         try {
           await fetchSummaries([clientMsgID], true);
         } catch {
@@ -444,5 +519,6 @@ export function useMessageReactions(
     isPending,
     toggleReaction,
     refreshLoaded,
+    isCacheReady,
   };
 }
