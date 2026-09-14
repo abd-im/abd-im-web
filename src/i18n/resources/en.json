@@ -527,6 +527,7 @@
     "forwardTo": "Forward to",
     "selectedMessageCount": "{{count}} messages selected",
     "viewForwardRecord": "View chat history ({{count}})",
+    "forwardRecordSummary": "{{count}} messages · {{title}}",
     "messageHistory": "Chat History",
     "whosMessageHistory": "Chat History for {{who}} ",
     "launch": "Launched by",

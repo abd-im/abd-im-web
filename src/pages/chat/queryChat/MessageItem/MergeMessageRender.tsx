@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 
+import { messageDate } from "../messageDate";
 import { getMessagePreview } from "../messagePreview";
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
@@ -16,6 +17,7 @@ const MergeMessageRender: FC<IMessageItemProps> = ({ message }) => {
   const merge = message.mergeElem;
   const summaries = merge?.abstractList ?? [];
   const messages = merge?.multiMessage ?? [];
+  const title = merge?.title || t("placeholder.messageHistory");
 
   return (
     <>
@@ -40,11 +42,22 @@ const MergeMessageRender: FC<IMessageItemProps> = ({ message }) => {
         </span>
       </button>
       <Modal
-        title={merge?.title || t("placeholder.messageHistory")}
+        title={
+          <div className={styles["merge-record-title"]}>
+            <strong>{title}</strong>
+            <span>
+              {t("placeholder.forwardRecordSummary", {
+                count: messages.length,
+                title,
+              })}
+            </span>
+          </div>
+        }
         open={open}
         footer={null}
         onCancel={() => setOpen(false)}
-        width={560}
+        width={740}
+        rootClassName={styles["merge-record-modal"]}
       >
         <div className={styles["merge-record-list"]}>
           {messages.map((record, index) => (
@@ -56,7 +69,7 @@ const MergeMessageRender: FC<IMessageItemProps> = ({ message }) => {
                     nickname: record.senderNickname,
                   })}
                 </span>
-                <span>{new Date(record.sendTime).toLocaleString()}</span>
+                <span>{messageDate(record.sendTime).format("HH:mm")}</span>
               </div>
               <div className={styles["merge-record-bubble"]}>
                 {getMessagePreview(record)}

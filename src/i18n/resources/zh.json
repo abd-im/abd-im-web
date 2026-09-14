@@ -528,6 +528,7 @@
     "forwardTo": "转发给",
     "selectedMessageCount": "已选择 {{count}} 条消息",
     "viewForwardRecord": "查看聊天记录（{{count}} 条）",
+    "forwardRecordSummary": "{{count}} 条消息 · {{title}}",
     "messageHistory": "聊天记录",
     "whosMessageHistory": "{{who}}的聊天记录",
     "launch": "发起的",
