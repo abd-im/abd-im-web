@@ -12,6 +12,7 @@ import type {
   MessageReactionUpdatedEvent,
 } from "@/api/messageReactionTypes";
 import { ALLOWED_REACTION_EMOJIS } from "@/api/messageReactionTypes";
+import { IMSDK } from "@/layout/MainContentWrap";
 import emitter from "@/utils/events";
 
 import {
@@ -30,11 +31,14 @@ interface ReactionState {
 
 const EMPTY_SUMMARIES: ReactionSummaries = {};
 const pendingKey = (seq: number, emoji: string) => `${seq}\0${emoji}`;
+const validatedSeqsByConversation = new Map<string, Set<number>>();
+const reactionUserNames = new Map<string, string>();
+const loadingReactionUserIDs = new Set<string>();
 
-const chunkMessageSeqs = (seqs: number[]) => {
-  const chunks: number[][] = [];
-  for (let index = 0; index < seqs.length; index += MAX_REACTION_SUMMARY_BATCH_SIZE) {
-    chunks.push(seqs.slice(index, index + MAX_REACTION_SUMMARY_BATCH_SIZE));
+const chunkValues = <T>(values: T[]) => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += MAX_REACTION_SUMMARY_BATCH_SIZE) {
+    chunks.push(values.slice(index, index + MAX_REACTION_SUMMARY_BATCH_SIZE));
   }
   return chunks;
 };
@@ -44,17 +48,20 @@ const optimisticSummary = (
   seq: number,
   emoji: string,
   added: boolean,
+  selfUserID: string,
 ): MessageReactionSummary => {
   const current = summary ?? { seq, version: 0, reactions: [] };
   const existing = current.reactions.find((reaction) => reaction.emoji === emoji);
   const count = Math.max(0, (existing?.count ?? 0) + (added ? 1 : -1));
+  const userIDs = (existing?.userIDs ?? []).filter((userID) => userID !== selfUserID);
+  if (added) userIDs.push(selfUserID);
 
   return {
     ...current,
     reactions: replaceReaction(
       current.reactions,
       emoji,
-      count > 0 ? { emoji, count, reactedByMe: added } : undefined,
+      count > 0 ? { emoji, count, reactedByMe: added, userIDs } : undefined,
     ),
   };
 };
@@ -116,8 +123,12 @@ export function useMessageReactions(
 
   const summariesConversationIDRef = useRef(conversationID);
   const summariesRef = useRef<ReactionSummaries>({});
-  const loadedMessageSeqsRef = useRef(new Set<number>());
+  const loadedMessageSeqsRef = useRef(
+    new Set(conversationID ? validatedSeqsByConversation.get(conversationID) : []),
+  );
   const loadingMessageSeqsRef = useRef(new Set<number>());
+  const cacheLoadedMessageSeqsRef = useRef(new Set<number>());
+  const cacheLoadingMessageSeqsRef = useRef(new Set<number>());
   const loadGenerationRef = useRef(0);
   const pendingKeysRef = useRef(new Set<string>());
   const reconnectRefreshPendingRef = useRef(false);
@@ -125,8 +136,12 @@ export function useMessageReactions(
   if (summariesConversationIDRef.current !== conversationID) {
     summariesConversationIDRef.current = conversationID;
     summariesRef.current = {};
-    loadedMessageSeqsRef.current = new Set();
+    loadedMessageSeqsRef.current = new Set(
+      conversationID ? validatedSeqsByConversation.get(conversationID) : [],
+    );
     loadingMessageSeqsRef.current = new Set();
+    cacheLoadedMessageSeqsRef.current = new Set();
+    cacheLoadingMessageSeqsRef.current = new Set();
     loadGenerationRef.current += 1;
     pendingKeysRef.current = new Set();
     reconnectRefreshPendingRef.current = false;
@@ -138,6 +153,8 @@ export function useMessageReactions(
   });
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [refreshRevision, setRefreshRevision] = useState(0);
+  const [cacheRevision, setCacheRevision] = useState(0);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   const commitSummaries = useCallback(
     (
@@ -167,6 +184,7 @@ export function useMessageReactions(
       incoming: MessageReactionSummary[],
       acceptEqualVersion = false,
       keepPendingReactions = false,
+      persist = false,
     ) => {
       commitSummaries(expectedConversationID, (current) => {
         let next = current;
@@ -190,6 +208,12 @@ export function useMessageReactions(
         });
         return next;
       });
+      if (persist) {
+        void IMSDK.setMessageReactionSummaries({
+          conversationID: expectedConversationID,
+          summaries: incoming.map((summary) => ({ ...summary, stale: false })),
+        }).catch(() => undefined);
+      }
     },
     [commitSummaries],
   );
@@ -206,7 +230,7 @@ export function useMessageReactions(
       const requestedSeqs = [...new Set(seqs)].filter((seq) =>
         messageSeqSetRef.current.has(seq),
       );
-      const batches = chunkMessageSeqs(requestedSeqs);
+      const batches = chunkValues(requestedSeqs);
       const responses = await Promise.all(
         batches.map((batch) =>
           getReactionSummaries({
@@ -220,6 +244,7 @@ export function useMessageReactions(
         responses.flat(),
         acceptEqualVersion,
         keepPendingReactions,
+        true,
       );
     },
     [mergeSummaries],
@@ -232,14 +257,60 @@ export function useMessageReactions(
 
   useEffect(() => {
     summariesRef.current = {};
-    loadedMessageSeqsRef.current = new Set();
+    loadedMessageSeqsRef.current = new Set(
+      conversationID ? validatedSeqsByConversation.get(conversationID) : [],
+    );
     loadingMessageSeqsRef.current = new Set();
+    cacheLoadedMessageSeqsRef.current = new Set();
+    cacheLoadingMessageSeqsRef.current = new Set();
     loadGenerationRef.current += 1;
     pendingKeysRef.current = new Set();
     reconnectRefreshPendingRef.current = false;
     setReactionState({ conversationID, summaries: {} });
     setPendingKeys(new Set());
+    setUserNames({});
   }, [conversationID]);
+
+  useEffect(() => {
+    if (!conversationID) return;
+    const pendingSeqs = messageSeqs.filter(
+      (seq) =>
+        !cacheLoadedMessageSeqsRef.current.has(seq) &&
+        !cacheLoadingMessageSeqsRef.current.has(seq),
+    );
+    if (pendingSeqs.length === 0) return;
+    pendingSeqs.forEach((seq) => cacheLoadingMessageSeqsRef.current.add(seq));
+
+    void IMSDK.getMessageReactionSummaries({
+      conversationID,
+      seqs: pendingSeqs,
+    })
+      .then(({ data }) => {
+        const usableSeqs = new Set(
+          data.filter((summary) => !summary.stale).map((summary) => summary.seq),
+        );
+        pendingSeqs.forEach((seq) => {
+          if (usableSeqs.has(seq)) return;
+          loadedMessageSeqsRef.current.delete(seq);
+          validatedSeqsByConversation.get(conversationID)?.delete(seq);
+        });
+        mergeSummaries(conversationID, data, true);
+      })
+      .catch(() => {
+        pendingSeqs.forEach((seq) => {
+          loadedMessageSeqsRef.current.delete(seq);
+          validatedSeqsByConversation.get(conversationID)?.delete(seq);
+        });
+      })
+      .finally(() => {
+        if (conversationIDRef.current !== conversationID) return;
+        pendingSeqs.forEach((seq) => {
+          cacheLoadingMessageSeqsRef.current.delete(seq);
+          cacheLoadedMessageSeqsRef.current.add(seq);
+        });
+        setCacheRevision((current) => current + 1);
+      });
+  }, [conversationID, mergeSummaries, messageSeqs]);
 
   useEffect(() => {
     if (!conversationID) return;
@@ -248,11 +319,6 @@ export function useMessageReactions(
     }
 
     const currentMessageSeqs = new Set(messageSeqs);
-    loadedMessageSeqsRef.current.forEach((seq) => {
-      if (!currentMessageSeqs.has(seq)) {
-        loadedMessageSeqsRef.current.delete(seq);
-      }
-    });
     commitSummaries(conversationID, (current) => {
       const entries = Object.entries(current).filter(([seq]) =>
         currentMessageSeqs.has(Number(seq)),
@@ -262,13 +328,18 @@ export function useMessageReactions(
         : Object.fromEntries(entries);
     });
 
+    const readyMessageSeqs = messageSeqs.filter((seq) =>
+      cacheLoadedMessageSeqsRef.current.has(seq),
+    );
+    if (readyMessageSeqs.length !== messageSeqs.length) return;
+
     const forceRefresh = connectionReady && reconnectRefreshPendingRef.current;
     const loadedOrLoadingMessageSeqs = new Set([
       ...loadedMessageSeqsRef.current,
       ...loadingMessageSeqsRef.current,
     ]);
     const newMessageSeqs = selectReactionSummaryMessageSeqs(
-      messageSeqs,
+      readyMessageSeqs,
       loadedOrLoadingMessageSeqs,
       connectionReady,
       forceRefresh,
@@ -278,6 +349,7 @@ export function useMessageReactions(
     if (forceRefresh) {
       loadedMessageSeqsRef.current = new Set();
       loadingMessageSeqsRef.current = new Set();
+      validatedSeqsByConversation.delete(conversationID);
       loadGenerationRef.current += 1;
       reconnectRefreshPendingRef.current = false;
     }
@@ -295,6 +367,10 @@ export function useMessageReactions(
           loadingMessageSeqsRef.current.delete(seq);
           if (messageSeqSetRef.current.has(seq)) {
             loadedMessageSeqsRef.current.add(seq);
+            const validated =
+              validatedSeqsByConversation.get(conversationID) ?? new Set<number>();
+            validated.add(seq);
+            validatedSeqsByConversation.set(conversationID, validated);
           }
         });
       })
@@ -310,6 +386,7 @@ export function useMessageReactions(
       });
   }, [
     commitSummaries,
+    cacheRevision,
     connectionReady,
     conversationID,
     fetchSummaries,
@@ -345,6 +422,7 @@ export function useMessageReactions(
       }));
     };
     const handleRefresh = () => {
+      validatedSeqsByConversation.clear();
       reconnectRefreshPendingRef.current = true;
       setRefreshRevision((current) => current + 1);
     };
@@ -356,6 +434,49 @@ export function useMessageReactions(
       emitter.off("MESSAGE_REACTIONS_REFRESH", handleRefresh);
     };
   }, [commitSummaries, fetchSummaries]);
+
+  useEffect(() => {
+    const userIDs = [
+      ...new Set(
+        Object.values(reactionState.summaries).flatMap((summary) =>
+          summary.reactions.flatMap((reaction) => reaction.userIDs),
+        ),
+      ),
+    ];
+    const knownNames = Object.fromEntries(
+      userIDs.flatMap((userID) => {
+        const name = reactionUserNames.get(userID);
+        return name ? [[userID, name]] : [];
+      }),
+    );
+    if (Object.keys(knownNames).length > 0) {
+      setUserNames((current) => ({ ...current, ...knownNames }));
+    }
+
+    const missing = userIDs.filter(
+      (userID) => !reactionUserNames.has(userID) && !loadingReactionUserIDs.has(userID),
+    );
+    if (missing.length === 0) return;
+    missing.forEach((userID) => loadingReactionUserIDs.add(userID));
+    void Promise.all(chunkValues(missing).map((batch) => IMSDK.getUsersInfo(batch)))
+      .then((responses) => {
+        const names: Record<string, string> = {};
+        responses.forEach(({ data }) => {
+          data.forEach((user) => {
+            const name = user.nickname || user.userID;
+            reactionUserNames.set(user.userID, name);
+            names[user.userID] = name;
+          });
+        });
+        if (conversationIDRef.current === reactionState.conversationID) {
+          setUserNames((current) => ({ ...current, ...names }));
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        missing.forEach((userID) => loadingReactionUserIDs.delete(userID));
+      });
+  }, [reactionState]);
 
   const isPending = useCallback(
     (seq: number, emoji: string) => pendingKeys.has(pendingKey(seq, emoji)),
@@ -380,7 +501,13 @@ export function useMessageReactions(
       setPendingKeys(new Set(pendingKeysRef.current));
       commitSummaries(expectedConversationID, (current) => ({
         ...current,
-        [seq]: optimisticSummary(current[seq], seq, emoji, added),
+        [seq]: optimisticSummary(
+          current[seq],
+          seq,
+          emoji,
+          added,
+          selfUserIDRef.current,
+        ),
       }));
 
       try {
@@ -390,7 +517,7 @@ export function useMessageReactions(
           seq,
           emoji,
         });
-        mergeSummaries(expectedConversationID, [summary], true);
+        mergeSummaries(expectedConversationID, [summary], true, false, true);
       } catch {
         commitSummaries(expectedConversationID, (current) => {
           const summary = current[seq];
@@ -423,5 +550,6 @@ export function useMessageReactions(
     isPending,
     toggleReaction,
     refreshLoaded,
+    userNames,
   };
 }

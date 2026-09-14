@@ -29,7 +29,7 @@ async function startPreview() {
   ): MessageItem =>
     ({
       clientMsgID: `preview-message-${index}`,
-      serverMsgID: "",
+      serverMsgID: `preview-server-message-${index}`,
       createTime: now - (12 - index) * 60000,
       sendTime: now - (12 - index) * 60000,
       sessionType: 1,
@@ -121,9 +121,36 @@ async function startPreview() {
     {
       seq: number;
       version: number;
-      reactions: Array<{ emoji: string; count: number; reactedByMe: boolean }>;
+      reactions: Array<{
+        emoji: string;
+        count: number;
+        reactedByMe: boolean;
+        userIDs: string[];
+      }>;
     }
-  >();
+  >([
+    [
+      7,
+      {
+        seq: 7,
+        version: 2,
+        reactions: [
+          {
+            emoji: "👍",
+            count: 4,
+            reactedByMe: true,
+            userIDs: ["preview-lin", "preview-chen", "preview-su", "preview-me"],
+          },
+          {
+            emoji: "🎉",
+            count: 2,
+            reactedByMe: false,
+            userIDs: ["preview-zhou", "preview-xu"],
+          },
+        ],
+      },
+    ],
+  ]);
   // Set the adapter before app imports create their API clients. No preview API request leaves the browser.
   axios.defaults.adapter = (config) => {
     const body: {
@@ -162,7 +189,14 @@ async function startPreview() {
         reactions: [],
       };
       summary.reactions = config.url.includes("add_reaction")
-        ? [{ emoji: body.emoji, count: 1, reactedByMe: true }]
+        ? [
+            {
+              emoji: body.emoji,
+              count: 1,
+              reactedByMe: true,
+              userIDs: [self.userID],
+            },
+          ]
         : [];
       summary.version += 1;
       summaries.set(body.seq, summary);

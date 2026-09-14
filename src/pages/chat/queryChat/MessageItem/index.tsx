@@ -43,8 +43,10 @@ export interface IMessageItemProps {
   conversationID?: string;
   messageUpdateFlag?: string;
   reactionSummary?: MessageReactionSummary;
+  showReactionAction?: boolean;
   isReactionPending?: (emoji: string) => boolean;
   onToggleReaction?: (emoji: string, reactedByMe: boolean) => void;
+  reactionUserNames?: Record<string, string>;
   selectionMode?: boolean;
   selected?: boolean;
   selectable?: boolean;
@@ -87,8 +89,10 @@ const MessageItem: FC<IMessageItemProps> = ({
   disabled,
   conversationID,
   reactionSummary,
+  showReactionAction,
   isReactionPending,
   onToggleReaction,
+  reactionUserNames,
   selectionMode,
   selected,
   selectable,
@@ -380,9 +384,11 @@ const MessageItem: FC<IMessageItemProps> = ({
                   <MessageReactionBar
                     summary={reactionSummary}
                     isSender={isSender}
+                    showReactionAction={showReactionAction}
                     canReact={canReact}
                     isPending={isReactionPending}
                     onToggle={onToggleReaction}
+                    userNames={reactionUserNames}
                     onReply={
                       canReply ? () => void handleMenuAction("reply") : undefined
                     }

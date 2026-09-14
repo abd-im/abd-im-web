@@ -70,7 +70,7 @@ describe("message reaction state", () => {
     const current = {
       seq: 42,
       version: 2,
-      reactions: [{ emoji: "👍", count: 1, reactedByMe: false }],
+      reactions: [{ emoji: "👍", count: 1, reactedByMe: false, userIDs: ["b"] }],
     };
     const result = reduceMessageReactionEvent(
       current,
@@ -90,7 +90,31 @@ describe("message reaction state", () => {
     expect(result.summary).toEqual({
       seq: 42,
       version: 3,
-      reactions: [{ emoji: "👍", count: 2, reactedByMe: true }],
+      reactions: [{ emoji: "👍", count: 2, reactedByMe: true, userIDs: ["b", "a"] }],
     });
+  });
+
+  it("refreshes when the event count does not match cached members", () => {
+    const current = {
+      seq: 42,
+      version: 2,
+      reactions: [{ emoji: "👍", count: 1, reactedByMe: false, userIDs: ["b"] }],
+    };
+    const result = reduceMessageReactionEvent(
+      current,
+      {
+        conversationID: "si_a_b",
+        seq: 42,
+        emoji: "👍",
+        action: "added",
+        actorUserID: "a",
+        count: 3,
+        version: 3,
+      },
+      "a",
+    );
+
+    expect(result.requiresRefresh).toBe(true);
+    expect(result.summary).toBe(current);
   });
 });

@@ -436,6 +436,21 @@ export function useGlobalEvent() {
 
   // conversation
   const conversationChnageHandler = ({ data }: WSEvent<ConversationItem[]>) => {
+    const currentConversationID =
+      useConversationStore.getState().currentConversation?.conversationID;
+    const currentConversation = data.find(
+      (conversation) => conversation.conversationID === currentConversationID,
+    );
+    if (currentConversation?.latestMsg) {
+      try {
+        const latestMessage = JSON.parse(currentConversation.latestMsg) as MessageItem;
+        if (Number.isSafeInteger(latestMessage.seq) && latestMessage.seq > 0) {
+          updateOneMessage(latestMessage);
+        }
+      } catch {
+        // The conversation list can still update when an older SDK returns invalid JSON.
+      }
+    }
     updateConversationList(data, "filter");
   };
   const newConversationHandler = ({ data }: WSEvent<ConversationItem[]>) => {

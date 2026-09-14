@@ -262,7 +262,12 @@ const ChatContent = () => {
     () => new Set(reactableMessages.map((message) => message.seq)),
     [reactableMessages],
   );
-  const { summaries, isPending, toggleReaction } = useMessageReactions(
+  const {
+    summaries,
+    isPending,
+    toggleReaction,
+    userNames: reactionUserNames,
+  } = useMessageReactions(
     reactionsEnabled ? conversationID : undefined,
     reactableMessages,
     selfUserID,
@@ -501,6 +506,12 @@ const ChatContent = () => {
           itemContent={(index, message, reactionSummaries) => {
             const previous = displayMessages[index - loadState.firstItemIndex - 1];
             const canReact = reactableMessageSeqs.has(message.seq);
+            const showReactionAction =
+              reactionsEnabled &&
+              REACTABLE_MESSAGE_TYPES.has(message.contentType) &&
+              (message.status === MessageStatus.Sending ||
+                message.status === MessageStatus.Succeed) &&
+              !message.attachedInfoElem?.isPrivateChat;
             const avatarText = message.senderNickname;
             return (
               <>
@@ -520,6 +531,8 @@ const ChatContent = () => {
                     message={message}
                     avatarText={avatarText}
                     reactionSummary={reactionSummaries[message.seq]}
+                    showReactionAction={showReactionAction}
+                    reactionUserNames={reactionUserNames}
                     isReactionPending={
                       canReact ? (emoji) => isPending(message.seq, emoji) : undefined
                     }

@@ -18,6 +18,7 @@ import styles from "./message-item.module.scss";
 interface MessageReactionBarProps {
   summary?: MessageReactionSummary;
   isSender: boolean;
+  showReactionAction?: boolean;
   canReact?: boolean;
   isPending?: (emoji: string) => boolean;
   onToggle?: (emoji: string, reactedByMe: boolean) => void;
@@ -25,6 +26,7 @@ interface MessageReactionBarProps {
   menuItems?: MenuProps["items"];
   onMenuClick?: MenuProps["onClick"];
   actionsDisabled?: boolean;
+  userNames?: Record<string, string>;
 }
 
 const formatCount = (count: number) => (count > 999 ? "999+" : String(count));
@@ -32,6 +34,7 @@ const formatCount = (count: number) => (count > 999 ? "999+" : String(count));
 const MessageReactionBar: FC<MessageReactionBarProps> = ({
   summary,
   isSender,
+  showReactionAction,
   canReact = true,
   isPending,
   onToggle,
@@ -39,12 +42,14 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
   menuItems,
   onMenuClick,
   actionsDisabled,
+  userNames = {},
 }) => {
   const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const reactions = summary?.reactions ?? [];
   const hasReactions = canReact && reactions.length > 0;
+  const reactionActionVisible = showReactionAction ?? canReact;
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -99,27 +104,49 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
     >
       {hasReactions && (
         <div className={styles["reaction-bar"]}>
-          {reactions.map((reaction) => (
-            <button
-              key={reaction.emoji}
-              type="button"
-              data-reaction-emoji={reaction.emoji}
-              className={clsx(
-                styles["reaction-chip"],
-                reaction.reactedByMe && styles["reaction-chip-selected"],
-              )}
-              aria-pressed={reaction.reactedByMe}
-              disabled={isPending?.(reaction.emoji) ?? false}
-              onClick={() => onToggle?.(reaction.emoji, reaction.reactedByMe)}
-            >
-              <span className={styles["reaction-emoji"]} aria-hidden>
-                {reaction.emoji}
-              </span>
-              <span className={styles["reaction-count"]}>
-                {formatCount(reaction.count)}
-              </span>
-            </button>
-          ))}
+          {reactions.map((reaction) => {
+            const memberNames = reaction.userIDs.map(
+              (userID) => userNames[userID] ?? userID,
+            );
+            const button = (
+              <button
+                type="button"
+                data-reaction-emoji={reaction.emoji}
+                className={clsx(
+                  styles["reaction-chip"],
+                  reaction.reactedByMe && styles["reaction-chip-selected"],
+                )}
+                aria-pressed={reaction.reactedByMe}
+                disabled={isPending?.(reaction.emoji) ?? false}
+                onClick={() => onToggle?.(reaction.emoji, reaction.reactedByMe)}
+              >
+                <span className={styles["reaction-emoji"]} aria-hidden>
+                  {reaction.emoji}
+                </span>
+                <span className={styles["reaction-count"]}>
+                  {formatCount(reaction.count)}
+                </span>
+              </button>
+            );
+            return memberNames.length > 0 ? (
+              <Popover
+                key={reaction.emoji}
+                content={
+                  <div className={styles["reaction-members"]}>
+                    {memberNames.join(", ")}
+                  </div>
+                }
+                trigger="hover"
+                placement="top"
+                arrow={false}
+                mouseEnterDelay={0.15}
+              >
+                {button}
+              </Popover>
+            ) : (
+              <span key={reaction.emoji}>{button}</span>
+            );
+          })}
         </div>
       )}
 
@@ -130,7 +157,7 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
             (pickerOpen || moreOpen) && styles["reaction-actions-open"],
           )}
         >
-          {canReact && (
+          {reactionActionVisible && (
             <Popover
               content={picker}
               trigger={["hover", "click"]}
@@ -147,6 +174,7 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
               mouseLeaveDelay={0.5}
               open={pickerOpen}
               onOpenChange={(open) => {
+                if (open && !canReact) return;
                 setPickerOpen(open);
                 if (open) setMoreOpen(false);
               }}

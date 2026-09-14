@@ -46,9 +46,9 @@ test.describe("message reactions", () => {
 
     pageB.on("request", (request) => {
       if (!request.url().endsWith("/msg/get_reaction_summaries")) return;
-      const body = request.postDataJSON() as { clientMsgIDs?: unknown };
-      if (Array.isArray(body.clientMsgIDs)) {
-        summaryBatchSizes.push(body.clientMsgIDs.length);
+      const body = request.postDataJSON() as { seqs?: unknown };
+      if (Array.isArray(body.seqs)) {
+        summaryBatchSizes.push(body.seqs.length);
       }
     });
 
@@ -67,7 +67,7 @@ test.describe("message reactions", () => {
     await expect(itemB).toBeVisible();
 
     await itemA.hover();
-    await itemA.getByTestId("add-message-reaction").click();
+    await itemA.getByTestId("add-message-reaction").hover();
     await pageA.locator('button[data-reaction-picker-emoji="👍"]').click();
 
     const reactionA = itemA.locator('button[data-reaction-emoji="👍"]');
@@ -93,7 +93,7 @@ test.describe("message reactions", () => {
     const narrowPickerButton = narrowItem.getByTestId("add-message-reaction");
     await expect(narrowPickerButton).toBeInViewport();
     await narrowPickerButton.click();
-    for (const emoji of ["👍", "❤️", "😂", "😮", "😢", "🙏"]) {
+    for (const emoji of ["👍", "👎", "😄", "🎉", "😕", "❤️", "🚀", "👀"]) {
       await expect(
         pageB.locator(`button[data-reaction-picker-emoji="${emoji}"]`),
       ).toBeInViewport();

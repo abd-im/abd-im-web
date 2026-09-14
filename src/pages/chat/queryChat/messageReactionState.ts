@@ -100,6 +100,16 @@ export const reduceMessageReactionEvent = (
   }
 
   const existing = current.reactions.find((reaction) => reaction.emoji === event.emoji);
+  const userIDs = existing?.userIDs ? [...existing.userIDs] : [];
+  const actorIndex = userIDs.indexOf(event.actorUserID);
+  if (event.action === "added" && actorIndex === -1) {
+    userIDs.push(event.actorUserID);
+  } else if (event.action === "removed" && actorIndex !== -1) {
+    userIDs.splice(actorIndex, 1);
+  }
+  if (userIDs.length !== event.count) {
+    return { summary: current, requiresRefresh: true };
+  }
   const reactedByMe =
     event.actorUserID === selfUserID
       ? event.action === "added"
@@ -114,7 +124,7 @@ export const reduceMessageReactionEvent = (
         current.reactions,
         event.emoji,
         event.count > 0
-          ? { emoji: event.emoji, count: event.count, reactedByMe }
+          ? { emoji: event.emoji, count: event.count, reactedByMe, userIDs }
           : undefined,
       ),
     },
