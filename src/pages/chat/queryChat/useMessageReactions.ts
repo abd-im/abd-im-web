@@ -29,7 +29,6 @@ interface ReactionState {
   summaries: ReactionSummaries;
 }
 
-const EMPTY_SUMMARIES: ReactionSummaries = {};
 const pendingKey = (clientMsgID: string, emoji: string) => `${clientMsgID}\0${emoji}`;
 
 const chunkMessageIDs = (clientMsgIDs: string[]) => {
@@ -114,7 +113,11 @@ export function useMessageReactions(
   selfUserIDRef.current = selfUserID;
 
   const summariesConversationIDRef = useRef(conversationID);
-  const summariesRef = useRef<ReactionSummaries>({});
+  // Keep previously rendered reactions visible while their conversation refreshes.
+  const summariesByConversationRef = useRef(new Map<string, ReactionSummaries>());
+  const summariesRef = useRef<ReactionSummaries>(
+    conversationID ? summariesByConversationRef.current.get(conversationID) ?? {} : {},
+  );
   const loadedMessageIDsRef = useRef(new Set<string>());
   const loadingMessageIDsRef = useRef(new Set<string>());
   const loadGenerationRef = useRef(0);
@@ -123,7 +126,9 @@ export function useMessageReactions(
 
   if (summariesConversationIDRef.current !== conversationID) {
     summariesConversationIDRef.current = conversationID;
-    summariesRef.current = {};
+    summariesRef.current = conversationID
+      ? summariesByConversationRef.current.get(conversationID) ?? {}
+      : {};
     loadedMessageIDsRef.current = new Set();
     loadingMessageIDsRef.current = new Set();
     loadGenerationRef.current += 1;
@@ -155,6 +160,7 @@ export function useMessageReactions(
       if (next === current) return;
 
       summariesRef.current = next;
+      summariesByConversationRef.current.set(expectedConversationID, next);
       const messageIDs = new Set([...Object.keys(current), ...Object.keys(next)]);
       if (
         [...messageIDs].every((clientMsgID) =>
@@ -238,18 +244,11 @@ export function useMessageReactions(
   );
 
   useEffect(() => {
-    summariesRef.current = {};
     loadedMessageIDsRef.current = new Set();
     loadingMessageIDsRef.current = new Set();
     loadGenerationRef.current += 1;
     pendingKeysRef.current = new Set();
     reconnectRefreshPendingRef.current = false;
-    setReactionState((current) =>
-      current.conversationID === conversationID &&
-      Object.keys(current.summaries).length === 0
-        ? current
-        : { conversationID, summaries: {} },
-    );
     setPendingKeys((current) => (current.size === 0 ? current : new Set()));
   }, [conversationID]);
 
@@ -441,7 +440,7 @@ export function useMessageReactions(
     summaries:
       reactionState.conversationID === conversationID
         ? reactionState.summaries
-        : EMPTY_SUMMARIES,
+        : summariesRef.current,
     isPending,
     toggleReaction,
     refreshLoaded,
