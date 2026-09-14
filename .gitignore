@@ -39,5 +39,10 @@ yarn.lock
 open-im-sdk-core.*
 OpenIM_*
 
+# Generated SDK runtime assets
+/public/openIM.wasm
+/public/sql-wasm.wasm
+/public/wasm_exec.js
+
 # Private environment configurations
 .env.development
