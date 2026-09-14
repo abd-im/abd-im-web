@@ -611,24 +611,85 @@
   display: flex;
   max-height: min(60vh, 520px);
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
   overflow-y: auto;
+}
+
+.merge-record-modal {
+  :global(.ant-modal-content) {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: var(--surface-raised);
+  }
+
+  :global(.ant-modal-header) {
+    margin: 0;
+    padding: 14px 26px 13px;
+    border-bottom: 1px solid var(--surface-border);
+    background: var(--surface-raised);
+  }
+
+  :global(.ant-modal-close) {
+    top: 17px;
+    right: 20px;
+  }
+
+  :global(.ant-modal-body) {
+    min-height: 244px;
+    padding: 26px 34px 28px;
+    background: var(--app-shell);
+  }
+}
+
+.merge-record-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 32px;
+
+  strong {
+    color: var(--foreground);
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  span {
+    color: var(--sub-text);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+  }
 }
 
 .merge-record-meta {
   display: flex;
   gap: 8px;
   color: var(--sub-text);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .merge-record-bubble {
-  margin-top: 4px;
-  padding: 8px 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 5px;
+  padding: 11px 16px;
   border: 1px solid var(--surface-border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--foreground);
-  background: var(--surface);
+  background: var(--surface-raised);
+  font-size: 14px;
+  line-height: 22px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .merge-record-modal {
+    :global(.ant-modal-body) {
+      padding: 20px;
+    }
+  }
 }
