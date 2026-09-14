@@ -11,6 +11,11 @@ test("dates divide days and individual times appear on hover or focus", async ({
   await page.goto(previewURL);
   const list = page.locator("#chat-list");
   await expect(list.locator("[data-chat-message-row]")).toHaveCount(7);
+  const dateDivider = list.locator(".chat-date-divider").first();
+  await expect(dateDivider).toHaveCSS("margin-top", "0px");
+  await expect(dateDivider).toHaveCSS("margin-bottom", "0px");
+  await expect(dateDivider).toHaveCSS("padding-top", "16px");
+  await expect(dateDivider).toHaveCSS("padding-bottom", "16px");
   await list.evaluate((element) => {
     element.scrollTop = 0;
   });
@@ -32,6 +37,64 @@ test("dates divide days and individual times appear on hover or focus", async ({
   await page.locator(".workspace-brand").click();
   await expect(time).toHaveCSS("opacity", "0");
   await page.screenshot({ path: "e2e/screenshots/chat-dates.png" });
+});
+
+test("a virtualized multi-day history stays at the bottom", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 600 });
+  await page.goto(previewURL);
+  await expect(page.locator("#chat-list")).toBeVisible();
+
+  await page.evaluate(async () => {
+    const historyURL = "/src/pages/chat/queryChat/useHistoryMessageList.tsx";
+    const { pushNewMessage } = await import(historyURL);
+    const now = Date.now();
+    for (let index = 0; index < 80; index += 1) {
+      pushNewMessage({
+        clientMsgID: `scroll-test-${index}`,
+        serverMsgID: "",
+        createTime: now - (79 - index) * 86400000,
+        sendTime: now - (79 - index) * 86400000,
+        sessionType: 1,
+        sendID: "preview-lin",
+        recvID: "preview-me",
+        msgFrom: 100,
+        contentType: 101,
+        senderPlatformID: 5,
+        senderNickname: "林知夏",
+        senderFaceUrl: "",
+        groupID: "",
+        content: "",
+        seq: 100 + index,
+        isRead: true,
+        status: 2,
+        textElem: { content: `滚动测试 ${index}` },
+        attachedInfoElem: {
+          groupHasReadInfo: { hasReadCount: 0, groupMemberCount: 0 },
+          isPrivateChat: false,
+          burnDuration: 0,
+          hasReadTime: 0,
+        },
+        ex: "",
+        localEx: "",
+      });
+    }
+  });
+
+  const list = page.locator("#chat-list");
+  await expect
+    .poll(() => list.evaluate((element) => element.scrollHeight))
+    .toBeGreaterThan(3000);
+  await list.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(page.getByText("滚动测试 79", { exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      list.evaluate(
+        (element) => element.scrollHeight - element.scrollTop - element.clientHeight,
+      ),
+    )
+    .toBeLessThanOrEqual(1);
 });
 
 test("touch screens keep message times accessible", async ({ browser }) => {
