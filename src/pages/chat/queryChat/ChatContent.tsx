@@ -260,7 +260,7 @@ const ChatContent = () => {
     () => new Set(reactableMessages.map((message) => message.clientMsgID)),
     [reactableMessages],
   );
-  const { summaries, isPending, toggleReaction, isCacheReady } = useMessageReactions(
+  const { summaries, isPending, toggleReaction } = useMessageReactions(
     reactionsEnabled ? conversationID : undefined,
     reactableMessages,
     selfUserID,
@@ -465,7 +465,7 @@ const ChatContent = () => {
       className="relative flex h-full flex-col overflow-hidden !bg-surface"
       id="chat-main-content"
     >
-      {loadState.initLoading || !isCacheReady ? (
+      {loadState.initLoading ? (
         <div className="flex h-full w-full items-center justify-center bg-surface pt-1">
           <Spin spinning />
         </div>
