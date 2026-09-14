@@ -91,6 +91,17 @@ test("compact chat keeps the profile at the top and existing actions usable", as
   expect(errors).toEqual([]);
 });
 
+test("typing continues after an inserted emoji", async ({ page }) => {
+  await page.goto(previewURL);
+  const editor = page.locator(".ck-editor__editable");
+  await editor.fill("消息");
+  await page.locator(".chat-composer-tools button").first().click();
+  await page.locator('[title="嘿嘿"]').click();
+  await page.keyboard.type("继续");
+  await expect(editor).toHaveText("消息😀继续");
+  await page.screenshot({ path: "e2e/screenshots/emoji-cursor-position.png" });
+});
+
 test("narrow screens show one pane without clipped controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(previewURL);
