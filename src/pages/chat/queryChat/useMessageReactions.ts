@@ -10,6 +10,7 @@ import {
 import type {
   MessageReactionSummary,
   MessageReactionUpdatedEvent,
+  MessageReactionUserProfile,
 } from "@/api/messageReactionTypes";
 import { ALLOWED_REACTION_EMOJIS } from "@/api/messageReactionTypes";
 import { IMSDK } from "@/layout/MainContentWrap";
@@ -32,7 +33,7 @@ interface ReactionState {
 const EMPTY_SUMMARIES: ReactionSummaries = {};
 const pendingKey = (seq: number, emoji: string) => `${seq}\0${emoji}`;
 const validatedSeqsByConversation = new Map<string, Set<number>>();
-const reactionUserNames = new Map<string, string>();
+const reactionUserProfiles = new Map<string, MessageReactionUserProfile>();
 const loadingReactionUserIDs = new Set<string>();
 
 const chunkValues = <T>(values: T[]) => {
@@ -154,7 +155,9 @@ export function useMessageReactions(
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [refreshRevision, setRefreshRevision] = useState(0);
   const [cacheRevision, setCacheRevision] = useState(0);
-  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [userProfiles, setUserProfiles] = useState<
+    Record<string, MessageReactionUserProfile>
+  >({});
 
   const commitSummaries = useCallback(
     (
@@ -268,7 +271,7 @@ export function useMessageReactions(
     reconnectRefreshPendingRef.current = false;
     setReactionState({ conversationID, summaries: {} });
     setPendingKeys(new Set());
-    setUserNames({});
+    setUserProfiles({});
   }, [conversationID]);
 
   useEffect(() => {
@@ -443,33 +446,38 @@ export function useMessageReactions(
         ),
       ),
     ];
-    const knownNames = Object.fromEntries(
+    const knownProfiles = Object.fromEntries(
       userIDs.flatMap((userID) => {
-        const name = reactionUserNames.get(userID);
-        return name ? [[userID, name]] : [];
+        const profile = reactionUserProfiles.get(userID);
+        return profile ? [[userID, profile]] : [];
       }),
     );
-    if (Object.keys(knownNames).length > 0) {
-      setUserNames((current) => ({ ...current, ...knownNames }));
+    if (Object.keys(knownProfiles).length > 0) {
+      setUserProfiles((current) => ({ ...current, ...knownProfiles }));
     }
 
     const missing = userIDs.filter(
-      (userID) => !reactionUserNames.has(userID) && !loadingReactionUserIDs.has(userID),
+      (userID) =>
+        !reactionUserProfiles.has(userID) && !loadingReactionUserIDs.has(userID),
     );
     if (missing.length === 0) return;
     missing.forEach((userID) => loadingReactionUserIDs.add(userID));
     void Promise.all(chunkValues(missing).map((batch) => IMSDK.getUsersInfo(batch)))
       .then((responses) => {
-        const names: Record<string, string> = {};
+        const profiles: Record<string, MessageReactionUserProfile> = {};
         responses.forEach(({ data }) => {
           data.forEach((user) => {
-            const name = user.nickname || user.userID;
-            reactionUserNames.set(user.userID, name);
-            names[user.userID] = name;
+            const profile = {
+              userID: user.userID,
+              nickname: user.nickname,
+              faceURL: user.faceURL,
+            };
+            reactionUserProfiles.set(user.userID, profile);
+            profiles[user.userID] = profile;
           });
         });
         if (conversationIDRef.current === reactionState.conversationID) {
-          setUserNames((current) => ({ ...current, ...names }));
+          setUserProfiles((current) => ({ ...current, ...profiles }));
         }
       })
       .catch(() => undefined)
@@ -550,6 +558,6 @@ export function useMessageReactions(
     isPending,
     toggleReaction,
     refreshLoaded,
-    userNames,
+    userProfiles,
   };
 }

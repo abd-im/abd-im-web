@@ -25,6 +25,23 @@
   background: var(--surface-hover);
 }
 
+.message-avatar-button {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+}
+
+.message-avatar-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .message-select-toggle {
   position: absolute;
   top: 50%;
@@ -174,9 +191,25 @@
       white-space: pre-wrap;
     }
 
-    .message-mention {
+    .message-text {
+      white-space: pre-wrap;
+    }
+
+    .message-link {
       color: #1467b8;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .message-mention {
+      display: inline;
+      padding: 0;
+      border: 0;
+      color: #1467b8;
+      background: transparent;
+      font: inherit;
       font-weight: 600;
+      cursor: pointer;
     }
 
     .message-content-group {
@@ -275,6 +308,10 @@
       }
 
       .message-mention {
+        color: var(--brand);
+      }
+
+      .message-link {
         color: var(--brand);
       }
 
@@ -495,11 +532,39 @@
 }
 
 .reaction-members {
-  max-width: 320px;
-  max-height: 160px;
+  width: 196px;
+  max-width: calc(100vw - 32px);
+  max-height: 240px;
   overflow-y: auto;
-  line-height: 1.55;
-  word-break: break-word;
+}
+
+.reaction-members-popover {
+  overflow: hidden;
+  padding: 0;
+}
+
+.reaction-member-list {
+  padding: 4px 0;
+}
+
+.reaction-member {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  align-items: center;
+  padding: 5px 8px !important;
+}
+
+.reaction-member-copy {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (hover: none), (max-width: 600px) {

@@ -278,7 +278,7 @@ const ChatContent = () => {
     summaries,
     isPending,
     toggleReaction,
-    userNames: reactionUserNames,
+    userProfiles: reactionUserProfiles,
   } = useMessageReactions(
     reactionsEnabled ? conversationID : undefined,
     reactableMessages,
@@ -570,7 +570,7 @@ const ChatContent = () => {
                     showGroupReadReceipt={isGroupConversation}
                     reactionSummary={reactionSummaries[message.seq]}
                     showReactionAction={showReactionAction}
-                    reactionUserNames={reactionUserNames}
+                    reactionUserProfiles={reactionUserProfiles}
                     isReactionPending={
                       canReact ? (emoji) => isPending(message.seq, emoji) : undefined
                     }

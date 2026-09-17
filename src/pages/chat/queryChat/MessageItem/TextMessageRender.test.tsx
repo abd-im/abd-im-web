@@ -19,4 +19,21 @@ describe("TextMessageRender", () => {
     expect(markup).not.toContain("<img");
     expect(markup).not.toContain("<script>");
   });
+
+  it("turns HTTP and www URLs into safe external links", () => {
+    const message = {
+      textElem: {
+        content: "文档 https://example.com/a?q=1，备用 www.example.org/test.",
+      },
+    } as unknown as IMessageItemProps["message"];
+
+    const markup = renderToStaticMarkup(<TextMessageRender message={message} />);
+
+    expect(markup).toContain('href="https://example.com/a?q=1"');
+    expect(markup).toContain('href="https://www.example.org/test"');
+    expect(markup).toContain('target="_blank"');
+    expect(markup).toContain('rel="noopener noreferrer"');
+    expect(markup).toContain("备用 ");
+    expect(markup).toContain("</a>.");
+  });
 });

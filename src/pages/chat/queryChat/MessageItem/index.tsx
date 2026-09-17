@@ -11,7 +11,10 @@ import { FC, memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { message as antMessage } from "@/AntdGlobalComp";
-import type { MessageReactionSummary } from "@/api/messageReaction";
+import type {
+  MessageReactionSummary,
+  MessageReactionUserProfile,
+} from "@/api/messageReactionTypes";
 import OIMAvatar from "@/components/OIMAvatar";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
@@ -21,6 +24,7 @@ import { messageDate } from "../messageDate";
 import { captureQuoteSelection, QuoteSelection } from "../partialQuote";
 import { deleteMessage } from "../useHistoryMessageList";
 import { useVisibleReadCursor } from "../useVisibleReadCursor";
+import AtTextMessageRender from "./AtTextMessageRender";
 import BurnCountdown from "./BurnCountdown";
 import CardMessageRender from "./CardMessageRender";
 import CatchMessageRender from "./CatchMsgRenderer";
@@ -51,7 +55,7 @@ export interface IMessageItemProps {
   showReactionAction?: boolean;
   isReactionPending?: (emoji: string) => boolean;
   onToggleReaction?: (emoji: string, reactedByMe: boolean) => void;
-  reactionUserNames?: Record<string, string>;
+  reactionUserProfiles?: Record<string, MessageReactionUserProfile>;
   selectionMode?: boolean;
   selected?: boolean;
   selectable?: boolean;
@@ -63,7 +67,7 @@ export interface IMessageItemProps {
 
 const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.TextMessage]: TextMessageRender,
-  [MessageType.AtTextMessage]: TextMessageRender,
+  [MessageType.AtTextMessage]: AtTextMessageRender,
   [MessageType.StreamMessage]: StreamMessageRender,
   [MessageType.PictureMessage]: MediaMessageRender,
   [MessageType.VideoMessage]: VideoMessageRender,
@@ -99,7 +103,7 @@ const MessageItem: FC<IMessageItemProps> = ({
   showReactionAction,
   isReactionPending,
   onToggleReaction,
-  reactionUserNames,
+  reactionUserProfiles,
   selectionMode,
   selected,
   selectable,
@@ -136,6 +140,27 @@ const MessageItem: FC<IMessageItemProps> = ({
     const timer = setTimeout(() => setShowSending(true), 1000);
     return () => clearTimeout(timer);
   }, [message.status]);
+
+  useEffect(() => {
+    if (!quoteSelection) return;
+
+    const dismiss = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-partial-reply-action]")) {
+        return;
+      }
+      setQuoteSelection(undefined);
+    };
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setQuoteSelection(undefined);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [quoteSelection]);
 
   const MessageRenderComponent = components[message.contentType] || CatchMessageRender;
 
@@ -278,6 +303,7 @@ const MessageItem: FC<IMessageItemProps> = ({
         {quoteSelection && (
           <button
             type="button"
+            data-partial-reply-action
             className={styles["quote-selection-action"]}
             style={{ left: quoteSelection.left, top: quoteSelection.top }}
             onPointerDown={(event) => event.preventDefault()}
@@ -316,11 +342,24 @@ const MessageItem: FC<IMessageItemProps> = ({
             isSender && styles["message-container-sender"],
           )}
         >
-          <OIMAvatar
-            size={36}
-            src={message.senderFaceUrl}
-            text={avatarText || message.senderNickname}
-          />
+          <button
+            type="button"
+            className={styles["message-avatar-button"]}
+            aria-label={t("placeholder.viewUserCard", {
+              name: avatarText || message.senderNickname,
+            })}
+            title={t("placeholder.viewUserCard", {
+              name: avatarText || message.senderNickname,
+            })}
+            data-message-avatar={message.sendID}
+            onClick={() => window.userClick(message.sendID, message.groupID)}
+          >
+            <OIMAvatar
+              size={36}
+              src={message.senderFaceUrl}
+              text={avatarText || message.senderNickname}
+            />
+          </button>
 
           <div className={styles["message-wrap"]}>
             <div className={styles["message-profile"]}>
@@ -417,7 +456,7 @@ const MessageItem: FC<IMessageItemProps> = ({
                     canReact={canReact}
                     isPending={isReactionPending}
                     onToggle={onToggleReaction}
-                    userNames={reactionUserNames}
+                    userProfiles={reactionUserProfiles}
                     onReply={
                       canReply ? () => void handleMenuAction("reply") : undefined
                     }

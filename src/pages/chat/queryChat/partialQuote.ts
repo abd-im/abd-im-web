@@ -126,5 +126,5 @@ export const spotlightQuote = (
   }
   document.addEventListener("keydown", onKeyDown);
   window.setTimeout(() => document.addEventListener("pointerdown", onPointerDown));
-  window.setTimeout(clear, 8000);
+  window.setTimeout(clear, 2400);
 };

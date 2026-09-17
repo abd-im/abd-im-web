@@ -18,6 +18,12 @@ export interface MessageReaction {
   userIDs: string[];
 }
 
+export interface MessageReactionUserProfile {
+  userID: string;
+  nickname?: string;
+  faceURL?: string;
+}
+
 export interface MessageReactionSummary {
   seq: number;
   version: number;

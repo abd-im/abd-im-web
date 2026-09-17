@@ -27,7 +27,10 @@ vi.mock("@/components/CKEditor", async () => {
 vi.mock("@/components/CKEditor/utils", () => ({
   getCleanText: (value: string) => value,
 }));
-vi.mock("@/hooks/useUserDisplayName", () => ({ useUserDisplayName: () => "" }));
+vi.mock("@/hooks/useUserDisplayName", () => ({
+  useUserDisplayName: () => "",
+  useUserDisplayNameResolver: () => () => "",
+}));
 vi.mock("@/layout/MainContentWrap", () => ({ IMSDK: {} }));
 vi.mock("@/store", () => ({
   useConversationStore: (selector: (state: unknown) => unknown) =>

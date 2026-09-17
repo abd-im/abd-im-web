@@ -11,22 +11,35 @@ test("message reactions show selection, complete members, and the fixed picker",
 
   const message = page.locator("[data-chat-message-row]").last();
   const selectedReaction = message.locator('[data-reaction-emoji="👍"]');
-  const reactionMembers = page.getByText("林知夏, 陈亦舟, 苏晚, Alex", {
-    exact: true,
-  });
   await expect(selectedReaction).toBeVisible();
+  await page.evaluate(async () => {
+    const { useContactStore } = await import("/src/store/index.ts");
+    const friends = useContactStore.getState().friendList;
+    useContactStore.setState({
+      friendList: friends.map((friend: { userID: string }) =>
+        friend.userID === "preview-lin" ? { ...friend, remark: "产品小林" } : friend,
+      ),
+    });
+  });
+  const reactionMembers = page.locator('[data-reaction-members-for="👍"]');
   await expect(selectedReaction).toHaveAttribute("aria-pressed", "true");
   await expect(selectedReaction).toContainText("4");
 
   await selectedReaction.hover();
   await expect(reactionMembers).toBeVisible();
+  await expect(reactionMembers.locator("[data-reaction-member-id]")).toHaveCount(4);
+  await expect(reactionMembers).toContainText("产品小林");
+  await expect(reactionMembers).toContainText("陈亦舟");
+  await expect(reactionMembers).not.toContainText("preview-lin");
+  await page.screenshot({ path: "e2e/screenshots/message-reaction-members.png" });
 
+  await page.locator(".chat-header").hover();
+  await expect(reactionMembers).toBeHidden();
   await message.getByText("没问题，到时候见。", { exact: true }).hover();
   await message.getByTestId("add-message-reaction").hover();
   const pickerOptions = page.locator("[data-reaction-picker-emoji]");
   await expect(pickerOptions).toHaveCount(8);
   await expect(pickerOptions.first()).toBeVisible();
-  await expect(reactionMembers).toBeHidden();
   await expect(selectedReaction).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/message-reactions.png" });
 });

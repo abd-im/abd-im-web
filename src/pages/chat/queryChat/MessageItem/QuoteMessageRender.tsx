@@ -8,6 +8,7 @@ import { getMessagePreview } from "../messagePreview";
 import type { PartialQuoteElem } from "../partialQuote";
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
+import MessageText from "./MessageText";
 
 const QuoteMessageRender: FC<IMessageItemProps> = ({ message }) => {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ const QuoteMessageRender: FC<IMessageItemProps> = ({ message }) => {
     },
     snapshotAuthor,
   );
-  const mention =
+  const mentionToken =
     message.groupID && snapshotAuthor && text.startsWith(`@${snapshotAuthor}`)
       ? `@${snapshotAuthor}`
       : "";
@@ -50,8 +51,16 @@ const QuoteMessageRender: FC<IMessageItemProps> = ({ message }) => {
         </span>
       </button>
       <div className={styles["quote-message-text"]} data-quote-source>
-        {mention && <span className={styles["message-mention"]}>{mention}</span>}
-        {mention ? text.slice(mention.length) : text}
+        {mentionToken && quoteMessage?.sendID && (
+          <button
+            type="button"
+            className={styles["message-mention"]}
+            onClick={() => window.userClick(quoteMessage.sendID, message.groupID)}
+          >
+            @{quoteAuthor}
+          </button>
+        )}
+        <MessageText text={mentionToken ? text.slice(mentionToken.length) : text} />
       </div>
     </div>
   );

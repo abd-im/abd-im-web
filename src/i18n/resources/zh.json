@@ -470,6 +470,7 @@
     "image": "图片",
     "video": "视频",
     "card": "名片",
+    "viewUserCard": "查看{{name}}的名片",
     "personalCard": "个人名片",
     "screenshot": "截图",
     "sticky": "置顶",

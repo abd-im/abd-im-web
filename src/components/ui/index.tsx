@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import clsx from "clsx";
 import {
+  HoverCard as HoverCardPrimitive,
   Popover as PopoverPrimitive,
   Progress as ProgressPrimitive,
   Slot,
@@ -111,6 +112,37 @@ export function Popover({
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
+  );
+}
+
+export function HoverCard({
+  trigger,
+  children,
+  side = "top",
+  align = "center",
+  className,
+}: {
+  trigger: ReactElement;
+  children: ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
+  className?: string;
+}) {
+  return (
+    <HoverCardPrimitive.Root openDelay={150} closeDelay={80}>
+      <HoverCardPrimitive.Trigger asChild>{trigger}</HoverCardPrimitive.Trigger>
+      <HoverCardPrimitive.Portal>
+        <HoverCardPrimitive.Content
+          className={clsx("ui-popover", className)}
+          side={side}
+          align={align}
+          sideOffset={8}
+          collisionPadding={12}
+        >
+          {children}
+        </HoverCardPrimitive.Content>
+      </HoverCardPrimitive.Portal>
+    </HoverCardPrimitive.Root>
   );
 }
 

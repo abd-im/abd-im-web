@@ -243,6 +243,25 @@
     background: var(--surface-border);
   }
 }
+.chat-unread-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 10px 24px;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--brand);
+    opacity: 0.45;
+  }
+}
 .chat-header-title {
   min-width: 0;
   margin-left: 10px;

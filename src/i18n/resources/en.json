@@ -469,6 +469,7 @@
     "image": "Image",
     "video": "Video",
     "card": "Card",
+    "viewUserCard": "View {{name}}'s profile",
     "personalCard": "Personal Card",
     "screenshot": "Screenshot",
     "sticky": "Sticky on Top",

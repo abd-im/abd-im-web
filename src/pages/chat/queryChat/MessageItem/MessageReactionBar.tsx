@@ -10,8 +10,14 @@ import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { MessageReactionSummary } from "@/api/messageReactionTypes";
+import type {
+  MessageReactionSummary,
+  MessageReactionUserProfile,
+} from "@/api/messageReactionTypes";
 import { ALLOWED_REACTION_EMOJIS } from "@/api/messageReactionTypes";
+import OIMAvatar from "@/components/OIMAvatar";
+import { HoverCard } from "@/components/ui";
+import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 
 import styles from "./message-item.module.scss";
 
@@ -26,7 +32,7 @@ interface MessageReactionBarProps {
   menuItems?: MenuProps["items"];
   onMenuClick?: MenuProps["onClick"];
   actionsDisabled?: boolean;
-  userNames?: Record<string, string>;
+  userProfiles?: Record<string, MessageReactionUserProfile>;
 }
 
 const formatCount = (count: number) => (count > 999 ? "999+" : String(count));
@@ -42,9 +48,10 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
   menuItems,
   onMenuClick,
   actionsDisabled,
-  userNames = {},
+  userProfiles = {},
 }) => {
   const { t } = useTranslation();
+  const resolveUserDisplayName = useUserDisplayNameResolver();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const reactions = summary?.reactions ?? [];
@@ -105,8 +112,8 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
       {hasReactions && (
         <div className={styles["reaction-bar"]}>
           {reactions.map((reaction) => {
-            const memberNames = reaction.userIDs.map(
-              (userID) => userNames[userID] ?? userID,
+            const members = reaction.userIDs.map(
+              (userID) => userProfiles[userID] ?? { userID },
             );
             const button = (
               <button
@@ -128,21 +135,43 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
                 </span>
               </button>
             );
-            return memberNames.length > 0 ? (
-              <Popover
+            return members.length > 0 ? (
+              <HoverCard
                 key={reaction.emoji}
-                content={
-                  <div className={styles["reaction-members"]}>
-                    {memberNames.join(", ")}
-                  </div>
-                }
-                trigger="hover"
-                placement="top"
-                arrow={false}
-                mouseEnterDelay={0.15}
+                trigger={button}
+                side="top"
+                className={styles["reaction-members-popover"]}
               >
-                {button}
-              </Popover>
+                <div
+                  className={styles["reaction-members"]}
+                  data-reaction-members-for={reaction.emoji}
+                >
+                  <div className={styles["reaction-member-list"]}>
+                    {members.map((member) => {
+                      const displayName = resolveUserDisplayName(member);
+                      return (
+                        <div
+                          key={member.userID}
+                          className={styles["reaction-member"]}
+                          data-reaction-member-id={member.userID}
+                        >
+                          <OIMAvatar
+                            size={25}
+                            src={member.faceURL}
+                            text={displayName}
+                          />
+                          <strong
+                            className={styles["reaction-member-copy"]}
+                            title={displayName}
+                          >
+                            {displayName}
+                          </strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </HoverCard>
             ) : (
               <span key={reaction.emoji}>{button}</span>
             );
@@ -152,6 +181,7 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
 
       {!actionsDisabled && (
         <div
+          data-message-actions
           className={clsx(
             styles["reaction-actions"],
             (pickerOpen || moreOpen) && styles["reaction-actions-open"],
