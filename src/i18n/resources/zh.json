@@ -1,4 +1,16 @@
 {
+  "groupReadReceipt": {
+    "status": "阅读状态",
+    "read": "已读",
+    "unread": "未读",
+    "noReaders": "暂无成员",
+    "allRead": "全部已读",
+    "summary": "{{read}} 人已读，{{unread}} 人未读",
+    "names": "{{names}} 已读",
+    "loading": "已读状态同步中",
+    "failed": "已读状态同步失败，点击重试",
+    "retry": "重试同步已读状态"
+  },
   "calls": {
     "errors": {
       "20201": "你已不是群成员",

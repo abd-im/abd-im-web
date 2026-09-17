@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@abd-im/wasm-client-sdk':
-        specifier: 3.8.3-patch.21
-        version: 3.8.3-patch.21
+        specifier: 3.8.3-patch.22
+        version: 3.8.3-patch.22
       '@ant-design/icons':
         specifier: ^5.6.1
         version: 5.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -246,8 +246,8 @@ importers:
 
 packages:
 
-  '@abd-im/wasm-client-sdk@3.8.3-patch.21':
-    resolution: {integrity: sha512-TItm+nD+lUtEL3t7uXiggSz9wIH5G5jYt9fdy9vzR5ohtXfmAsSIxMlj4Xd+kfSzabkK9QOjsMB0PitOekOpIA==}
+  '@abd-im/wasm-client-sdk@3.8.3-patch.22':
+    resolution: {integrity: sha512-98hmwGkc2mA8q77s63NnFKpk6fKeiT+xLoI6V2xCR9atLDmlV61gX6AgoRf/euC+VZVKRAhsD2uvSjpezizVAw==}
     engines: {node: '>=12.0'}
 
   '@alloc/quick-lru@5.2.0':
@@ -5845,7 +5845,7 @@ packages:
 
 snapshots:
 
-  '@abd-im/wasm-client-sdk@3.8.3-patch.21':
+  '@abd-im/wasm-client-sdk@3.8.3-patch.22':
     dependencies:
       rimraf: 6.1.3
 

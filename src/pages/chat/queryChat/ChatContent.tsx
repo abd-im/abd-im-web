@@ -2,6 +2,7 @@ import {
   MessageItem,
   MessageStatus,
   MessageType,
+  SessionType,
   ViewType,
 } from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
@@ -29,6 +30,7 @@ import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
 import { spotlightQuote } from "./partialQuote";
+import { useGroupReadReceipts } from "./useGroupReadReceipts";
 import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
 import { useMessageReactions } from "./useMessageReactions";
 
@@ -225,6 +227,16 @@ const ChatContent = () => {
     [friendList, loadState.messageList],
   );
 
+  const isGroupConversation =
+    currentConversation?.conversationType === SessionType.WorkingGroup &&
+    Boolean(currentConversation.groupID);
+  useGroupReadReceipts(
+    conversationID,
+    isGroupConversation,
+    displayMessages,
+    selfUserID,
+  );
+
   const selectedMessages = useMemo(
     () =>
       displayMessages.filter((message) => selectedMessageIDs.has(message.clientMsgID)),
@@ -287,20 +299,26 @@ const ChatContent = () => {
 
   useEffect(() => {
     if (conversationID) {
-      IMSDK.markConversationMessageAsRead(conversationID).then(() => {
-        latestLoadState.current?.messageList.forEach((msg) => {
-          if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
-            updateOneMessage({
-              clientMsgID: msg.clientMsgID,
-              isRead: true,
-              attachedInfoElem: { hasReadTime: Date.now() },
-            } as MessageItem);
-          }
+      if (currentConversation?.conversationType === SessionType.Notification) {
+        IMSDK.markConversationMessageAsRead(conversationID).then(() => {
+          latestLoadState.current?.messageList.forEach((msg) => {
+            if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
+              updateOneMessage({
+                clientMsgID: msg.clientMsgID,
+                isRead: true,
+                attachedInfoElem: { hasReadTime: Date.now() },
+              } as MessageItem);
+            }
+          });
         });
-      });
-      scrollToBottom();
+      }
     }
-  }, [conversationID, scrollToBottom]);
+  }, [
+    conversationID,
+    currentConversation?.conversationType,
+    latestLoadState,
+    selfUserID,
+  ]);
 
   useEffect(() => {
     if (!conversationID || loadState.messageList.length === 0) return;
@@ -320,7 +338,18 @@ const ChatContent = () => {
       }
     }
 
-    if (atBottom && latestUnreadMessageSeq > 0) {
+    if (
+      atBottom &&
+      latestUnreadMessageSeq > 0 &&
+      document.visibilityState === "visible" &&
+      document.hasFocus()
+    ) {
+      if (
+        currentConversation?.conversationType === SessionType.WorkingGroup ||
+        currentConversation?.conversationType === SessionType.Single
+      ) {
+        return;
+      }
       IMSDK.markConversationMessageAsRead(conversationID).then(() => {
         latestLoadState.current?.messageList.forEach((msg) => {
           if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
@@ -337,6 +366,8 @@ const ChatContent = () => {
     loadState.messageList.length,
     latestUnreadMessageSeq,
     conversationID,
+    currentConversation?.conversationType,
+    latestLoadState,
     selfUserID,
     atBottom,
     scrollToBottom,
@@ -528,8 +559,15 @@ const ChatContent = () => {
                   <MessageItemComponent
                     key={message.clientMsgID}
                     conversationID={conversationID}
+                    flushReadCursor={
+                      atBottom &&
+                      message.clientMsgID ===
+                        loadState.messageList[loadState.messageList.length - 1]
+                          ?.clientMsgID
+                    }
                     message={message}
                     avatarText={avatarText}
+                    showGroupReadReceipt={isGroupConversation}
                     reactionSummary={reactionSummaries[message.seq]}
                     showReactionAction={showReactionAction}
                     reactionUserNames={reactionUserNames}

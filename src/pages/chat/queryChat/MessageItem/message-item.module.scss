@@ -203,9 +203,23 @@
       max-width: 100%;
     }
 
-    .message-bubble-wrap > .bubble {
+    .message-bubble-anchor {
+      position: relative;
+      display: inline-flex;
+      flex: 0 1 auto;
+      flex-direction: column;
+      width: fit-content;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .message-bubble-anchor > .bubble {
       max-width: 100%;
       box-sizing: border-box;
+    }
+
+    .message-bubble-wrap-reaction-shell .message-bubble-anchor {
+      width: 100%;
     }
 
     .message-bubble-wrap-reaction-shell .bubble {
@@ -227,21 +241,6 @@
 
     .message-bubble-wrap-with-reactions .bubble {
       padding-bottom: 0;
-    }
-
-    .message-status-wrapper {
-      @apply mt-1 flex items-center;
-      gap: 6px;
-      height: 18px;
-      &:empty {
-        display: none;
-      }
-    }
-
-    .suffix {
-      @apply flex items-center;
-      visibility: visible !important;
-      opacity: 1 !important;
     }
 
     .burn-countdown {
@@ -287,10 +286,6 @@
 
       .message-content-group {
         @apply items-end;
-      }
-
-      .message-status-wrapper {
-        @apply flex-row-reverse;
       }
     }
   }
@@ -536,6 +531,18 @@
   .reaction-wrapper-sender .reaction-actions {
     margin-right: 0;
   }
+
+  .message-bubble-wrap:has([data-message-actions]) > [data-read-receipt-trigger] {
+    bottom: 37px;
+  }
+}
+
+.message-content-group:has([data-read-receipt-trigger]:hover)
+  .reaction-actions:not(.reaction-actions-open),
+.message-content-group:has([data-read-receipt-trigger]:focus)
+  .reaction-actions:not(.reaction-actions-open) {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-shadow {

@@ -1,4 +1,16 @@
 {
+  "groupReadReceipt": {
+    "status": "Read status",
+    "read": "Read",
+    "unread": "Unread",
+    "noReaders": "No readers yet",
+    "allRead": "Read by everyone",
+    "summary": "{{read}} read, {{unread}} unread",
+    "names": "Read by {{names}}",
+    "loading": "Syncing read status",
+    "failed": "Read status sync failed. Click to retry.",
+    "retry": "Retry read status sync"
+  },
   "calls": {
     "errors": {
       "20201": "You are no longer a group member.",

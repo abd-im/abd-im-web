@@ -2,11 +2,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import clsx from "clsx";
 import {
   Popover as PopoverPrimitive,
+  Progress as ProgressPrimitive,
   Slot,
   Tooltip as TooltipPrimitive,
 } from "radix-ui";
 import {
   type ButtonHTMLAttributes,
+  type CSSProperties,
   forwardRef,
   type ReactElement,
   type ReactNode,
@@ -109,5 +111,27 @@ export function Popover({
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
+  );
+}
+
+export function CircularProgress({
+  value,
+  label,
+  className,
+}: {
+  value: number;
+  label: string;
+  className?: string;
+}) {
+  const normalizedValue = Math.min(100, Math.max(0, value));
+  return (
+    <ProgressPrimitive.Root
+      className={clsx("ui-circular-progress", className)}
+      value={normalizedValue}
+      aria-label={label}
+      style={{ "--ui-progress": normalizedValue / 100 } as CSSProperties}
+    >
+      <ProgressPrimitive.Indicator className="ui-circular-progress-indicator" />
+    </ProgressPrimitive.Root>
   );
 }

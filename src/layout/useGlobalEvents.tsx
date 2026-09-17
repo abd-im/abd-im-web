@@ -35,6 +35,7 @@ import {
   pushNewMessage,
   updateMessageSender,
   updateOneMessage,
+  updateSingleReadCursor,
 } from "@/pages/chat/queryChat/useHistoryMessageList";
 import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
@@ -325,15 +326,10 @@ export function useGlobalEvent() {
 
   const c2cReadReceiptHandler = ({ data }: WSEvent<ReceiptInfo[]>) => {
     data.forEach((receipt) => {
+      if (receipt.sessionType !== SessionType.Single) return;
       const readTime =
         receipt.readTime < 10000000000 ? receipt.readTime * 1000 : receipt.readTime;
-      receipt.msgIDList.forEach((clientMsgID) => {
-        updateOneMessage({
-          clientMsgID,
-          isRead: true,
-          attachedInfoElem: { hasReadTime: readTime || Date.now() },
-        } as MessageItem);
-      });
+      updateSingleReadCursor({ ...receipt, readTime });
     });
   };
 

@@ -2,11 +2,56 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyFriendRemarks,
+  applySingleReadCursor,
   getLatestUnreadMessageSeq,
   updateHistoryMessageSender,
 } from "./historyMessageState";
 
 describe("history message state", () => {
+  it("applies a peer cursor only to successful positions in own outgoing messages", () => {
+    const outgoing = (seq: number) => ({
+      sendID: "self",
+      recvID: "peer",
+      seq,
+      isRead: false,
+    });
+    const list = [
+      outgoing(1),
+      outgoing(5),
+      outgoing(6),
+      outgoing(0),
+      { ...outgoing(2), sendID: "peer", recvID: "self" },
+    ];
+    const next = applySingleReadCursor(list, "self", "peer", 5, 0);
+    expect(next.map((message) => message.isRead)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(applySingleReadCursor(next, "self", "peer", 3, 0)).toBe(next);
+    expect(applySingleReadCursor(next, "self", "another", 100, 0)).toBe(next);
+  });
+
+  it("reconnect calibration does not invent a burn timestamp", () => {
+    const list = [
+      {
+        sendID: "self",
+        recvID: "peer",
+        seq: 1,
+        isRead: false,
+        attachedInfoElem: { isPrivateChat: true, hasReadTime: 0 },
+      },
+    ];
+    expect(
+      applySingleReadCursor(list, "self", "peer", 1, 0)[0].attachedInfoElem.hasReadTime,
+    ).toBe(0);
+    expect(
+      applySingleReadCursor(list, "self", "peer", 1, 123)[0].attachedInfoElem
+        .hasReadTime,
+    ).toBe(123);
+  });
   const messages = [
     {
       clientMsgID: "message-1",

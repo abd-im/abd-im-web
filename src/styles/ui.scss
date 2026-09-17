@@ -87,6 +87,25 @@
   box-shadow: var(--floating-shadow);
   outline: none;
 }
+.ui-circular-progress {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: conic-gradient(
+    #62d9bd calc(var(--ui-progress) * 1turn),
+    var(--surface-border) 0
+  );
+}
+.ui-circular-progress-indicator {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--page-canvas);
+}
 .ui-menu-item {
   display: flex;
   width: 100%;

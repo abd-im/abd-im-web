@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { IMSDK } from "@/layout/MainContentWrap";
+import { useUserStore } from "@/store/user";
 import emitter, { emit } from "@/utils/events";
 
 import type { MessageSenderProfile } from "./historyMessageState";
 import {
+  applySingleReadCursor,
   mergeHistoryMessages,
   updateHistoryMessageSender,
 } from "./historyMessageState";
@@ -99,19 +101,41 @@ export function useHistoryMessageList(enabled = true) {
           : { ...preState, messageList };
       });
     };
+    const applyReadCursor = (receipt: {
+      conversationID: string;
+      userID: string;
+      hasReadSeq: number;
+      readTime: number;
+    }) => {
+      if (receipt.conversationID !== latestConversationID.current) return;
+      setLoadState((previous) => {
+        const messageList = applySingleReadCursor(
+          previous.messageList,
+          useUserStore.getState().selfInfo.userID,
+          receipt.userID,
+          receipt.hasReadSeq,
+          receipt.readTime,
+        );
+        return messageList === previous.messageList
+          ? previous
+          : { ...previous, messageList };
+      });
+    };
     emitter.on("PUSH_NEW_MSG", pushNewMessage);
     emitter.on("UPDATE_ONE_MSG", updateOneMessage);
     emitter.on("UPDATE_MSG_SENDER", updateMessageSender);
+    emitter.on("C2C_READ_CURSOR", applyReadCursor);
     emitter.on("DELETE_ONE_MSG", deleteOneMessage);
     emitter.on("CLEAR_HISTORY_DONE", clearHistory);
     return () => {
       emitter.off("PUSH_NEW_MSG", pushNewMessage);
       emitter.off("UPDATE_ONE_MSG", updateOneMessage);
       emitter.off("UPDATE_MSG_SENDER", updateMessageSender);
+      emitter.off("C2C_READ_CURSOR", applyReadCursor);
       emitter.off("DELETE_ONE_MSG", deleteOneMessage);
       emitter.off("CLEAR_HISTORY_DONE", clearHistory);
     };
-  }, []);
+  }, [latestConversationID]);
 
   const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest<
     void,
@@ -222,5 +246,11 @@ export const updateOneMessage = (message: MessageItem) =>
   emit("UPDATE_ONE_MSG", message);
 export const updateMessageSender = (profile: MessageSenderProfile) =>
   emit("UPDATE_MSG_SENDER", profile);
+export const updateSingleReadCursor = (receipt: {
+  conversationID: string;
+  userID: string;
+  hasReadSeq: number;
+  readTime: number;
+}) => emit("C2C_READ_CURSOR", receipt);
 export const deleteMessage = (clientMsgID: string) =>
   emit("DELETE_ONE_MSG", clientMsgID);

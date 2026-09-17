@@ -2,6 +2,7 @@ import {
   MessageItem as MessageItemType,
   MessageStatus,
   MessageType,
+  SessionType,
 } from "@abd-im/wasm-client-sdk";
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
@@ -19,18 +20,20 @@ import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
 import { messageDate } from "../messageDate";
 import { captureQuoteSelection, QuoteSelection } from "../partialQuote";
 import { deleteMessage } from "../useHistoryMessageList";
+import { useVisibleReadCursor } from "../useVisibleReadCursor";
 import BurnCountdown from "./BurnCountdown";
 import CardMessageRender from "./CardMessageRender";
 import CatchMessageRender from "./CatchMsgRenderer";
 import FileMessageRender from "./FileMessageRender";
+import GroupReadReceipt from "./GroupReadReceipt";
 import MarkdownMessageRender from "./MarkdownMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
 import MergeMessageRender from "./MergeMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageReactionBar from "./MessageReactionBar";
-import MessageSuffix from "./MessageSuffix";
 import QuoteMessageRender from "./QuoteMessageRender";
+import SingleReadReceipt from "./SingleReadReceipt";
 import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
 import VideoMessageRender from "./VideoMessageRender";
@@ -41,6 +44,8 @@ export interface IMessageItemProps {
   isSender?: boolean;
   disabled?: boolean;
   conversationID?: string;
+  flushReadCursor?: boolean;
+  showGroupReadReceipt?: boolean;
   messageUpdateFlag?: string;
   reactionSummary?: MessageReactionSummary;
   showReactionAction?: boolean;
@@ -88,6 +93,8 @@ const MessageItem: FC<IMessageItemProps> = ({
   avatarText,
   disabled,
   conversationID,
+  flushReadCursor,
+  showGroupReadReceipt,
   reactionSummary,
   showReactionAction,
   isReactionPending,
@@ -102,6 +109,11 @@ const MessageItem: FC<IMessageItemProps> = ({
   onRetry,
 }) => {
   const { t } = useTranslation();
+  const visibleReadRef = useVisibleReadCursor(
+    message,
+    disabled ? undefined : conversationID,
+    flushReadCursor,
+  );
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
   const [quoteSelection, setQuoteSelection] = useState<
@@ -143,6 +155,19 @@ const MessageItem: FC<IMessageItemProps> = ({
       Boolean(message.clientMsgID) &&
       !isPrivate);
   const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
+  const canShowGroupReadReceipt =
+    showGroupReadReceipt &&
+    isSender &&
+    Boolean(conversationID && message.groupID) &&
+    message.status === MessageStatus.Succeed &&
+    message.seq > 0 &&
+    message.contentType < 1000;
+  const canShowSingleReadReceipt =
+    isSender &&
+    message.sessionType === SessionType.Single &&
+    message.status === MessageStatus.Succeed &&
+    message.seq > 0 &&
+    message.contentType < 1000;
 
   const menuItems = useMemo(() => {
     if (isPrivate) {
@@ -226,6 +251,7 @@ const MessageItem: FC<IMessageItemProps> = ({
     <>
       <div
         id={`chat_${message.clientMsgID}`}
+        ref={visibleReadRef}
         data-chat-message-row
         className={clsx(
           "relative flex select-text justify-center py-2",
@@ -368,19 +394,22 @@ const MessageItem: FC<IMessageItemProps> = ({
                   </div>
                 )}
                 <div
+                  data-message-bubble-wrap
                   className={clsx(
                     styles["message-bubble-wrap"],
                     hasReactions && styles["message-bubble-wrap-reaction-shell"],
                     hasReactions && styles["message-bubble-wrap-with-reactions"],
                   )}
                 >
-                  <MessageItemErrorBoundary message={message}>
-                    <MessageRenderComponent
-                      message={message}
-                      isSender={isSender}
-                      disabled={disabled}
-                    />
-                  </MessageItemErrorBoundary>
+                  <div className={styles["message-bubble-anchor"]}>
+                    <MessageItemErrorBoundary message={message}>
+                      <MessageRenderComponent
+                        message={message}
+                        isSender={isSender}
+                        disabled={disabled}
+                      />
+                    </MessageItemErrorBoundary>
+                  </div>
                   <MessageReactionBar
                     summary={reactionSummary}
                     isSender={isSender}
@@ -396,6 +425,15 @@ const MessageItem: FC<IMessageItemProps> = ({
                     onMenuClick={onMenuClick}
                     actionsDisabled={disabled || selectionMode}
                   />
+                  {canShowGroupReadReceipt && conversationID && (
+                    <GroupReadReceipt
+                      conversationID={conversationID}
+                      clientMsgID={message.clientMsgID}
+                    />
+                  )}
+                  {canShowSingleReadReceipt && (
+                    <SingleReadReceipt isRead={message.isRead} />
+                  )}
                 </div>
                 {!isSender && (
                   <div className="ml-2">
@@ -403,17 +441,6 @@ const MessageItem: FC<IMessageItemProps> = ({
                   </div>
                 )}
               </div>
-
-              {message.status === MessageStatus.Succeed && (
-                <div className={styles["message-status-wrapper"]}>
-                  <MessageSuffix
-                    message={message}
-                    isSender={isSender}
-                    disabled={false}
-                    conversationID={conversationID}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>

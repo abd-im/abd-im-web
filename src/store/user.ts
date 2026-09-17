@@ -6,6 +6,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import router from "@/routes";
 import { feedbackToast } from "@/utils/common";
 import { clearIMProfile, getLocale, setLocale } from "@/utils/storage";
+import { useGroupReadReceiptStore } from "./groupReadReceipt";
 
 import { useContactStore } from "./contact";
 import { useConversationStore } from "./conversation";
@@ -72,6 +73,7 @@ export const useUserStore = create<UserStore>()((set, get) => ({
     clearIMProfile();
     set({ selfInfo: {} as BusinessUserInfo, progress: 0 });
     useContactStore.getState().clearContactStore();
+    useGroupReadReceiptStore.getState().clear();
     useConversationStore.getState().clearConversationStore();
     router.navigate("/login");
   },

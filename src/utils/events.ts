@@ -14,6 +14,12 @@ type EmitterEvents = {
   // message store
   PUSH_NEW_MSG: MessageItem;
   UPDATE_ONE_MSG: MessageItem;
+  C2C_READ_CURSOR: {
+    conversationID: string;
+    userID: string;
+    hasReadSeq: number;
+    readTime: number;
+  };
   UPDATE_MSG_SENDER: MessageSenderProfile;
   MESSAGE_REACTION_UPDATED: MessageReactionUpdatedEvent;
   MESSAGE_REACTIONS_REFRESH: void;

@@ -16,6 +16,42 @@ type MessageReadCandidate = {
   isRead: boolean;
 };
 
+export const applySingleReadCursor = <
+  T extends MessageReadCandidate & {
+    recvID: string;
+    attachedInfoElem?: { hasReadTime?: number; isPrivateChat?: boolean };
+  },
+>(
+  messages: T[],
+  selfUserID: string,
+  readerID: string,
+  readSeq: number,
+  readTime: number,
+) => {
+  let changed = false;
+  const next = messages.map((message) => {
+    if (
+      message.sendID !== selfUserID ||
+      message.recvID !== readerID ||
+      message.seq <= 0 ||
+      message.seq > readSeq ||
+      message.isRead
+    )
+      return message;
+    changed = true;
+    return {
+      ...message,
+      isRead: true,
+      ...(message.attachedInfoElem?.isPrivateChat &&
+      readTime > 0 &&
+      !message.attachedInfoElem.hasReadTime
+        ? { attachedInfoElem: { ...message.attachedInfoElem, hasReadTime: readTime } }
+        : {}),
+    };
+  });
+  return changed ? next : messages;
+};
+
 export type MessageSenderProfile = {
   userID: string;
   nickname: string;
