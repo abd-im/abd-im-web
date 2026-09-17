@@ -131,6 +131,9 @@
   "finished": "已结束",
   "clickToView": "点击查看",
   "jumpToMessage": "跳转到消息",
+  "jumpToLatest": "跳到最新消息",
+  "unreadMessages": "未读消息",
+  "unreadMentions": "{{count}} 条未读提及",
   "connect": {
     "syncing": "同步中",
     "syncFailed": "同步失败",
@@ -218,6 +221,7 @@
   "toast": {
     "accessSuccess": "操作成功！",
     "accessFailed": "操作失败！",
+    "messageUnavailable": "无法定位该消息，消息可能已被删除或未同步",
     "forwardSuccess": "已转发至 {{count}} 个会话",
     "forwardPartialFailed": "已转发至 {{success}} 个会话，{{failed}} 个失败",
     "forwardFailed": "转发失败，请稍后重试",

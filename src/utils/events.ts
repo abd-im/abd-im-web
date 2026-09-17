@@ -14,6 +14,8 @@ type EmitterEvents = {
   // message store
   PUSH_NEW_MSG: MessageItem;
   UPDATE_ONE_MSG: MessageItem;
+  DELETE_ONE_MSG: string;
+  CLEAR_HISTORY_DONE: void;
   C2C_READ_CURSOR: {
     conversationID: string;
     userID: string;
@@ -34,6 +36,7 @@ export interface QuoteLocation {
   clientMsgID: string;
   quoteText?: string;
   quoteOffset?: number;
+  sourceMessage?: MessageItem;
 }
 
 export type SelectUserParams = {

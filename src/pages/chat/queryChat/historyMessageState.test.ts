@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  appendHistoryMessages,
   applyFriendRemarks,
   applySingleReadCursor,
+  getFirstUnreadMessageIndex,
   getLatestUnreadMessageSeq,
   updateHistoryMessageSender,
 } from "./historyMessageState";
@@ -131,5 +133,40 @@ describe("history message state", () => {
         "self-user",
       ),
     ).toBe(12);
+  });
+
+  it("locates the first unread incoming message and falls back to the unread count", () => {
+    const list = [
+      { clientMsgID: "read", sendID: "peer", seq: 1, isRead: true },
+      { clientMsgID: "self", sendID: "self", seq: 2, isRead: false },
+      { clientMsgID: "unread", sendID: "peer", seq: 3, isRead: false },
+    ];
+
+    expect(getFirstUnreadMessageIndex(list, "self", 2)).toBe(2);
+    expect(
+      getFirstUnreadMessageIndex(
+        list.map((message) => ({ ...message, isRead: true })),
+        "self",
+        2,
+      ),
+    ).toBe(1);
+    expect(getFirstUnreadMessageIndex(list, "self", 0)).toBe(2);
+  });
+
+  it("appends newer history without duplicating the anchor", () => {
+    const current = [{ clientMsgID: "10" }, { clientMsgID: "11" }];
+    const result = appendHistoryMessages(current, [
+      { clientMsgID: "11" },
+      { clientMsgID: "12" },
+      { clientMsgID: "13" },
+    ]);
+
+    expect(result.messageList.map((message) => message.clientMsgID)).toEqual([
+      "10",
+      "11",
+      "12",
+      "13",
+    ]);
+    expect(result.appendedCount).toBe(2);
   });
 });

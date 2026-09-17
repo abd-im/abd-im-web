@@ -131,6 +131,9 @@
   "finished": "Finished",
   "clickToView": "Click to view",
   "jumpToMessage": "Jump to message",
+  "jumpToLatest": "Jump to latest message",
+  "unreadMessages": "Unread messages",
+  "unreadMentions": "{{count}} unread mentions",
   "connect": {
     "syncing": "Syncing",
     "syncFailed": "Sync Failed",
@@ -218,6 +221,7 @@
   "toast": {
     "accessSuccess": "Operation successful!",
     "accessFailed": "Operation failed!",
+    "messageUnavailable": "This message could not be located. It may have been deleted or not synced",
     "forwardSuccess": "Forwarded to {{count}} conversations",
     "forwardPartialFailed": "Forwarded to {{success}} conversations; {{failed}} failed",
     "forwardFailed": "Forwarding failed. Please try again.",

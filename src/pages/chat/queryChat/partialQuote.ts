@@ -85,27 +85,37 @@ export const spotlightQuote = (
   row: HTMLElement,
   quoteText?: string,
   quoteOffset = 0,
+  onClear?: () => void,
 ) => {
   const content = row.querySelector<HTMLElement>("[data-quote-source]");
   const chat = document.getElementById("chat-main-content");
-  if (!content || !chat) return;
+  if (!chat) return () => undefined;
 
-  const sourceText = content.textContent ?? "";
+  const sourceText = content?.textContent ?? "";
   let start = quoteOffset;
   if (!quoteText || sourceText.slice(start, start + quoteText.length) !== quoteText) {
     start = quoteText ? sourceText.indexOf(quoteText) : 0;
   }
-  const startBoundary = boundaryAt(content, Math.max(0, start));
-  const endBoundary = quoteText
-    ? boundaryAt(content, Math.max(0, start) + quoteText.length)
-    : undefined;
+  const startBoundary = content ? boundaryAt(content, Math.max(0, start)) : undefined;
+  const endBoundary =
+    content && quoteText
+      ? boundaryAt(content, Math.max(0, start) + quoteText.length)
+      : undefined;
 
+  let cleared = false;
+  let pointerListenerTimer = 0;
+  let clearTimer = 0;
   const clear = () => {
+    if (cleared) return;
+    cleared = true;
+    window.clearTimeout(pointerListenerTimer);
+    window.clearTimeout(clearTimer);
     chat.removeAttribute("data-quote-spotlight");
     row.removeAttribute("data-quote-spotlight-target");
     window.getSelection()?.removeAllRanges();
     document.removeEventListener("keydown", onKeyDown);
     document.removeEventListener("pointerdown", onPointerDown);
+    onClear?.();
   };
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape") clear();
@@ -125,6 +135,9 @@ export const spotlightQuote = (
     selection?.addRange(range);
   }
   document.addEventListener("keydown", onKeyDown);
-  window.setTimeout(() => document.addEventListener("pointerdown", onPointerDown));
-  window.setTimeout(clear, 2400);
+  pointerListenerTimer = window.setTimeout(() =>
+    document.addEventListener("pointerdown", onPointerDown),
+  );
+  clearTimer = window.setTimeout(clear, 2400);
+  return clear;
 };

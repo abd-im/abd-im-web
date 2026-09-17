@@ -638,20 +638,24 @@
   transform: translateX(-50%);
 }
 
-:global(#chat-main-content[data-quote-spotlight="true"])
-  :global([data-chat-message-row]) {
-  opacity: 0.24;
-  transition: opacity 160ms ease;
-}
-
-:global(#chat-main-content[data-quote-spotlight="true"])
-  :global([data-chat-message-row][data-quote-spotlight-target="true"]) {
-  opacity: 1;
+:global([data-chat-message-row][data-quote-spotlight-target="true"]) {
+  animation: quote-target-flash 1.8s ease-out;
 }
 
 :global([data-quote-spotlight-target="true"]) :global(::selection) {
   color: #111827;
   background: #fde047;
+}
+
+@keyframes quote-target-flash {
+  0%,
+  28% {
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+  }
+
+  100% {
+    background: transparent;
+  }
 }
 
 .merge-message-card {

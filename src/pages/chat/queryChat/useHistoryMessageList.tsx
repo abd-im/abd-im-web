@@ -9,6 +9,7 @@ import emitter, { emit } from "@/utils/events";
 
 import type { MessageSenderProfile } from "./historyMessageState";
 import {
+  appendHistoryMessages,
   applySingleReadCursor,
   mergeHistoryMessages,
   updateHistoryMessageSender,
@@ -16,18 +17,40 @@ import {
 
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
+const MAX_INITIAL_COUNT = 100;
 
-export function useHistoryMessageList(enabled = true) {
+const filterExpiredMessages = (messages: MessageItem[], conversationID: string) =>
+  messages.filter((message) => {
+    if (!message.attachedInfoElem) return true;
+    const { isPrivateChat, burnDuration, hasReadTime } = message.attachedInfoElem;
+    if (!isPrivateChat || !message.isRead || !hasReadTime) return true;
+    const elapsed = Math.floor((Date.now() - hasReadTime) / 1000);
+    if (elapsed < burnDuration) return true;
+    void IMSDK.deleteMessageFromLocalStorage({
+      conversationID,
+      clientMsgID: message.clientMsgID,
+    });
+    return false;
+  });
+
+export function useHistoryMessageList(enabled = true, initialUnreadCount = 0) {
   const { conversationID } = useParams();
   const [loadState, setLoadState] = useState({
+    conversationID: "",
     initLoading: true,
     hasMoreOld: true,
+    hasMoreNew: false,
+    hasPendingNewMessage: false,
+    isAroundMessage: false,
     messageList: [] as MessageItem[],
     firstItemIndex: START_INDEX,
+    listRevision: 0,
   });
   const latestLoadState = useLatest(loadState);
   const latestConversationID = useLatest(conversationID);
+  const latestInitialUnreadCount = useLatest(initialUnreadCount);
   const pendingRequests = useRef(new Set<string>());
+  const historyGeneration = useRef(0);
 
   useEffect(() => {
     const pushNewMessage = (message: MessageItem) => {
@@ -36,6 +59,9 @@ export function useHistoryMessageList(enabled = true) {
           (item) => item.clientMsgID === message.clientMsgID,
         );
         if (idx < 0) {
+          if (preState.hasMoreNew) {
+            return { ...preState, hasPendingNewMessage: true };
+          }
           return {
             ...preState,
             messageList: [...preState.messageList, message],
@@ -143,38 +169,40 @@ export function useHistoryMessageList(enabled = true) {
   >(
     async (loadMore = true) => {
       const reqConversationID = conversationID;
+      const generation = loadMore
+        ? historyGeneration.current
+        : ++historyGeneration.current;
       const startClientMsgID = loadMore
-        ? latestLoadState.current.messageList[0]?.clientMsgID ?? ""
+        ? latestLoadState.current?.messageList[0]?.clientMsgID ?? ""
         : "";
-      const requestKey = `${reqConversationID ?? ""}:${startClientMsgID}`;
+      const requestKey = `${
+        reqConversationID ?? ""
+      }:old:${generation}:${startClientMsgID}`;
       if (pendingRequests.current.has(requestKey)) return;
       pendingRequests.current.add(requestKey);
 
       try {
         const { data } = await IMSDK.getAdvancedHistoryMessageList({
-          count: SPLIT_COUNT,
+          count: loadMore
+            ? SPLIT_COUNT
+            : Math.min(
+                MAX_INITIAL_COUNT,
+                Math.max(SPLIT_COUNT, (latestInitialUnreadCount.current ?? 0) + 10),
+              ),
           startClientMsgID,
           conversationID: reqConversationID ?? "",
           viewType: ViewType.History,
         });
-        if (latestConversationID.current !== reqConversationID) return;
+        if (
+          latestConversationID.current !== reqConversationID ||
+          historyGeneration.current !== generation
+        )
+          return;
 
-        const filteredMessages = data.messageList.filter((msg: MessageItem) => {
-          if (!msg.attachedInfoElem) return true;
-          const { isPrivateChat, burnDuration, hasReadTime } = msg.attachedInfoElem;
-          if (isPrivateChat && msg.isRead && hasReadTime) {
-            const now = Date.now();
-            const diff = Math.floor((now - hasReadTime) / 1000);
-            if (diff >= burnDuration) {
-              IMSDK.deleteMessageFromLocalStorage({
-                conversationID: reqConversationID ?? "",
-                clientMsgID: msg.clientMsgID,
-              });
-              return false;
-            }
-          }
-          return true;
-        });
+        const filteredMessages = filterExpiredMessages(
+          data.messageList,
+          reqConversationID ?? "",
+        );
 
         setLoadState((preState) => {
           const { messageList, prependedCount } = mergeHistoryMessages(
@@ -184,11 +212,16 @@ export function useHistoryMessageList(enabled = true) {
           );
           return {
             ...preState,
+            conversationID: reqConversationID ?? "",
             initLoading: false,
             hasMoreOld: !data.isEnd && (!loadMore || prependedCount > 0),
+            hasMoreNew: loadMore ? preState.hasMoreNew : false,
+            hasPendingNewMessage: loadMore ? preState.hasPendingNewMessage : false,
+            isAroundMessage: loadMore ? preState.isAroundMessage : false,
             messageList,
             firstItemIndex:
               (loadMore ? preState.firstItemIndex : START_INDEX) - prependedCount,
+            listRevision: loadMore ? preState.listRevision : generation,
           };
         });
       } finally {
@@ -200,35 +233,121 @@ export function useHistoryMessageList(enabled = true) {
     },
   );
 
+  const { loading: moreNewLoading, runAsync: getMoreNewMessages } = useRequest<
+    void,
+    []
+  >(
+    async () => {
+      const reqConversationID = conversationID;
+      const state = latestLoadState.current;
+      if (!state?.hasMoreNew || !state.isAroundMessage) return;
+      const startClientMsgID =
+        state.messageList[state.messageList.length - 1]?.clientMsgID;
+      if (!startClientMsgID) return;
+      const generation = historyGeneration.current;
+      const requestKey = `${
+        reqConversationID ?? ""
+      }:new:${generation}:${startClientMsgID}`;
+      if (pendingRequests.current.has(requestKey)) return;
+      pendingRequests.current.add(requestKey);
+
+      try {
+        const { data } = await IMSDK.getAdvancedHistoryMessageListReverse({
+          count: SPLIT_COUNT,
+          startClientMsgID,
+          conversationID: reqConversationID ?? "",
+          viewType: ViewType.History,
+        });
+        if (
+          latestConversationID.current !== reqConversationID ||
+          historyGeneration.current !== generation
+        )
+          return;
+
+        const filteredMessages = filterExpiredMessages(
+          data.messageList,
+          reqConversationID ?? "",
+        );
+        setLoadState((preState) => {
+          if (
+            preState.conversationID !== reqConversationID ||
+            historyGeneration.current !== generation
+          ) {
+            return preState;
+          }
+          const { messageList, appendedCount } = appendHistoryMessages(
+            preState.messageList,
+            filteredMessages,
+          );
+          const retryPendingMessage = data.isEnd && preState.hasPendingNewMessage;
+          const hasMoreNew = retryPendingMessage || (!data.isEnd && appendedCount > 0);
+          return {
+            ...preState,
+            hasMoreNew,
+            hasPendingNewMessage: retryPendingMessage
+              ? false
+              : preState.hasPendingNewMessage,
+            isAroundMessage: hasMoreNew,
+            messageList,
+          };
+        });
+      } finally {
+        pendingRequests.current.delete(requestKey);
+      }
+    },
+    { manual: true },
+  );
+
   useEffect(() => {
     if (!enabled) {
+      historyGeneration.current += 1;
       setLoadState({
+        conversationID: conversationID ?? "",
         initLoading: false,
         hasMoreOld: false,
+        hasMoreNew: false,
+        hasPendingNewMessage: false,
+        isAroundMessage: false,
         messageList: [],
         firstItemIndex: START_INDEX,
+        listRevision: historyGeneration.current,
       });
       return;
     }
     void getMoreOldMessages(false);
     return () => {
+      historyGeneration.current += 1;
       setLoadState(() => ({
+        conversationID: "",
         initLoading: true,
         hasMoreOld: true,
+        hasMoreNew: false,
+        hasPendingNewMessage: false,
+        isAroundMessage: false,
         messageList: [] as MessageItem[],
         firstItemIndex: START_INDEX,
+        listRevision: historyGeneration.current,
       }));
     };
   }, [conversationID, enabled, getMoreOldMessages]);
 
-  const showSurroundingMessages = useCallback((messageList: MessageItem[]) => {
-    setLoadState({
-      initLoading: false,
-      hasMoreOld: true,
-      messageList,
-      firstItemIndex: START_INDEX - messageList.length,
-    });
-  }, []);
+  const showSurroundingMessages = useCallback(
+    (messageList: MessageItem[]) => {
+      const generation = ++historyGeneration.current;
+      setLoadState({
+        conversationID: latestConversationID.current ?? "",
+        initLoading: false,
+        hasMoreOld: true,
+        hasMoreNew: true,
+        hasPendingNewMessage: false,
+        isAroundMessage: true,
+        messageList,
+        firstItemIndex: START_INDEX - messageList.length,
+        listRevision: generation,
+      });
+    },
+    [latestConversationID],
+  );
 
   return {
     SPLIT_COUNT,
@@ -236,7 +355,9 @@ export function useHistoryMessageList(enabled = true) {
     latestLoadState,
     conversationID,
     moreOldLoading,
+    moreNewLoading,
     getMoreOldMessages,
+    getMoreNewMessages,
     showSurroundingMessages,
   };
 }

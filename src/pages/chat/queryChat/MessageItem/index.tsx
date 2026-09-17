@@ -59,6 +59,7 @@ export interface IMessageItemProps {
   selectionMode?: boolean;
   selected?: boolean;
   selectable?: boolean;
+  spotlighted?: boolean;
   onEnterSelection?: (messageID: string) => void;
   onToggleSelection?: (messageID: string) => void;
   onForward?: (messageID: string) => void;
@@ -107,6 +108,7 @@ const MessageItem: FC<IMessageItemProps> = ({
   selectionMode,
   selected,
   selectable,
+  spotlighted,
   onEnterSelection,
   onToggleSelection,
   onForward,
@@ -278,6 +280,7 @@ const MessageItem: FC<IMessageItemProps> = ({
         id={`chat_${message.clientMsgID}`}
         ref={visibleReadRef}
         data-chat-message-row
+        data-quote-spotlight-target={spotlighted || undefined}
         className={clsx(
           "relative flex select-text justify-center py-2",
           styles["message-row"],

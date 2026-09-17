@@ -239,6 +239,8 @@ async function startPreview() {
     getTotalUnreadMsgCount: () => result(4),
     getAdvancedHistoryMessageList: ({ conversationID }: { conversationID: string }) =>
       result({ messageList: histories.get(conversationID) || [], isEnd: true }),
+    getAdvancedHistoryMessageListReverse: () =>
+      result({ messageList: [], isEnd: true }),
     getFriendListPage: () => result(people.slice(0, 5)),
     getSpecifiedFriendsInfo: () => result(people.slice(0, 5)),
     getUsersInfo: () => result(people),

@@ -1,9 +1,4 @@
-import {
-  MessageItem,
-  MessageType,
-  SessionType,
-  ViewType,
-} from "@abd-im/wasm-client-sdk";
+import { MessageItem, MessageType, SessionType } from "@abd-im/wasm-client-sdk";
 import type { ConversationItem } from "@abd-im/wasm-client-sdk/lib/types/entity";
 import { Tooltip } from "antd";
 import clsx from "clsx";
@@ -111,6 +106,7 @@ export default function AgentWorkspaceContent({
   >();
   const [pendingQuoteLocation, setPendingQuoteLocation] = useState<{
     clientMsgID: string;
+    seq: number;
     quoteText?: string;
     quoteOffset?: number;
   }>();
@@ -142,7 +138,9 @@ export default function AgentWorkspaceContent({
     conversationID,
     loadState,
     moreOldLoading,
+    moreNewLoading,
     getMoreOldMessages,
+    getMoreNewMessages,
     showSurroundingMessages,
   } = useHistoryMessageList(!isDraft);
 
@@ -272,25 +270,22 @@ export default function AgentWorkspaceContent({
 
   const locateQuote = async (location: {
     clientMsgID: string;
+    seq: number;
     quoteText?: string;
     quoteOffset?: number;
   }) => {
     if (revealQuote(location) || !conversationID) return;
     try {
-      const { data: found } = await IMSDK.findMessageList([
-        { conversationID, clientMsgIDList: [location.clientMsgID] },
-      ]);
-      const source = found.findResultItems
-        ?.flatMap((item) => item.messageList)
-        .find((item) => item.clientMsgID === location.clientMsgID);
-      if (!source) throw new Error("Quoted message was not found");
+      if (location.seq <= 0) throw new Error("Quoted message sequence is unavailable");
       const { data } = await IMSDK.fetchSurroundingMessages({
-        startMessage: source,
-        viewType: ViewType.History,
+        conversationID,
+        seq: location.seq,
         before: 10,
         after: 10,
       });
-      setPendingQuoteLocation(location);
+      const anchor = data.messageList.find((message) => message.seq === location.seq);
+      if (!anchor) throw new Error("Quoted message was not returned");
+      setPendingQuoteLocation({ ...location, clientMsgID: anchor.clientMsgID });
       showSurroundingMessages(data.messageList);
     } catch (error) {
       feedbackToast({ error });
@@ -419,6 +414,9 @@ export default function AgentWorkspaceContent({
           const element = event.currentTarget;
           atBottomRef.current =
             element.scrollHeight - element.scrollTop - element.clientHeight < 48;
+          if (atBottomRef.current && loadState.hasMoreNew && !moreNewLoading) {
+            void getMoreNewMessages();
+          }
           updateActiveRunFromScroll(element);
         }}
       >
@@ -481,193 +479,203 @@ export default function AgentWorkspaceContent({
               </div>
             </div>
           ) : (
-            visibleMessages.map((message) => {
-              const isRun =
-                message.contentType === MessageType.StreamMessage &&
-                message.streamElem?.type === "agent_run_v2";
-              const userMessage = message.sendID === selfUserID;
-              const agentMessage = !userMessage;
-              const content = textContent(message);
-              const image = message.pictureElem?.sourcePicture;
-              const file = message.fileElem;
-              const runReduction =
-                isRun && message.streamElem
-                  ? reduceAgentRun(
-                      message.streamElem.content,
-                      message.streamElem.packets ?? [],
-                      message.streamElem.end,
-                    )
-                  : undefined;
-              const runEnded = Boolean(
-                runReduction &&
-                  !runReduction.unsupported &&
-                  ["completed", "failed", "cancelled"].includes(
-                    runReduction.view.status,
-                  ),
-              );
-              const copyText = isRun ? runReduction?.view.answer ?? "" : content;
-              const quoteElem = message.quoteElem as PartialQuoteElem | undefined;
-              const persistentActions =
-                agentMessage && message.clientMsgID === latestAgentMessageID;
-              const canEdit =
-                userMessage && message.clientMsgID === latestUserMessageID;
+            <>
+              {visibleMessages.map((message) => {
+                const isRun =
+                  message.contentType === MessageType.StreamMessage &&
+                  message.streamElem?.type === "agent_run_v2";
+                const userMessage = message.sendID === selfUserID;
+                const agentMessage = !userMessage;
+                const content = textContent(message);
+                const image = message.pictureElem?.sourcePicture;
+                const file = message.fileElem;
+                const runReduction =
+                  isRun && message.streamElem
+                    ? reduceAgentRun(
+                        message.streamElem.content,
+                        message.streamElem.packets ?? [],
+                        message.streamElem.end,
+                      )
+                    : undefined;
+                const runEnded = Boolean(
+                  runReduction &&
+                    !runReduction.unsupported &&
+                    ["completed", "failed", "cancelled"].includes(
+                      runReduction.view.status,
+                    ),
+                );
+                const copyText = isRun ? runReduction?.view.answer ?? "" : content;
+                const quoteElem = message.quoteElem as PartialQuoteElem | undefined;
+                const persistentActions =
+                  agentMessage && message.clientMsgID === latestAgentMessageID;
+                const canEdit =
+                  userMessage && message.clientMsgID === latestUserMessageID;
 
-              return (
-                <article
-                  id={`chat_${message.clientMsgID}`}
-                  className={clsx(styles.message, userMessage && styles.messageUser)}
-                  key={message.clientMsgID}
-                  data-chat-message-row
-                  data-agent-run-id={isRun ? message.clientMsgID : undefined}
-                  onPointerUp={(event) => {
-                    if (isRun && !runEnded) return;
-                    const selection = captureQuoteSelection(event.currentTarget);
-                    if (!selection) {
-                      setQuoteSelection(undefined);
-                      return;
-                    }
-                    const rowRect = event.currentTarget.getBoundingClientRect();
-                    setQuoteSelection({
-                      ...selection,
-                      message,
-                      left:
-                        selection.rect.left - rowRect.left + selection.rect.width / 2,
-                      top: selection.rect.top - rowRect.top - 38,
-                    });
-                  }}
-                >
-                  {quoteSelection?.message.clientMsgID === message.clientMsgID && (
-                    <button
-                      type="button"
-                      className={styles.quoteSelectionAction}
-                      style={{ left: quoteSelection.left, top: quoteSelection.top }}
-                      onPointerDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        updateQuoteMessage({
-                          message,
-                          quoteText: quoteSelection.text,
-                          quoteOffset: quoteSelection.offset,
-                          sourceText: quoteSelection.sourceText,
-                        });
+                return (
+                  <article
+                    id={`chat_${message.clientMsgID}`}
+                    className={clsx(styles.message, userMessage && styles.messageUser)}
+                    key={message.clientMsgID}
+                    data-chat-message-row
+                    data-agent-run-id={isRun ? message.clientMsgID : undefined}
+                    onPointerUp={(event) => {
+                      if (isRun && !runEnded) return;
+                      const selection = captureQuoteSelection(event.currentTarget);
+                      if (!selection) {
                         setQuoteSelection(undefined);
-                        window.getSelection()?.removeAllRanges();
-                      }}
-                    >
-                      <Reply size={14} strokeWidth={1.8} />
-                      {t("placeholder.reply")}
-                    </button>
-                  )}
-                  <div className={styles.messageBody}>
-                    {quoteElem?.quoteMessage && (
+                        return;
+                      }
+                      const rowRect = event.currentTarget.getBoundingClientRect();
+                      setQuoteSelection({
+                        ...selection,
+                        message,
+                        left:
+                          selection.rect.left - rowRect.left + selection.rect.width / 2,
+                        top: selection.rect.top - rowRect.top - 38,
+                      });
+                    }}
+                  >
+                    {quoteSelection?.message.clientMsgID === message.clientMsgID && (
                       <button
                         type="button"
-                        className={styles.messageQuote}
-                        onClick={() =>
-                          void locateQuote({
-                            clientMsgID: quoteElem.quoteMessage.clientMsgID,
-                            quoteText: quoteElem.quoteText,
-                            quoteOffset: quoteElem.quoteOffset,
-                          })
-                        }
+                        className={styles.quoteSelectionAction}
+                        style={{ left: quoteSelection.left, top: quoteSelection.top }}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          updateQuoteMessage({
+                            message,
+                            quoteText: quoteSelection.text,
+                            quoteOffset: quoteSelection.offset,
+                            sourceText: quoteSelection.sourceText,
+                          });
+                          setQuoteSelection(undefined);
+                          window.getSelection()?.removeAllRanges();
+                        }}
                       >
-                        <strong>
-                          {resolveUserDisplayName({
-                            userID: quoteElem.quoteMessage.sendID,
-                            nickname: quoteElem.quoteMessage.senderNickname,
-                          })}
-                        </strong>
-                        <span>{quoteElem.quoteText}</span>
+                        <Reply size={14} strokeWidth={1.8} />
+                        {t("placeholder.reply")}
                       </button>
                     )}
-                    {isRun && message.streamElem ? (
-                      <AgentRunRenderer
-                        streamElem={message.streamElem}
-                        isActive={message.clientMsgID === latestRunMessageID}
-                      />
-                    ) : userMessage ? (
-                      <div className={styles.userBubble}>
-                        {content && <div data-quote-source>{content}</div>}
-                        {image && (
-                          <div className={styles.userAttachment}>
-                            <Image size={15} strokeWidth={1.8} />
-                            <span>{t("placeholder.image")}</span>
-                            <small>
-                              {image.size ? `${Math.round(image.size / 1024)} KB` : ""}
-                            </small>
-                          </div>
-                        )}
-                        {file && (
-                          <div className={styles.userAttachment}>
-                            <FileText size={15} strokeWidth={1.8} />
-                            <span>{file.fileName}</span>
-                            <small>
-                              {file.fileSize
-                                ? `${Math.round(file.fileSize / 1024)} KB`
-                                : ""}
-                            </small>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className={styles.answer} data-quote-source>
-                        <ReactMarkdown skipHtml>{content}</ReactMarkdown>
-                      </div>
-                    )}
-                    {(userMessage || agentMessage || runEnded) && (
-                      <div
-                        className={clsx(
-                          styles.messageActions,
-                          isRun && styles.messageActionsAgent,
-                          persistentActions && styles.messageActionsPersistent,
-                        )}
-                      >
-                        <time>{formatMessageTime(message.sendTime)}</time>
-                        <Tooltip title={t("agentWorkspace.copy")}>
-                          <button
-                            className={styles.messageAction}
-                            type="button"
-                            aria-label={t("agentWorkspace.copy")}
-                            onClick={() => {
-                              if (copyText && navigator.clipboard) {
-                                void navigator.clipboard.writeText(copyText);
-                              }
-                            }}
-                          >
-                            <Copy size={14} strokeWidth={1.8} />
-                          </button>
-                        </Tooltip>
-                        {agentMessage && (
-                          <Tooltip title={t("agentWorkspace.fork")}>
+                    <div className={styles.messageBody}>
+                      {quoteElem?.quoteMessage && (
+                        <button
+                          type="button"
+                          className={styles.messageQuote}
+                          onClick={() =>
+                            void locateQuote({
+                              clientMsgID: quoteElem.quoteMessage.clientMsgID,
+                              seq: quoteElem.quoteMessage.seq,
+                              quoteText: quoteElem.quoteText,
+                              quoteOffset: quoteElem.quoteOffset,
+                            })
+                          }
+                        >
+                          <strong>
+                            {resolveUserDisplayName({
+                              userID: quoteElem.quoteMessage.sendID,
+                              nickname: quoteElem.quoteMessage.senderNickname,
+                            })}
+                          </strong>
+                          <span>{quoteElem.quoteText}</span>
+                        </button>
+                      )}
+                      {isRun && message.streamElem ? (
+                        <AgentRunRenderer
+                          streamElem={message.streamElem}
+                          isActive={message.clientMsgID === latestRunMessageID}
+                        />
+                      ) : userMessage ? (
+                        <div className={styles.userBubble}>
+                          {content && <div data-quote-source>{content}</div>}
+                          {image && (
+                            <div className={styles.userAttachment}>
+                              <Image size={15} strokeWidth={1.8} />
+                              <span>{t("placeholder.image")}</span>
+                              <small>
+                                {image.size
+                                  ? `${Math.round(image.size / 1024)} KB`
+                                  : ""}
+                              </small>
+                            </div>
+                          )}
+                          {file && (
+                            <div className={styles.userAttachment}>
+                              <FileText size={15} strokeWidth={1.8} />
+                              <span>{file.fileName}</span>
+                              <small>
+                                {file.fileSize
+                                  ? `${Math.round(file.fileSize / 1024)} KB`
+                                  : ""}
+                              </small>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={styles.answer} data-quote-source>
+                          <ReactMarkdown skipHtml>{content}</ReactMarkdown>
+                        </div>
+                      )}
+                      {(userMessage || agentMessage || runEnded) && (
+                        <div
+                          className={clsx(
+                            styles.messageActions,
+                            isRun && styles.messageActionsAgent,
+                            persistentActions && styles.messageActionsPersistent,
+                          )}
+                        >
+                          <time>{formatMessageTime(message.sendTime)}</time>
+                          <Tooltip title={t("agentWorkspace.copy")}>
                             <button
                               className={styles.messageAction}
                               type="button"
-                              aria-label={t("agentWorkspace.fork")}
+                              aria-label={t("agentWorkspace.copy")}
+                              onClick={() => {
+                                if (copyText && navigator.clipboard) {
+                                  void navigator.clipboard.writeText(copyText);
+                                }
+                              }}
                             >
-                              <Split
-                                className={styles.forkIcon}
-                                size={14}
-                                strokeWidth={1.8}
-                              />
+                              <Copy size={14} strokeWidth={1.8} />
                             </button>
                           </Tooltip>
-                        )}
-                        {canEdit && (
-                          <Tooltip title={t("agentWorkspace.edit")}>
-                            <button
-                              className={styles.messageAction}
-                              type="button"
-                              aria-label={t("agentWorkspace.edit")}
-                            >
-                              <Pencil size={14} strokeWidth={1.8} />
-                            </button>
-                          </Tooltip>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })
+                          {agentMessage && (
+                            <Tooltip title={t("agentWorkspace.fork")}>
+                              <button
+                                className={styles.messageAction}
+                                type="button"
+                                aria-label={t("agentWorkspace.fork")}
+                              >
+                                <Split
+                                  className={styles.forkIcon}
+                                  size={14}
+                                  strokeWidth={1.8}
+                                />
+                              </button>
+                            </Tooltip>
+                          )}
+                          {canEdit && (
+                            <Tooltip title={t("agentWorkspace.edit")}>
+                              <button
+                                className={styles.messageAction}
+                                type="button"
+                                aria-label={t("agentWorkspace.edit")}
+                              >
+                                <Pencil size={14} strokeWidth={1.8} />
+                              </button>
+                            </Tooltip>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              {loadState.hasMoreNew && moreNewLoading && (
+                <div className={styles.empty} role="status">
+                  <LoaderCircle className="animate-spin" size={15} />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

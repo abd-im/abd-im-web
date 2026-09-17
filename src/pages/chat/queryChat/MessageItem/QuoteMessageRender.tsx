@@ -40,6 +40,7 @@ const QuoteMessageRender: FC<IMessageItemProps> = ({ message }) => {
             clientMsgID: quoteMessage.clientMsgID,
             quoteText: quoteElem?.quoteText,
             quoteOffset: quoteElem?.quoteOffset,
+            sourceMessage: quoteMessage,
           });
         }}
       >

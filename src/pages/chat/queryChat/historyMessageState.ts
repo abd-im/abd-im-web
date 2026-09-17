@@ -11,9 +11,27 @@ type MessageWithSender = {
 };
 
 type MessageReadCandidate = {
+  clientMsgID?: string;
   sendID: string;
   seq: number;
   isRead: boolean;
+};
+
+export const getFirstUnreadMessageIndex = (
+  messages: MessageReadCandidate[],
+  selfUserID: string,
+  unreadCount = 0,
+) => {
+  const exactIndex = messages.findIndex(
+    (message) => !message.isRead && message.sendID !== selfUserID && message.seq > 0,
+  );
+  if (exactIndex >= 0) return exactIndex;
+
+  // Some SDK snapshots only expose the aggregate unread count. In that case,
+  // place the boundary at the oldest message covered by that count.
+  return unreadCount > 0 && messages.length > 0
+    ? Math.max(0, messages.length - unreadCount)
+    : -1;
 };
 
 export const applySingleReadCursor = <
@@ -79,6 +97,23 @@ export const mergeHistoryMessages = <T extends MessageWithID>(
   return {
     messageList: [...prependedMessages, ...current],
     prependedCount: prependedMessages.length,
+  };
+};
+
+export const appendHistoryMessages = <T extends MessageWithID>(
+  currentMessages: T[],
+  incomingMessages: T[],
+) => {
+  const seenIDs = new Set(currentMessages.map((message) => message.clientMsgID));
+  const appendedMessages = incomingMessages.filter((message) => {
+    if (seenIDs.has(message.clientMsgID)) return false;
+    seenIDs.add(message.clientMsgID);
+    return true;
+  });
+
+  return {
+    messageList: [...currentMessages, ...appendedMessages],
+    appendedCount: appendedMessages.length,
   };
 };
 
