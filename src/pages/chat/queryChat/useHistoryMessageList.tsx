@@ -1,17 +1,22 @@
-import { MessageItem, ViewType } from "@abd-im/wasm-client-sdk";
+import {
+  CbEvents,
+  ConversationItem,
+  MessageItem,
+  ViewType,
+  WSEvent,
+} from "@abd-im/wasm-client-sdk";
 import { useLatest, useRequest } from "ahooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { IMSDK } from "@/layout/MainContentWrap";
-import { useUserStore } from "@/store/user";
 import emitter, { emit } from "@/utils/events";
 
 import type { MessageSenderProfile } from "./historyMessageState";
 import {
   appendHistoryMessages,
-  applySingleReadCursor,
   mergeHistoryMessages,
+  mergeMessageBurnTime,
   updateHistoryMessageSender,
 } from "./historyMessageState";
 
@@ -23,7 +28,7 @@ const filterExpiredMessages = (messages: MessageItem[], conversationID: string) 
   messages.filter((message) => {
     if (!message.attachedInfoElem) return true;
     const { isPrivateChat, burnDuration, hasReadTime } = message.attachedInfoElem;
-    if (!isPrivateChat || !message.isRead || !hasReadTime) return true;
+    if (!isPrivateChat || !hasReadTime) return true;
     const elapsed = Math.floor((Date.now() - hasReadTime) / 1000);
     if (elapsed < burnDuration) return true;
     void IMSDK.deleteMessageFromLocalStorage({
@@ -127,41 +132,69 @@ export function useHistoryMessageList(enabled = true, initialUnreadCount = 0) {
           : { ...preState, messageList };
       });
     };
-    const applyReadCursor = (receipt: {
-      conversationID: string;
-      userID: string;
-      hasReadSeq: number;
-      readTime: number;
-    }) => {
-      if (receipt.conversationID !== latestConversationID.current) return;
-      setLoadState((previous) => {
-        const messageList = applySingleReadCursor(
-          previous.messageList,
-          useUserStore.getState().selfInfo.userID,
-          receipt.userID,
-          receipt.hasReadSeq,
-          receipt.readTime,
-        );
-        return messageList === previous.messageList
-          ? previous
-          : { ...previous, messageList };
-      });
+    let cancelled = false;
+    let burnRequest = 0;
+    const refreshBurnTime = (id: string) => {
+      if (!enabled || !id || id !== latestConversationID.current) return;
+      const snapshot = latestLoadState.current;
+      if (!snapshot || snapshot.conversationID !== id) return;
+      const clientMsgIDList = snapshot.messageList
+        .filter(
+          (message) =>
+            message.seq > 0 &&
+            message.attachedInfoElem?.isPrivateChat &&
+            !message.attachedInfoElem.hasReadTime,
+        )
+        .map((message) => message.clientMsgID);
+      if (!clientMsgIDList.length) return;
+      const generation = historyGeneration.current;
+      const request = ++burnRequest;
+      void IMSDK.findMessageList([{ conversationID: id, clientMsgIDList }])
+        .then(({ data }) => {
+          if (
+            cancelled ||
+            request !== burnRequest ||
+            latestConversationID.current !== id ||
+            historyGeneration.current !== generation
+          )
+            return;
+          const updates =
+            data.findResultItems?.find((item) => item.conversationID === id)
+              ?.messageList ?? [];
+          setLoadState((previous) => {
+            if (previous.conversationID !== id) return previous;
+            const messageList = mergeMessageBurnTime(previous.messageList, updates);
+            return messageList === previous.messageList
+              ? previous
+              : { ...previous, messageList };
+          });
+        })
+        .catch((error) => console.error("Failed to refresh message burn time", error));
     };
+    const conversationChangedHandler = ({ data }: WSEvent<ConversationItem[]>) => {
+      const id = latestConversationID.current;
+      if (id && data.some((item) => item.conversationID === id)) refreshBurnTime(id);
+    };
+    const readStateChangedHandler = ({ data }: WSEvent<string>) =>
+      refreshBurnTime(data);
+    IMSDK.on(CbEvents.OnConversationChanged, conversationChangedHandler);
+    IMSDK.on(CbEvents.OnMessageReadStateChanged, readStateChangedHandler);
     emitter.on("PUSH_NEW_MSG", pushNewMessage);
     emitter.on("UPDATE_ONE_MSG", updateOneMessage);
     emitter.on("UPDATE_MSG_SENDER", updateMessageSender);
-    emitter.on("C2C_READ_CURSOR", applyReadCursor);
     emitter.on("DELETE_ONE_MSG", deleteOneMessage);
     emitter.on("CLEAR_HISTORY_DONE", clearHistory);
     return () => {
+      cancelled = true;
+      IMSDK.off(CbEvents.OnConversationChanged, conversationChangedHandler);
+      IMSDK.off(CbEvents.OnMessageReadStateChanged, readStateChangedHandler);
       emitter.off("PUSH_NEW_MSG", pushNewMessage);
       emitter.off("UPDATE_ONE_MSG", updateOneMessage);
       emitter.off("UPDATE_MSG_SENDER", updateMessageSender);
-      emitter.off("C2C_READ_CURSOR", applyReadCursor);
       emitter.off("DELETE_ONE_MSG", deleteOneMessage);
       emitter.off("CLEAR_HISTORY_DONE", clearHistory);
     };
-  }, [latestConversationID]);
+  }, [enabled, latestConversationID, latestLoadState]);
 
   const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest<
     void,
@@ -367,11 +400,5 @@ export const updateOneMessage = (message: MessageItem) =>
   emit("UPDATE_ONE_MSG", message);
 export const updateMessageSender = (profile: MessageSenderProfile) =>
   emit("UPDATE_MSG_SENDER", profile);
-export const updateSingleReadCursor = (receipt: {
-  conversationID: string;
-  userID: string;
-  hasReadSeq: number;
-  readTime: number;
-}) => emit("C2C_READ_CURSOR", receipt);
 export const deleteMessage = (clientMsgID: string) =>
   emit("DELETE_ONE_MSG", clientMsgID);

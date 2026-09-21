@@ -37,9 +37,9 @@ import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
 import NotificationMessage from "./NotificationMessage";
 import { spotlightQuote } from "./partialQuote";
-import { useGroupReadReceipts } from "./useGroupReadReceipts";
-import { updateOneMessage, useHistoryMessageList } from "./useHistoryMessageList";
+import { useHistoryMessageList } from "./useHistoryMessageList";
 import { useMessageReactions } from "./useMessageReactions";
+import { useMessageReadReceipts } from "./useMessageReadReceipts";
 
 const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
   MessageType.TextMessage,
@@ -77,7 +77,7 @@ const ChatContent = () => {
   );
   const conversationList = useConversationStore((state) => state.conversationList);
   const friendList = useContactStore((state) => state.friendList);
-  const entryUnreadRef = useRef({ conversationID: "", count: 0 });
+  const entryUnreadRef = useRef({ conversationID: "", count: 0, readSeq: 0 });
   const unreadBoundaryRef = useRef<{
     conversationID: string;
     clientMsgID?: string;
@@ -85,10 +85,12 @@ const ChatContent = () => {
   }>({ conversationID: "", initialized: false });
   const activeConversationID = currentConversation?.conversationID ?? "";
   const currentUnreadCount = currentConversation?.unreadCount ?? 0;
+  const readSeq = currentConversation?.readSeq ?? 0;
   if (activeConversationID !== entryUnreadRef.current.conversationID) {
     entryUnreadRef.current = {
       conversationID: activeConversationID,
       count: currentUnreadCount,
+      readSeq,
     };
     unreadBoundaryRef.current = {
       conversationID: activeConversationID,
@@ -197,7 +199,6 @@ const ChatContent = () => {
   const {
     conversationID,
     loadState,
-    latestLoadState,
     moreOldLoading,
     moreNewLoading,
     getMoreOldMessages,
@@ -340,9 +341,11 @@ const ChatContent = () => {
   const isGroupConversation =
     currentConversation?.conversationType === SessionType.WorkingGroup &&
     Boolean(currentConversation.groupID);
-  useGroupReadReceipts(
+  const supportsReadReceipts =
+    currentConversation?.conversationType === SessionType.Single || isGroupConversation;
+  useMessageReadReceipts(
     conversationID,
-    isGroupConversation,
+    supportsReadReceipts,
     displayMessages,
     selfUserID,
   );
@@ -398,6 +401,7 @@ const ChatContent = () => {
   const latestUnreadMessageSeq = getLatestUnreadMessageSeq(
     loadState.messageList,
     selfUserID,
+    readSeq,
   );
   const unreadCandidateIndex = useMemo(
     () =>
@@ -405,7 +409,7 @@ const ChatContent = () => {
         ? getFirstUnreadMessageIndex(
             loadState.messageList,
             selfUserID,
-            entryUnreadCount,
+            entryUnreadRef.current.readSeq,
           )
         : -1,
     [entryUnreadCount, loadState.messageList, selfUserID],
@@ -482,7 +486,7 @@ const ChatContent = () => {
     if (!isGroupConversation || !historyReady) return;
     const targets = loadState.messageList.filter(
       (message) =>
-        !message.isRead &&
+        message.seq > readSeq &&
         !handledMentionIDs.current.has(message.clientMsgID) &&
         isMessageMentioningUser(message, selfUserID),
     );
@@ -493,7 +497,7 @@ const ChatContent = () => {
       );
       return [...byID.values()].sort(sortMessagesByPosition);
     });
-  }, [historyReady, isGroupConversation, loadState.messageList, selfUserID]);
+  }, [historyReady, isGroupConversation, loadState.messageList, readSeq, selfUserID]);
 
   useEffect(() => {
     if (
@@ -522,7 +526,7 @@ const ChatContent = () => {
               isMessageMentioningUser(message, selfUserID),
           )
           .sort(sortMessagesByPosition);
-        const unreadTargets = targets.filter((message) => !message.isRead);
+        const unreadTargets = targets.filter((message) => message.seq > readSeq);
         const pendingTargets = unreadTargets.length ? unreadTargets : targets.slice(-1);
         if (!pendingTargets.length) return;
         setMentionTargets((current) => {
@@ -542,6 +546,7 @@ const ChatContent = () => {
   }, [
     conversationID,
     currentConversation?.groupAtType,
+    readSeq,
     isGroupConversation,
     historyReady,
     selfUserID,
@@ -573,25 +578,12 @@ const ChatContent = () => {
   useEffect(() => {
     if (conversationID) {
       if (currentConversation?.conversationType === SessionType.Notification) {
-        IMSDK.markConversationMessageAsRead(conversationID).then(() => {
-          latestLoadState.current?.messageList.forEach((msg) => {
-            if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
-              updateOneMessage({
-                clientMsgID: msg.clientMsgID,
-                isRead: true,
-                attachedInfoElem: { hasReadTime: Date.now() },
-              } as MessageItem);
-            }
-          });
-        });
+        void IMSDK.markConversationMessageAsRead(conversationID).catch((error) =>
+          console.error("Failed to mark conversation as read", error),
+        );
       }
     }
-  }, [
-    conversationID,
-    currentConversation?.conversationType,
-    latestLoadState,
-    selfUserID,
-  ]);
+  }, [conversationID, currentConversation?.conversationType, selfUserID]);
 
   useEffect(() => {
     if (!historyReady || !conversationID || loadState.messageList.length === 0) return;
@@ -623,17 +615,9 @@ const ChatContent = () => {
       ) {
         return;
       }
-      IMSDK.markConversationMessageAsRead(conversationID).then(() => {
-        latestLoadState.current?.messageList.forEach((msg) => {
-          if (!msg.isRead && msg.sendID !== selfUserID && msg.seq > 0) {
-            updateOneMessage({
-              clientMsgID: msg.clientMsgID,
-              isRead: true,
-              attachedInfoElem: { hasReadTime: Date.now() },
-            } as MessageItem);
-          }
-        });
-      });
+      void IMSDK.markConversationMessageAsRead(conversationID).catch((error) =>
+        console.error("Failed to mark conversation as read", error),
+      );
     }
   }, [
     loadState.messageList,
@@ -641,7 +625,6 @@ const ChatContent = () => {
     latestUnreadMessageSeq,
     conversationID,
     currentConversation?.conversationType,
-    latestLoadState,
     selfUserID,
     atBottom,
     scrollToBottom,
@@ -872,7 +855,7 @@ const ChatContent = () => {
                     }
                     message={message}
                     avatarText={avatarText}
-                    showGroupReadReceipt={isGroupConversation}
+                    showReadReceipt={supportsReadReceipts}
                     reactionSummary={reactionSummaries[message.seq]}
                     showReactionAction={showReactionAction}
                     reactionUserProfiles={reactionUserProfiles}
@@ -889,7 +872,6 @@ const ChatContent = () => {
                       avatarText +
                       message.senderNickname +
                       message.senderFaceUrl +
-                      String(message.isRead) +
                       String(message.status) +
                       String(message.attachedInfoElem?.hasReadTime)
                     }

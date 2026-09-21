@@ -34,16 +34,16 @@ import {
   agentWorkspaceTitleFromPrompt,
   createAgentWorkspace,
 } from "@/features/agentWorkspace/actions";
+import { useDesktopDraft } from "@/hooks/useDesktopDraft";
 import { useUserDisplayNameResolver } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
+import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 import { emit } from "@/utils/events";
 import { formatMessageTime } from "@/utils/imCommon";
 
 import { useSendMessage } from "../chat/queryChat/ChatFooter/useSendMessage";
-import { useDesktopDraft } from "@/hooks/useDesktopDraft";
-import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 import { getLatestUnreadMessageSeq } from "../chat/queryChat/historyMessageState";
 import {
   captureQuoteSelection,
@@ -151,6 +151,7 @@ export default function AgentWorkspaceContent({
   const latestUnreadMessageSeq = getLatestUnreadMessageSeq(
     loadState.messageList,
     selfUserID,
+    currentConversation?.readSeq ?? 0,
   );
 
   const latestAgentMessageID = useMemo(() => {

@@ -14,57 +14,33 @@ type MessageReadCandidate = {
   clientMsgID?: string;
   sendID: string;
   seq: number;
-  isRead: boolean;
 };
 
 export const getFirstUnreadMessageIndex = (
   messages: MessageReadCandidate[],
   selfUserID: string,
-  unreadCount = 0,
-) => {
-  const exactIndex = messages.findIndex(
-    (message) => !message.isRead && message.sendID !== selfUserID && message.seq > 0,
+  readSeq: number,
+) =>
+  messages.findIndex(
+    (message) => message.seq > readSeq && message.sendID !== selfUserID,
   );
-  if (exactIndex >= 0) return exactIndex;
 
-  // Some SDK snapshots only expose the aggregate unread count. In that case,
-  // place the boundary at the oldest message covered by that count.
-  return unreadCount > 0 && messages.length > 0
-    ? Math.max(0, messages.length - unreadCount)
-    : -1;
-};
-
-export const applySingleReadCursor = <
-  T extends MessageReadCandidate & {
-    recvID: string;
-    attachedInfoElem?: { hasReadTime?: number; isPrivateChat?: boolean };
-  },
+// A burn refresh must not replace newer message content.
+export const mergeMessageBurnTime = <
+  T extends { clientMsgID: string; attachedInfoElem?: { hasReadTime?: number } },
 >(
   messages: T[],
-  selfUserID: string,
-  readerID: string,
-  readSeq: number,
-  readTime: number,
+  updates: T[],
 ) => {
+  const byID = new Map(updates.map((message) => [message.clientMsgID, message]));
   let changed = false;
   const next = messages.map((message) => {
-    if (
-      message.sendID !== selfUserID ||
-      message.recvID !== readerID ||
-      message.seq <= 0 ||
-      message.seq > readSeq ||
-      message.isRead
-    )
-      return message;
+    const hasReadTime = byID.get(message.clientMsgID)?.attachedInfoElem?.hasReadTime;
+    if (!hasReadTime || message.attachedInfoElem?.hasReadTime) return message;
     changed = true;
     return {
       ...message,
-      isRead: true,
-      ...(message.attachedInfoElem?.isPrivateChat &&
-      readTime > 0 &&
-      !message.attachedInfoElem.hasReadTime
-        ? { attachedInfoElem: { ...message.attachedInfoElem, hasReadTime: readTime } }
-        : {}),
+      attachedInfoElem: { ...message.attachedInfoElem, hasReadTime },
     };
   });
   return changed ? next : messages;
@@ -163,10 +139,11 @@ export const applyFriendRemarks = <T extends MessageWithSender>(
 export const getLatestUnreadMessageSeq = (
   messages: MessageReadCandidate[],
   selfUserID: string,
+  readSeq: number,
 ) =>
   messages.reduce(
     (latestSeq, message) =>
-      !message.isRead && message.sendID !== selfUserID
+      message.seq > readSeq && message.sendID !== selfUserID
         ? Math.max(latestSeq, message.seq)
         : latestSeq,
     0,

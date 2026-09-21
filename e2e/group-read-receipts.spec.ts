@@ -8,15 +8,21 @@ async function prepareGroup(page: Page) {
   await page.evaluate(async () => {
     const sdkURL = "/src/layout/MainContentWrap.tsx";
     const storeURL = "/src/store/index.ts";
-    const readURL = "/src/store/groupReadReceipt.ts";
+    const readURL = "/src/store/messageReadReceipt.ts";
     const historyURL = "/src/pages/chat/queryChat/useHistoryMessageList.tsx";
     const { IMSDK } = await import(sdkURL);
     const { useContactStore, useConversationStore } = await import(storeURL);
-    const { useGroupReadReceiptStore } = await import(readURL);
+    const { useMessageReadReceiptStore } = await import(readURL);
     const { updateOneMessage } = await import(historyURL);
     const { data } = await IMSDK.getAdvancedHistoryMessageList({
       conversationID: "preview-chat-0",
     });
+    IMSDK.findMessageList = async () =>
+      ({
+        data: {
+          findResultItems: [{ conversationID: "preview-chat-0", messageList: [] }],
+        },
+      } as never);
     const members = [
       { userID: "preview-lin", nickname: "林知夏", faceURL: "", groupID: "test" },
       { userID: "preview-chen", nickname: "陈亦舟", faceURL: "", groupID: "test" },
@@ -34,10 +40,9 @@ async function prepareGroup(page: Page) {
       enabled: true,
       status: "ready",
       reason: "",
-      groupMessageReadInfo: [...readCountBySeq].map(([seq, count]) => {
+      messageReadInfo: [...readCountBySeq].map(([seq, count]) => {
         return {
           seq,
-          clientMsgID: `preview-message-${seq - 1}`,
           hasReadCount: count,
           unreadCount: 4 - count,
           readMembers: members.slice(0, count),
@@ -57,7 +62,7 @@ async function prepareGroup(page: Page) {
         },
       ],
     });
-    IMSDK.getGroupMessageReadInfo = async (params: unknown) => {
+    IMSDK.getMessageReadInfo = async (params: unknown) => {
       calls.queries.push(params);
       return { data: Reflect.get(window, "groupReadTestReceipt") };
     };
@@ -71,11 +76,24 @@ async function prepareGroup(page: Page) {
     };
     const current = useConversationStore.getState().currentConversation;
     useConversationStore.setState({
-      currentConversation: { ...current, conversationType: 3, groupID: "test" },
+      conversationKinds: { test: "chat" },
+      currentConversation: {
+        ...current,
+        conversationType: 3,
+        groupID: "test",
+        latestMsg: JSON.stringify({
+          ...data.messageList.at(-1),
+          sendID: "preview-me",
+          senderNickname: "Alex",
+          sessionType: 3,
+          groupID: "test",
+          sendTime: Date.now() - 100 * 86400000,
+        }),
+      },
       currentGroupInfo: { groupID: "test", groupName: "产品评审", memberCount: 5 },
       currentMemberInGroup: { userID: "preview-me", groupID: "test", roleLevel: 100 },
     });
-    useGroupReadReceiptStore.getState().update(receipt);
+    useMessageReadReceiptStore.getState().update(receipt);
     data.messageList.forEach((message: Record<string, unknown>) =>
       updateOneMessage({
         ...message,
@@ -96,6 +114,9 @@ for (const viewport of [
   test(`group read rings and local lists ${viewport.width}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareGroup(page);
+    await expect(
+      page.locator("#chat_preview-message-1").getByRole("progressbar"),
+    ).toHaveAttribute("aria-valuenow", "0");
     const row = page.locator("#chat_preview-message-3");
     const circle = row.getByRole("button", { name: "产品小林, 陈亦舟 已读" });
     await expect(circle).toBeVisible();
@@ -160,7 +181,7 @@ for (const viewport of [
         currentConversation: { ...current, conversationType: 1, groupID: "" },
       });
     });
-    await expect(circle).toHaveCount(0);
+    await expect(circle).toHaveCount(1);
   });
 }
 
@@ -185,37 +206,28 @@ test("group read status changes update an open list and respect server capabilit
   await page.evaluate(async () => {
     const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
     const previous = Reflect.get(window, "groupReadTestReceipt");
-    const item = previous.groupMessageReadInfo.find(
+    const item = previous.messageReadInfo.find(
       (item: { seq: number }) => item.seq === 4,
     );
     Reflect.set(window, "groupReadTestReceipt", {
       ...previous,
-      groupMessageReadInfo: previous.groupMessageReadInfo.map(
-        (message: { seq: number }) =>
-          message.seq === 4
-            ? {
-                ...item,
-                hasReadCount: 3,
-                unreadCount: 1,
-                readMembers: [...item.readMembers, item.unreadMembers[0]],
-                unreadMembers: item.unreadMembers.slice(1),
-              }
-            : message,
+      messageReadInfo: previous.messageReadInfo.map((message: { seq: number }) =>
+        message.seq === 4
+          ? {
+              ...item,
+              hasReadCount: 3,
+              unreadCount: 1,
+              readMembers: [...item.readMembers, item.unreadMembers[0]],
+              unreadMembers: item.unreadMembers.slice(1),
+            }
+          : message,
       ),
     });
     IMSDK.emit(
-      "OnRecvC2CReadReceipt" as never,
+      "OnMessageReadStateChanged" as never,
       {
-        event: "OnRecvC2CReadReceipt",
-        data: [
-          {
-            conversationID: "preview-chat-0",
-            userID: "preview-zhou",
-            hasReadSeq: 4,
-            readTime: Date.now(),
-            sessionType: 3,
-          },
-        ],
+        event: "OnMessageReadStateChanged",
+        data: "preview-chat-0",
       } as never,
     );
   });
@@ -234,21 +246,13 @@ test("group read status changes update an open list and respect server capabilit
       enabled: false,
       status: "ready",
       reason: "MEMBER_LIMIT_EXCEEDED",
-      groupMessageReadInfo: [],
+      messageReadInfo: [],
     });
     IMSDK.emit(
-      "OnRecvC2CReadReceipt" as never,
+      "OnMessageReadStateChanged" as never,
       {
-        event: "OnRecvC2CReadReceipt",
-        data: [
-          {
-            conversationID: "preview-chat-0",
-            userID: "preview-zhou",
-            hasReadSeq: 5,
-            readTime: Date.now(),
-            sessionType: 3,
-          },
-        ],
+        event: "OnMessageReadStateChanged",
+        data: "preview-chat-0",
       } as never,
     );
   });
@@ -258,5 +262,6 @@ test("group read status changes update an open list and respect server capabilit
     )
     .toBe(initialQueryCount + 2);
   await expect(row.getByRole("button", { name: /已读/ })).toHaveCount(0);
+  await expect(row.locator("[data-message-read-receipt]")).toHaveCount(0);
   await expect(panel).toBeHidden();
 });

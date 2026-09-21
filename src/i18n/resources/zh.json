@@ -1,5 +1,5 @@
 {
-  "groupReadReceipt": {
+  "messageReadReceipt": {
     "status": "阅读状态",
     "read": "已读",
     "unread": "未读",

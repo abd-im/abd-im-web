@@ -86,13 +86,13 @@ async function prepareGroup(page: Page, groupAtType = 0) {
           },
         }) as never;
       };
-      IMSDK.getGroupMessageReadInfo = () =>
+      IMSDK.getMessageReadInfo = () =>
         result({
           conversationID: "preview-chat-0",
           enabled: false,
           status: "ready",
           reason: "MEMBER_LIMIT_EXCEEDED",
-          groupMessageReadInfo: [],
+          messageReadInfo: [],
         }) as never;
       IMSDK.getAdvancedHistoryMessageListReverse = ({
         startClientMsgID,
@@ -203,7 +203,6 @@ test("the mention bubble loads and jumps to a message outside the current page",
       sessionType: 3,
       groupID: "preview-group",
       seq: 80,
-      isRead: false,
       textElem: undefined,
       atTextElem: {
         text: "@Alex 请看评审结论",
@@ -616,7 +615,6 @@ for (const viewport of [
         seq: index + 1,
         sendTime: base.sendTime + index * 1000,
         createTime: base.createTime + index * 1000,
-        isRead: index < 5,
         textElem: {
           content:
             index === 29
@@ -655,6 +653,7 @@ for (const viewport of [
         ...current!,
         conversationID: "unread-position-chat",
         unreadCount: 25,
+        readSeq: 5,
       };
       useConversationStore.setState((state) => ({
         conversationList: [...state.conversationList, conversation],

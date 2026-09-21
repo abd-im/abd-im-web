@@ -16,12 +16,6 @@ type EmitterEvents = {
   UPDATE_ONE_MSG: MessageItem;
   DELETE_ONE_MSG: string;
   CLEAR_HISTORY_DONE: void;
-  C2C_READ_CURSOR: {
-    conversationID: string;
-    userID: string;
-    hasReadSeq: number;
-    readTime: number;
-  };
   UPDATE_MSG_SENDER: MessageSenderProfile;
   MESSAGE_REACTION_UPDATED: MessageReactionUpdatedEvent;
   MESSAGE_REACTIONS_REFRESH: void;

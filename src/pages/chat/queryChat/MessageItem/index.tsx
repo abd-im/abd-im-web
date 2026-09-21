@@ -2,7 +2,6 @@ import {
   MessageItem as MessageItemType,
   MessageStatus,
   MessageType,
-  SessionType,
 } from "@abd-im/wasm-client-sdk";
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
@@ -29,15 +28,14 @@ import BurnCountdown from "./BurnCountdown";
 import CardMessageRender from "./CardMessageRender";
 import CatchMessageRender from "./CatchMsgRenderer";
 import FileMessageRender from "./FileMessageRender";
-import GroupReadReceipt from "./GroupReadReceipt";
 import MarkdownMessageRender from "./MarkdownMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
 import MergeMessageRender from "./MergeMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageReactionBar from "./MessageReactionBar";
+import MessageReadReceipt from "./MessageReadReceipt";
 import QuoteMessageRender from "./QuoteMessageRender";
-import SingleReadReceipt from "./SingleReadReceipt";
 import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
 import VideoMessageRender from "./VideoMessageRender";
@@ -49,7 +47,7 @@ export interface IMessageItemProps {
   disabled?: boolean;
   conversationID?: string;
   flushReadCursor?: boolean;
-  showGroupReadReceipt?: boolean;
+  showReadReceipt?: boolean;
   messageUpdateFlag?: string;
   reactionSummary?: MessageReactionSummary;
   showReactionAction?: boolean;
@@ -99,7 +97,7 @@ const MessageItem: FC<IMessageItemProps> = ({
   disabled,
   conversationID,
   flushReadCursor,
-  showGroupReadReceipt,
+  showReadReceipt,
   reactionSummary,
   showReactionAction,
   isReactionPending,
@@ -182,16 +180,10 @@ const MessageItem: FC<IMessageItemProps> = ({
       Boolean(message.clientMsgID) &&
       !isPrivate);
   const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
-  const canShowGroupReadReceipt =
-    showGroupReadReceipt &&
+  const canShowReadReceipt =
+    showReadReceipt &&
     isSender &&
-    Boolean(conversationID && message.groupID) &&
-    message.status === MessageStatus.Succeed &&
-    message.seq > 0 &&
-    message.contentType < 1000;
-  const canShowSingleReadReceipt =
-    isSender &&
-    message.sessionType === SessionType.Single &&
+    Boolean(conversationID) &&
     message.status === MessageStatus.Succeed &&
     message.seq > 0 &&
     message.contentType < 1000;
@@ -467,14 +459,11 @@ const MessageItem: FC<IMessageItemProps> = ({
                     onMenuClick={onMenuClick}
                     actionsDisabled={disabled || selectionMode}
                   />
-                  {canShowGroupReadReceipt && conversationID && (
-                    <GroupReadReceipt
+                  {canShowReadReceipt && conversationID && (
+                    <MessageReadReceipt
                       conversationID={conversationID}
-                      clientMsgID={message.clientMsgID}
+                      seq={message.seq}
                     />
-                  )}
-                  {canShowSingleReadReceipt && (
-                    <SingleReadReceipt isRead={message.isRead} />
                   )}
                 </div>
                 {!isSender && (

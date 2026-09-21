@@ -14,7 +14,6 @@ import {
   GroupItem,
   GroupMemberItem,
   MessageItem,
-  ReceiptInfo,
   RevokedInfo,
   SelfUserInfo,
   WSEvent,
@@ -35,7 +34,6 @@ import {
   pushNewMessage,
   updateMessageSender,
   updateOneMessage,
-  updateSingleReadCursor,
 } from "@/pages/chat/queryChat/useHistoryMessageList";
 import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
@@ -206,7 +204,6 @@ export function useGlobalEvent() {
     IMSDK.on(CbEvents.OnRecvNewMessages, newMessagesHandler);
     IMSDK.on(CbEvents.OnNewRecvMessageRevoked, revokedMessageHandler);
     IMSDK.on(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
-    IMSDK.on(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
     IMSDK.on(CbEvents.OnRecvCustomBusinessMessage, customBusinessMessageHandler);
     // conversation
     IMSDK.on(CbEvents.OnConversationChanged, conversationChnageHandler);
@@ -324,15 +321,6 @@ export function useGlobalEvent() {
     updateUserStatus(data);
   };
 
-  const c2cReadReceiptHandler = ({ data }: WSEvent<ReceiptInfo[]>) => {
-    data.forEach((receipt) => {
-      if (receipt.sessionType !== SessionType.Single) return;
-      const readTime =
-        receipt.readTime < 10000000000 ? receipt.readTime * 1000 : receipt.readTime;
-      updateSingleReadCursor({ ...receipt, readTime });
-    });
-  };
-
   const customBusinessMessageHandler = ({ data }: WSEvent<unknown>) => {
     const event = parseReactionUpdatedEvent(data);
     if (event) {
@@ -432,21 +420,6 @@ export function useGlobalEvent() {
 
   // conversation
   const conversationChnageHandler = ({ data }: WSEvent<ConversationItem[]>) => {
-    const currentConversationID =
-      useConversationStore.getState().currentConversation?.conversationID;
-    const currentConversation = data.find(
-      (conversation) => conversation.conversationID === currentConversationID,
-    );
-    if (currentConversation?.latestMsg) {
-      try {
-        const latestMessage = JSON.parse(currentConversation.latestMsg) as MessageItem;
-        if (Number.isSafeInteger(latestMessage.seq) && latestMessage.seq > 0) {
-          updateOneMessage(latestMessage);
-        }
-      } catch {
-        // The conversation list can still update when an older SDK returns invalid JSON.
-      }
-    }
     updateConversationList(data, "filter");
   };
   const newConversationHandler = ({ data }: WSEvent<ConversationItem[]>) => {
@@ -585,7 +558,6 @@ export function useGlobalEvent() {
     IMSDK.off(CbEvents.OnRecvNewMessage, newMessageHandler);
     IMSDK.off(CbEvents.OnRecvNewMessages, newMessagesHandler);
     IMSDK.off(CbEvents.OnUserStatusChanged, userStatusChangeHandler);
-    IMSDK.off(CbEvents.OnRecvC2CReadReceipt, c2cReadReceiptHandler);
     IMSDK.off(CbEvents.OnRecvCustomBusinessMessage, customBusinessMessageHandler);
     // conversation
     IMSDK.off(CbEvents.OnConversationChanged, conversationChnageHandler);

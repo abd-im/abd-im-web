@@ -43,7 +43,6 @@ async function startPreview() {
       groupID: "",
       content: "",
       seq: index + 1,
-      isRead: true,
       status: 2,
       textElem: { content },
       attachedInfoElem: {
@@ -89,6 +88,7 @@ async function startPreview() {
         faceURL: person.faceURL,
         recvMsgOpt: 0,
         unreadCount: index === 1 ? 3 : index === 2 ? 1 : 0,
+        readSeq: index === 0 ? 7 : 0,
         isPinned: false,
         latestMsg: JSON.stringify(textMessage(previews[index], index, person)),
         latestMsgSendTime: now - index * 3600000,

@@ -3,57 +3,56 @@ import { describe, expect, it } from "vitest";
 import {
   appendHistoryMessages,
   applyFriendRemarks,
-  applySingleReadCursor,
   getFirstUnreadMessageIndex,
   getLatestUnreadMessageSeq,
+  mergeMessageBurnTime,
   updateHistoryMessageSender,
 } from "./historyMessageState";
 
 describe("history message state", () => {
-  it("applies a peer cursor only to successful positions in own outgoing messages", () => {
-    const outgoing = (seq: number) => ({
-      sendID: "self",
-      recvID: "peer",
-      seq,
-      isRead: false,
-    });
-    const list = [
-      outgoing(1),
-      outgoing(5),
-      outgoing(6),
-      outgoing(0),
-      { ...outgoing(2), sendID: "peer", recvID: "self" },
-    ];
-    const next = applySingleReadCursor(list, "self", "peer", 5, 0);
-    expect(next.map((message) => message.isRead)).toEqual([
-      true,
-      true,
-      false,
-      false,
-      false,
-    ]);
-    expect(applySingleReadCursor(next, "self", "peer", 3, 0)).toBe(next);
-    expect(applySingleReadCursor(next, "self", "another", 100, 0)).toBe(next);
-  });
-
-  it("reconnect calibration does not invent a burn timestamp", () => {
+  it("merges burn timestamps without replacing edited content or adding unloaded messages", () => {
     const list = [
       {
-        sendID: "self",
-        recvID: "peer",
-        seq: 1,
-        isRead: false,
-        attachedInfoElem: { isPrivateChat: true, hasReadTime: 0 },
+        clientMsgID: "one",
+        content: "edited",
+        attachedInfoElem: { hasReadTime: 0, burnDuration: 60 },
+      },
+      {
+        clientMsgID: "two",
+        content: "unchanged",
+        attachedInfoElem: { hasReadTime: 0, burnDuration: 30 },
       },
     ];
-    expect(
-      applySingleReadCursor(list, "self", "peer", 1, 0)[0].attachedInfoElem.hasReadTime,
-    ).toBe(0);
-    expect(
-      applySingleReadCursor(list, "self", "peer", 1, 123)[0].attachedInfoElem
-        .hasReadTime,
-    ).toBe(123);
+    const updates = [
+      {
+        ...list[0],
+        content: "old content",
+        attachedInfoElem: { hasReadTime: 123, burnDuration: 30 },
+      },
+      { ...list[0], clientMsgID: "outside-page" },
+    ];
+    const next = mergeMessageBurnTime(list, updates);
+    expect(next).toEqual([
+      { ...list[0], attachedInfoElem: { hasReadTime: 123, burnDuration: 60 } },
+      list[1],
+    ]);
+    expect(next[1]).toBe(list[1]);
+    expect(mergeMessageBurnTime(next, updates)).toBe(next);
+    expect(mergeMessageBurnTime(next, list)).toBe(next);
   });
+
+  it("does not invent or reset a burn timestamp", () => {
+    const message = { clientMsgID: "one", attachedInfoElem: { hasReadTime: 123 } };
+    expect(
+      mergeMessageBurnTime(
+        [message],
+        [{ ...message, attachedInfoElem: { hasReadTime: 456 } }],
+      )[0],
+    ).toBe(message);
+    const pending = { clientMsgID: "two" };
+    expect(mergeMessageBurnTime([pending], [pending])[0]).toBe(pending);
+  });
+
   const messages = [
     {
       clientMsgID: "message-1",
@@ -120,37 +119,33 @@ describe("history message state", () => {
   });
 
   it("waits for a stream message to receive a sequence before submitting read", () => {
-    const streamMessage = { sendID: "user-1", seq: 0, isRead: false };
-    const laterMessage = { sendID: "user-1", seq: 11, isRead: false };
+    const streamMessage = { sendID: "user-1", seq: 0 };
+    const laterMessage = { sendID: "user-1", seq: 11 };
 
-    expect(getLatestUnreadMessageSeq([streamMessage], "self-user")).toBe(0);
-    expect(getLatestUnreadMessageSeq([streamMessage, laterMessage], "self-user")).toBe(
-      11,
-    );
+    expect(getLatestUnreadMessageSeq([streamMessage], "self-user", 0)).toBe(0);
+    expect(
+      getLatestUnreadMessageSeq([streamMessage, laterMessage], "self-user", 0),
+    ).toBe(11);
     expect(
       getLatestUnreadMessageSeq(
         [{ ...streamMessage, seq: 12 }, laterMessage],
         "self-user",
+        0,
       ),
     ).toBe(12);
   });
 
-  it("locates the first unread incoming message and falls back to the unread count", () => {
+  it("uses the conversation cursor across gaps and excludes outgoing messages", () => {
     const list = [
-      { clientMsgID: "read", sendID: "peer", seq: 1, isRead: true },
-      { clientMsgID: "self", sendID: "self", seq: 2, isRead: false },
-      { clientMsgID: "unread", sendID: "peer", seq: 3, isRead: false },
+      { clientMsgID: "pending", sendID: "peer", seq: 0 },
+      { clientMsgID: "read", sendID: "peer", seq: 10 },
+      { clientMsgID: "self", sendID: "self", seq: 12 },
+      { clientMsgID: "unread", sendID: "peer", seq: 20 },
     ];
-
-    expect(getFirstUnreadMessageIndex(list, "self", 2)).toBe(2);
-    expect(
-      getFirstUnreadMessageIndex(
-        list.map((message) => ({ ...message, isRead: true })),
-        "self",
-        2,
-      ),
-    ).toBe(1);
-    expect(getFirstUnreadMessageIndex(list, "self", 0)).toBe(2);
+    expect(getFirstUnreadMessageIndex(list, "self", 10)).toBe(3);
+    expect(getFirstUnreadMessageIndex(list, "self", 20)).toBe(-1);
+    expect(getLatestUnreadMessageSeq(list, "self", 10)).toBe(20);
+    expect(getLatestUnreadMessageSeq(list, "self", 20)).toBe(0);
   });
 
   it("appends newer history without duplicating the anchor", () => {

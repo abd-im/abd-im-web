@@ -14,12 +14,14 @@ interface IBurnCountdownProps {
 
 const BurnCountdown: FC<IBurnCountdownProps> = ({ message, conversationID }) => {
   const [remain, setRemain] = useState(-1);
-  const currentConversation = useConversationStore((state) => state.currentConversation);
+  const currentConversation = useConversationStore(
+    (state) => state.currentConversation,
+  );
 
   useEffect(() => {
     if (!message.attachedInfoElem) return;
     const { isPrivateChat, burnDuration, hasReadTime } = message.attachedInfoElem;
-    if (!isPrivateChat || !message.isRead || !hasReadTime) return;
+    if (!isPrivateChat || !hasReadTime) return;
 
     // Priority: message burnDuration > conversation burnDuration > default 30
     const finalBurnDuration = burnDuration || currentConversation?.burnDuration || 30;
@@ -50,7 +52,7 @@ const BurnCountdown: FC<IBurnCountdownProps> = ({ message, conversationID }) => 
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [message.isRead, message.attachedInfoElem?.hasReadTime, currentConversation?.burnDuration]);
+  }, [message.attachedInfoElem?.hasReadTime, currentConversation?.burnDuration]);
 
   const handleBurn = async () => {
     if (!conversationID) return;
