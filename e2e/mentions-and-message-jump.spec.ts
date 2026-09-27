@@ -2,11 +2,11 @@ import { expect, Page, test } from "@playwright/test";
 
 const baseURL = process.env.ABD_UI_BASE_URL || "http://localhost:5180";
 
-async function prepareGroup(page: Page, groupAtType = 0) {
+async function prepareGroup(page: Page, unreadMentionCount = 0) {
   await page.goto(`${baseURL}/ui-preview.html`);
   await expect(page.locator("[data-chat-message-row]")).toHaveCount(7);
   await page.evaluate(
-    async ({ groupAtType }) => {
+    async ({ unreadMentionCount }) => {
       const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
       const { useContactStore, useConversationStore } = await import(
         "/src/store/index.ts"
@@ -51,7 +51,9 @@ async function prepareGroup(page: Page, groupAtType = 0) {
         historyCounts: [] as number[],
         newerStarts: [] as string[],
         olderStarts: [] as string[],
-        resets: [] as string[],
+        reads: [] as Array<{ conversationID: string; seqs: number[] }>,
+        allReads: [] as string[],
+        mentionQueries: [] as Array<Record<string, unknown>>,
       };
       Reflect.set(window, "mentionJumpCalls", calls);
       Reflect.set(window, "previewGroupMessages", groupMessages);
@@ -102,8 +104,25 @@ async function prepareGroup(page: Page, groupAtType = 0) {
         calls.newerStarts.push(startClientMsgID);
         return result({ messageList: [], isEnd: true }) as never;
       };
-      IMSDK.resetConversationGroupAtType = (conversationID: string) => {
-        calls.resets.push(conversationID);
+      IMSDK.getUnreadMentions = () =>
+        result({
+          seqs: [],
+          hasMore: false,
+        }) as never;
+      IMSDK.markMentionsRead = (params: { conversationID: string; seqs: number[] }) => {
+        calls.reads.push(params);
+        const current = useConversationStore.getState().currentConversation;
+        useConversationStore.setState({
+          currentConversation: { ...current!, unreadMentionCount: 0 },
+        });
+        return result(null) as never;
+      };
+      IMSDK.markAllMentionsRead = (conversationID: string) => {
+        calls.allReads.push(conversationID);
+        const current = useConversationStore.getState().currentConversation;
+        useConversationStore.setState({
+          currentConversation: { ...current!, unreadMentionCount: 0 },
+        });
         return result(null) as never;
       };
       useContactStore.setState({
@@ -117,13 +136,25 @@ async function prepareGroup(page: Page, groupAtType = 0) {
         ],
       });
       const current = useConversationStore.getState().currentConversation;
+      const groupConversation = {
+        ...current!,
+        conversationType: 3,
+        groupID: "preview-group",
+        unreadMentionCount,
+      };
       useConversationStore.setState({
-        currentConversation: {
-          ...current,
-          conversationType: 3,
-          groupID: "preview-group",
-          groupAtType,
+        conversationList: useConversationStore
+          .getState()
+          .conversationList.map((conversation) =>
+            conversation.conversationID === groupConversation.conversationID
+              ? groupConversation
+              : conversation,
+          ),
+        conversationKinds: {
+          ...useConversationStore.getState().conversationKinds,
+          "preview-group": "chat",
         },
+        currentConversation: groupConversation,
         currentGroupInfo: {
           groupID: "preview-group",
           groupName: "产品评审",
@@ -136,7 +167,7 @@ async function prepareGroup(page: Page, groupAtType = 0) {
       );
       groupMessages.forEach(updateOneMessage);
     },
-    { groupAtType },
+    { unreadMentionCount },
   );
 }
 
@@ -191,7 +222,7 @@ test("the mention bubble loads and jumps to a message outside the current page",
   page,
 }) => {
   await page.setViewportSize({ width: 1100, height: 760 });
-  await prepareGroup(page, 1);
+  await prepareGroup(page);
   await page.evaluate(async () => {
     const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
     const base = Reflect.get(window, "previewGroupMessages")[0];
@@ -211,18 +242,15 @@ test("the mention bubble loads and jumps to a message outside the current page",
       },
     };
     const calls = Reflect.get(window, "mentionJumpCalls");
-    IMSDK.searchLocalMessages = () =>
-      Promise.resolve({
+    IMSDK.getUnreadMentions = (params: Record<string, unknown>) => {
+      calls.mentionQueries.push(params);
+      return Promise.resolve({
         data: {
-          totalCount: 1,
-          searchResultItems: [
-            {
-              conversationID: "preview-chat-0",
-              messageList: [target],
-            },
-          ],
+          seqs: [target.seq],
+          hasMore: false,
         },
       });
+    };
     IMSDK.fetchSurroundingMessages = (params: Record<string, unknown>) => {
       calls.fetches.push(params);
       return Promise.resolve({ data: { messageList: [target], isEnd: true } });
@@ -230,14 +258,25 @@ test("the mention bubble loads and jumps to a message outside the current page",
     const { useConversationStore } = await import("/src/store/index.ts");
     const current = useConversationStore.getState().currentConversation;
     useConversationStore.setState({
-      currentConversation: { ...current, groupAtType: 3 },
+      currentConversation: { ...current, unreadMentionCount: 1 },
     });
   });
 
   const jump = page.locator("[data-mention-jump]");
   await expect(jump).toBeVisible();
   await expect(jump).toHaveAttribute("aria-label", "1 条未读提及");
+  await expect
+    .poll(() =>
+      page.evaluate(() => Reflect.get(window, "mentionJumpCalls").mentionQueries),
+    )
+    .toEqual([{ conversationID: "preview-chat-0", offsetSeq: 0, limit: 1 }]);
   await page.screenshot({ path: "e2e/screenshots/mention-jump.png" });
+  expect(
+    await page.evaluate(() => Reflect.get(window, "mentionJumpCalls").fetches),
+  ).toEqual([]);
+  expect(
+    await page.evaluate(() => Reflect.get(window, "mentionJumpCalls").reads),
+  ).toEqual([]);
   await page.evaluate(() => {
     const changes: Array<{ value: string | null; time: number }> = [];
     Reflect.set(window, "spotlightChanges", changes);
@@ -268,14 +307,212 @@ test("the mention bubble loads and jumps to a message outside the current page",
   await expect(target).toHaveAttribute("data-quote-spotlight-target", "true");
   await expect(jump).toBeHidden();
   const calls = await page.evaluate(() => Reflect.get(window, "mentionJumpCalls"));
+  expect(calls.mentionQueries).toEqual([
+    { conversationID: "preview-chat-0", offsetSeq: 0, limit: 1 },
+    { conversationID: "preview-chat-0", offsetSeq: 0, limit: 1 },
+  ]);
   expect(calls.finds).toBe(0);
+  expect(calls.fetches).toHaveLength(1);
   expect(calls.fetches[0]).toMatchObject({
     conversationID: "preview-chat-0",
     seq: 80,
     before: 10,
     after: 10,
   });
-  expect(calls.resets).toEqual(["preview-chat-0"]);
+  expect(calls.reads).toEqual([{ conversationID: "preview-chat-0", seqs: [80] }]);
+  expect(calls.allReads).toEqual([]);
+});
+
+test("a visible mention is reported to the SDK without querying its state", async ({
+  page,
+}) => {
+  await prepareGroup(page, 0);
+  await page.evaluate(async () => {
+    const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
+    const { updateOneMessage } = await import(
+      "/src/pages/chat/queryChat/useHistoryMessageList.tsx"
+    );
+    const message = Reflect.get(window, "previewGroupMessages")[2];
+    const calls = Reflect.get(window, "mentionJumpCalls");
+    IMSDK.getUnreadMentions = (params: Record<string, unknown>) => {
+      calls.mentionQueries.push(params);
+      return Promise.resolve({ data: { seqs: [message.seq], hasMore: false } });
+    };
+    updateOneMessage({
+      ...message,
+      contentType: 106,
+      textElem: undefined,
+      atTextElem: {
+        text: "@Alex 请看评审结论",
+        atUserList: ["preview-me"],
+        atUsersInfo: [{ atUserID: "preview-me", groupNickname: "Alex" }],
+      },
+    });
+  });
+  await expect(page.locator("#chat_preview-message-2")).toBeVisible();
+  expect(
+    await page.evaluate(() => Reflect.get(window, "mentionJumpCalls").reads),
+  ).toEqual([]);
+  await page.evaluate(async () => {
+    const { useConversationStore } = await import("/src/store/index.ts");
+    const current = useConversationStore.getState().currentConversation;
+    useConversationStore.setState({
+      currentConversation: { ...current!, unreadMentionCount: 1 },
+    });
+  });
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, "mentionJumpCalls").reads))
+    .toHaveLength(1);
+  const calls = await page.evaluate(() => Reflect.get(window, "mentionJumpCalls"));
+  expect(
+    calls.mentionQueries.every((query: { offsetSeq: number }) => query.offsetSeq === 0),
+  ).toBe(true);
+  expect(calls.finds).toBe(0);
+  expect(calls.reads).toEqual([{ conversationID: "preview-chat-0", seqs: [3] }]);
+});
+
+test("all mentions can be marked read without opening their messages", async ({
+  page,
+}) => {
+  await prepareGroup(page, 3);
+  const jump = page.locator("[data-mention-jump]");
+  await expect(jump).toBeVisible();
+  await expect(jump).toHaveAttribute("aria-label", "3 条未读提及");
+  // Advancing the ordinary read cursor does not clear the independent mention count.
+  await page.evaluate(async () => {
+    const { useConversationStore } = await import("/src/store/index.ts");
+    const current = useConversationStore.getState().currentConversation;
+    useConversationStore.setState({
+      currentConversation: { ...current!, readSeq: 999, unreadCount: 0 },
+    });
+  });
+  await expect(jump).toBeVisible();
+  await page.locator("[data-mark-all-mentions-read]").click();
+  await expect(jump).toBeHidden();
+  const calls = await page.evaluate(() => Reflect.get(window, "mentionJumpCalls"));
+  expect(calls.allReads).toEqual(["preview-chat-0"]);
+  expect(calls.reads).toEqual([]);
+  expect(calls.fetches).toEqual([]);
+});
+
+test("failed message controls do not extend the message action hover target", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 760 });
+  await prepareGroup(page);
+  await page.evaluate(async () => {
+    const { updateOneMessage } = await import(
+      "/src/pages/chat/queryChat/useHistoryMessageList.tsx"
+    );
+    const message = Reflect.get(window, "previewGroupMessages")[1];
+    updateOneMessage({ ...message, status: 3 });
+  });
+
+  const row = page.locator("#chat_preview-message-1");
+  const actions = row.locator("[data-message-actions]");
+  await row.getByRole("button", { name: "重试" }).hover();
+  await expect(actions).toHaveCSS("opacity", "0");
+
+  await row.locator("[data-message-bubble-wrap]").hover();
+  await expect(actions).toHaveCSS("opacity", "1");
+});
+
+test("a retried message gains reactions and a read receipt after seq sync", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 760 });
+  await prepareGroup(page);
+  await page.evaluate(async () => {
+    const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
+    const { pushNewMessage } = await import(
+      "/src/pages/chat/queryChat/useHistoryMessageList.tsx"
+    );
+    const message = Reflect.get(window, "previewGroupMessages")[1];
+    const failed = {
+      ...message,
+      clientMsgID: "retried-failed-message",
+      serverMsgID: "",
+      seq: 0,
+      status: 3,
+    };
+    const synced = {
+      ...failed,
+      serverMsgID: "retry-server-message",
+      seq: 72,
+      status: 2,
+    };
+    Reflect.set(window, "retrySyncReady", false);
+    Reflect.set(window, "retryFindCalls", []);
+    pushNewMessage(failed);
+    IMSDK.sendMessage = async ({ message: retry }: { message: typeof failed }) =>
+      ({
+        data: {
+          ...retry,
+          serverMsgID: "retry-server-message",
+          seq: 0,
+          status: 2,
+        },
+      } as never);
+    IMSDK.findMessageList = async (params: unknown) => {
+      Reflect.get(window, "retryFindCalls").push(structuredClone(params));
+      return {
+        data: {
+          findResultItems: [
+            {
+              conversationID: "preview-chat-0",
+              messageList: [Reflect.get(window, "retrySyncReady") ? synced : failed],
+            },
+          ],
+        },
+      } as never;
+    };
+    IMSDK.getMessageReadInfo = async ({ seqs }: { seqs: number[] }) =>
+      ({
+        data: {
+          conversationID: "preview-chat-0",
+          enabled: true,
+          status: "ready",
+          reason: "",
+          messageReadInfo: seqs.map((seq) => ({
+            seq,
+            hasReadCount: 0,
+            unreadCount: 2,
+            readMembers: [],
+            unreadMembers: [],
+          })),
+        },
+      } as never);
+  });
+
+  const row = page.locator("#chat_retried-failed-message");
+  await row.getByRole("button", { name: "重试" }).click();
+  await expect(row.getByRole("button", { name: "重试" })).toHaveCount(0);
+  await expect(row.locator("[data-message-read-receipt]")).toHaveCount(0);
+  const findCallsBeforeSync = await page.evaluate(
+    () => Reflect.get(window, "retryFindCalls").length,
+  );
+
+  await page.evaluate(async () => {
+    const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
+    const { useConversationStore } = await import("/src/store/index.ts");
+    Reflect.set(window, "retrySyncReady", true);
+    const conversation = useConversationStore.getState().currentConversation!;
+    IMSDK.emit(
+      "OnConversationChanged" as never,
+      {
+        event: "OnConversationChanged",
+        data: [conversation],
+      } as never,
+    );
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, "retryFindCalls").length))
+    .toBeGreaterThan(findCallsBeforeSync);
+  await expect(row.locator("[data-message-read-receipt]")).toBeVisible();
+  await row.locator("[data-message-bubble-wrap]").hover();
+  await row.getByRole("button", { name: "添加表情" }).click();
+  await expect(page.getByRole("menuitemcheckbox").first()).toBeVisible();
 });
 
 test("a quote fetches a seq window when the source is outside the current page", async ({

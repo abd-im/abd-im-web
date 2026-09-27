@@ -1,9 +1,10 @@
 import {
-  GroupAtType,
+  CbEvents,
   MessageItem,
   MessageStatus,
   MessageType,
   SessionType,
+  WSEvent,
 } from "@abd-im/wasm-client-sdk";
 import { Layout, Spin } from "antd";
 import clsx from "clsx";
@@ -31,7 +32,6 @@ import {
   getFirstUnreadMessageIndex,
   getLatestUnreadMessageSeq,
 } from "./historyMessageState";
-import { isMessageMentioningUser } from "./mentions";
 import { formatMessageDate, messageDate, startsMessageDay } from "./messageDate";
 import MessageItemComponent from "./MessageItem";
 import { getMessagePreview } from "./messagePreview";
@@ -54,14 +54,6 @@ const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
   MessageType.CustomMessage,
   MessageType.QuoteMessage,
 ]);
-
-const hasUnreadMentionFlag = (groupAtType?: GroupAtType) =>
-  groupAtType === GroupAtType.AtMe ||
-  groupAtType === GroupAtType.AtAll ||
-  groupAtType === GroupAtType.AtAllAtMe;
-
-const sortMessagesByPosition = (left: MessageItem, right: MessageItem) =>
-  left.seq - right.seq || left.sendTime - right.sendTime;
 
 const LOCATE_SETTLE_TIMEOUT = 1200;
 
@@ -112,9 +104,9 @@ const ChatContent = () => {
   const clearSpotlightRef = useRef<() => void>();
   const locateRequestRef = useRef(0);
   const locateScrollFrameRef = useRef(0);
-  const [mentionTargets, setMentionTargets] = useState<MessageItem[]>([]);
   const [mentionJumping, setMentionJumping] = useState(false);
-  const handledMentionIDs = useRef(new Set<string>());
+  const unreadMentionCount = currentConversation?.unreadMentionCount ?? 0;
+  const hasUnreadMentions = unreadMentionCount > 0;
   const { sendMessage } = useSendMessage();
   const {
     getFileMessage,
@@ -239,15 +231,20 @@ const ChatContent = () => {
     async (location: QuoteLocation) => {
       if (!conversationID) return false;
       const requestID = ++locateRequestRef.current;
+      const seq = location.seq ?? location.sourceMessage?.seq ?? 0;
       const loadedIndex = loadState.messageList.findIndex(
-        (message) => message.clientMsgID === location.clientMsgID,
+        (message) =>
+          (location.clientMsgID && message.clientMsgID === location.clientMsgID) ||
+          (seq > 0 && message.seq === seq),
       );
       if (loadedIndex >= 0) {
-        updatePendingQuoteLocation(location);
+        updatePendingQuoteLocation({
+          ...location,
+          clientMsgID: loadState.messageList[loadedIndex].clientMsgID,
+        });
         return true;
       }
       try {
-        const seq = location.sourceMessage?.seq ?? 0;
         if (seq <= 0) throw new Error("Message sequence is unavailable");
         const { data } = await IMSDK.fetchSurroundingMessages({
           conversationID,
@@ -459,9 +456,7 @@ const ChatContent = () => {
       locateScrollFrameRef.current = 0;
     }
     lastMsgIdRef.current = "";
-    handledMentionIDs.current.clear();
     setAtBottom(false);
-    setMentionTargets([]);
     setMentionJumping(false);
     setSelectionMode(false);
     setSelectedMessageIDs(new Set());
@@ -482,98 +477,60 @@ const ChatContent = () => {
     updatePendingQuoteLocation,
   ]);
 
-  useEffect(() => {
-    if (!isGroupConversation || !historyReady) return;
-    const targets = loadState.messageList.filter(
-      (message) =>
-        message.seq > readSeq &&
-        !handledMentionIDs.current.has(message.clientMsgID) &&
-        isMessageMentioningUser(message, selfUserID),
-    );
-    if (!targets.length) return;
-    setMentionTargets((current) => {
-      const byID = new Map(
-        [...current, ...targets].map((message) => [message.clientMsgID, message]),
-      );
-      return [...byID.values()].sort(sortMessagesByPosition);
-    });
-  }, [historyReady, isGroupConversation, loadState.messageList, readSeq, selfUserID]);
+  const jumpToNextMention = useCallback(async () => {
+    if (!conversationID || mentionJumping) return;
+    setMentionJumping(true);
+    try {
+      const { data } = await IMSDK.getUnreadMentions({
+        conversationID,
+        offsetSeq: 0,
+        limit: 1,
+      });
+      const seq = data.seqs[0];
+      if (
+        seq &&
+        useConversationStore.getState().currentConversation?.conversationID ===
+          conversationID
+      ) {
+        await locateMessage({ clientMsgID: "", seq });
+      }
+    } catch (error) {
+      console.error("Failed to load unread mentions", error);
+      antMessage.warning(t("toast.messageUnavailable"));
+    } finally {
+      setMentionJumping(false);
+    }
+  }, [conversationID, locateMessage, mentionJumping, t]);
 
   useEffect(() => {
     if (
-      !historyReady ||
-      !isGroupConversation ||
       !conversationID ||
-      !hasUnreadMentionFlag(currentConversation?.groupAtType)
+      currentConversation?.conversationType !== SessionType.WorkingGroup ||
+      !hasUnreadMentions
     )
       return;
-
-    let cancelled = false;
-    void IMSDK.searchLocalMessages({
-      conversationID,
-      keywordList: [],
-      messageTypeList: [MessageType.AtTextMessage],
-      pageIndex: 1,
-      count: 100,
-    })
-      .then(({ data }) => {
-        if (cancelled) return;
-        const targets = (data.searchResultItems ?? [])
-          .flatMap((item) => item.messageList)
-          .filter(
-            (message) =>
-              !handledMentionIDs.current.has(message.clientMsgID) &&
-              isMessageMentioningUser(message, selfUserID),
-          )
-          .sort(sortMessagesByPosition);
-        const unreadTargets = targets.filter((message) => message.seq > readSeq);
-        const pendingTargets = unreadTargets.length ? unreadTargets : targets.slice(-1);
-        if (!pendingTargets.length) return;
-        setMentionTargets((current) => {
-          const byID = new Map(
-            [...current, ...pendingTargets].map((message) => [
-              message.clientMsgID,
-              message,
-            ]),
-          );
-          return [...byID.values()].sort(sortMessagesByPosition);
-        });
-      })
-      .catch((error) => console.error("Failed to load mention messages", error));
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    conversationID,
-    currentConversation?.groupAtType,
-    readSeq,
-    isGroupConversation,
-    historyReady,
-    selfUserID,
-  ]);
-
-  const jumpToNextMention = useCallback(async () => {
-    const target = mentionTargets[0];
-    if (!target || mentionJumping) return;
-    setMentionJumping(true);
-    const located = await locateMessage({
-      clientMsgID: target.clientMsgID,
-      sourceMessage: target,
-    });
-    setMentionJumping(false);
-    if (!located) return;
-
-    handledMentionIDs.current.add(target.clientMsgID);
-    const remainingTargets = mentionTargets.filter(
-      (message) => message.clientMsgID !== target.clientMsgID,
-    );
-    setMentionTargets(remainingTargets);
-    if (!remainingTargets.length && conversationID) {
-      void IMSDK.resetConversationGroupAtType(conversationID).catch((error) =>
-        console.error("Failed to reset mention state", error),
+    const preload = () => {
+      void IMSDK.getUnreadMentions({ conversationID, offsetSeq: 0, limit: 1 }).catch(
+        (error) => console.error("Failed to preload unread mentions", error),
       );
-    }
-  }, [conversationID, locateMessage, mentionJumping, mentionTargets]);
+    };
+    const mentionsChanged = ({ data: id }: WSEvent<string>) => {
+      if (id === conversationID) preload();
+    };
+    IMSDK.on(CbEvents.OnUnreadMentionsChanged, mentionsChanged);
+    preload();
+    return () => {
+      IMSDK.off(CbEvents.OnUnreadMentionsChanged, mentionsChanged);
+    };
+  }, [conversationID, currentConversation?.conversationType, hasUnreadMentions]);
+
+  const markAllMentionsRead = () => {
+    if (!conversationID) return;
+    void IMSDK.markAllMentionsRead(conversationID).catch((error) => {
+      console.error("Failed to mark mentions read", error);
+      antMessage.error(t("toast.markMentionsReadFailed"));
+    });
+  };
 
   useEffect(() => {
     if (conversationID) {
@@ -890,23 +847,32 @@ const ChatContent = () => {
           }}
         />
       )}
-      {!selectionMode && (mentionTargets.length > 0 || !atBottom) && (
+      {!selectionMode && (unreadMentionCount > 0 || !atBottom) && (
         <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
-          {mentionTargets.length > 0 && (
+          {unreadMentionCount > 0 && (
             <Button
               variant="default"
               size="icon"
               className="relative rounded-full border border-[var(--surface-border)] bg-surface-raised shadow-md"
-              title={t("unreadMentions", { count: mentionTargets.length })}
-              aria-label={t("unreadMentions", { count: mentionTargets.length })}
+              title={t("unreadMentions", { count: unreadMentionCount })}
+              aria-label={t("unreadMentions", { count: unreadMentionCount })}
               data-mention-jump
               disabled={mentionJumping}
               onClick={() => void jumpToNextMention()}
             >
               <AtSign size={18} aria-hidden="true" />
               <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-brand px-1 text-[10px] leading-4 text-white">
-                {mentionTargets.length > 99 ? "99+" : mentionTargets.length}
+                {unreadMentionCount > 99 ? "99+" : unreadMentionCount}
               </span>
+            </Button>
+          )}
+          {unreadMentionCount > 0 && (
+            <Button
+              size="small"
+              data-mark-all-mentions-read
+              onClick={markAllMentionsRead}
+            >
+              {t("markAllMentionsRead")}
             </Button>
           )}
           {!atBottom && (

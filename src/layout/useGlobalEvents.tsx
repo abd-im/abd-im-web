@@ -209,6 +209,7 @@ export function useGlobalEvent() {
     IMSDK.on(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.on(CbEvents.OnNewConversation, newConversationHandler);
     IMSDK.on(CbEvents.OnTotalUnreadMessageCountChanged, totalUnreadChangeHandler);
+    IMSDK.on(CbEvents.OnUnreadMentionsChanged, unreadMentionsChangedHandler);
     // friend
     IMSDK.on(CbEvents.OnFriendInfoChanged, friednInfoChangeHandler);
     IMSDK.on(CbEvents.OnFriendAdded, friednAddedHandler);
@@ -429,6 +430,11 @@ export function useGlobalEvent() {
     if (data === useConversationStore.getState().unReadCount) return;
     updateUnReadCount(data);
   };
+  const unreadMentionsChangedHandler = ({ data: conversationID }: WSEvent<string>) => {
+    void IMSDK.getMultipleConversation([conversationID])
+      .then(({ data }) => updateConversationList(data, "filter"))
+      .catch((error) => console.error("Failed to refresh mention count", error));
+  };
 
   // friend
   const friednInfoChangeHandler = ({ data }: WSEvent<FriendUserItem>) => {
@@ -563,6 +569,7 @@ export function useGlobalEvent() {
     IMSDK.off(CbEvents.OnConversationChanged, conversationChnageHandler);
     IMSDK.off(CbEvents.OnNewConversation, newConversationHandler);
     IMSDK.off(CbEvents.OnTotalUnreadMessageCountChanged, totalUnreadChangeHandler);
+    IMSDK.off(CbEvents.OnUnreadMentionsChanged, unreadMentionsChangedHandler);
     // friend
     IMSDK.off(CbEvents.OnFriendInfoChanged, friednInfoChangeHandler);
     IMSDK.off(CbEvents.OnFriendAdded, friednAddedHandler);

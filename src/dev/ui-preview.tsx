@@ -50,6 +50,8 @@ async function startPreview() {
         isPrivateChat: false,
         burnDuration: 0,
         hasReadTime: 0,
+        isEncryption: false,
+        inEncryptStatus: false,
       },
       ex: "",
       localEx: "",
@@ -241,6 +243,11 @@ async function startPreview() {
       result({ messageList: histories.get(conversationID) || [], isEnd: true }),
     getAdvancedHistoryMessageListReverse: () =>
       result({ messageList: [], isEnd: true }),
+    getUnreadMentions: () =>
+      result({
+        seqs: [],
+        hasMore: false,
+      }),
     getFriendListPage: () => result(people.slice(0, 5)),
     getSpecifiedFriendsInfo: () => result(people.slice(0, 5)),
     getUsersInfo: () => result(people),

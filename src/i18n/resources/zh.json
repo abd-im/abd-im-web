@@ -133,6 +133,7 @@
   "jumpToMessage": "跳转到消息",
   "jumpToLatest": "跳到最新消息",
   "unreadMessages": "未读消息",
+  "markAllMentionsRead": "全部提及标为已读",
   "unreadMentions": "{{count}} 条未读提及",
   "connect": {
     "syncing": "同步中",
@@ -219,6 +220,7 @@
     }
   },
   "toast": {
+    "markMentionsReadFailed": "标记提及已读失败",
     "accessSuccess": "操作成功！",
     "accessFailed": "操作失败！",
     "messageUnavailable": "无法定位该消息，消息可能已被删除或未同步",

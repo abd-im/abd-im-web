@@ -17,6 +17,7 @@ import {
   appendHistoryMessages,
   mergeHistoryMessages,
   mergeMessageBurnTime,
+  mergeSyncedMessageMetadata,
   updateHistoryMessageSender,
 } from "./historyMessageState";
 
@@ -93,9 +94,11 @@ export function useHistoryMessageList(enabled = true, initialUnreadCount = 0) {
           return preState;
         }
 
+        const current = tmpList[idx];
         tmpList[idx] = {
           ...tmpList[idx],
           ...message,
+          seq: current.seq > 0 && message.seq < 1 ? current.seq : message.seq,
           attachedInfoElem: {
             ...tmpList[idx].attachedInfoElem,
             ...message.attachedInfoElem,
@@ -134,6 +137,44 @@ export function useHistoryMessageList(enabled = true, initialUnreadCount = 0) {
     };
     let cancelled = false;
     let burnRequest = 0;
+    let syncRequest = 0;
+    const refreshPendingMessages = (id: string) => {
+      if (!enabled || !id || id !== latestConversationID.current) return;
+      const snapshot = latestLoadState.current;
+      if (!snapshot || snapshot.conversationID !== id) return;
+      const clientMsgIDList = snapshot.messageList
+        .filter((message) => message.seq < 1)
+        .map((message) => message.clientMsgID);
+      if (!clientMsgIDList.length) return;
+      const generation = historyGeneration.current;
+      const request = ++syncRequest;
+      void IMSDK.findMessageList([{ conversationID: id, clientMsgIDList }])
+        .then(({ data }) => {
+          if (
+            cancelled ||
+            request !== syncRequest ||
+            latestConversationID.current !== id ||
+            historyGeneration.current !== generation
+          )
+            return;
+          const updates =
+            data.findResultItems?.find((item) => item.conversationID === id)
+              ?.messageList ?? [];
+          setLoadState((previous) => {
+            if (previous.conversationID !== id) return previous;
+            const messageList = mergeSyncedMessageMetadata(
+              previous.messageList,
+              updates,
+            );
+            return messageList === previous.messageList
+              ? previous
+              : { ...previous, messageList };
+          });
+        })
+        .catch((error) =>
+          console.error("Failed to refresh sent message metadata", error),
+        );
+    };
     const refreshBurnTime = (id: string) => {
       if (!enabled || !id || id !== latestConversationID.current) return;
       const snapshot = latestLoadState.current;
@@ -173,7 +214,9 @@ export function useHistoryMessageList(enabled = true, initialUnreadCount = 0) {
     };
     const conversationChangedHandler = ({ data }: WSEvent<ConversationItem[]>) => {
       const id = latestConversationID.current;
-      if (id && data.some((item) => item.conversationID === id)) refreshBurnTime(id);
+      if (!id || !data.some((item) => item.conversationID === id)) return;
+      refreshPendingMessages(id);
+      refreshBurnTime(id);
     };
     const readStateChangedHandler = ({ data }: WSEvent<string>) =>
       refreshBurnTime(data);

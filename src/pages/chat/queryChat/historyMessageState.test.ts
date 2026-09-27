@@ -6,6 +6,7 @@ import {
   getFirstUnreadMessageIndex,
   getLatestUnreadMessageSeq,
   mergeMessageBurnTime,
+  mergeSyncedMessageMetadata,
   updateHistoryMessageSender,
 } from "./historyMessageState";
 
@@ -51,6 +52,35 @@ describe("history message state", () => {
     ).toBe(message);
     const pending = { clientMsgID: "two" };
     expect(mergeMessageBurnTime([pending], [pending])[0]).toBe(pending);
+  });
+
+  it("fills server metadata after a sent message is synchronized", () => {
+    const pending = {
+      clientMsgID: "pending",
+      serverMsgID: "server-before-seq",
+      sendTime: 100,
+      seq: 0,
+      status: 2,
+      content: "current content",
+    };
+    const synced = {
+      ...pending,
+      serverMsgID: "server-synced",
+      sendTime: 200,
+      seq: 8,
+      status: 2,
+      content: "stale content",
+    };
+
+    expect(mergeSyncedMessageMetadata([pending], [synced])).toEqual([
+      {
+        ...pending,
+        serverMsgID: "server-synced",
+        sendTime: 200,
+        seq: 8,
+      },
+    ]);
+    expect(mergeSyncedMessageMetadata([synced], [pending])).toEqual([synced]);
   });
 
   const messages = [

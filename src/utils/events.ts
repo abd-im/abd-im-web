@@ -28,6 +28,7 @@ type EmitterEvents = {
 
 export interface QuoteLocation {
   clientMsgID: string;
+  seq?: number;
   quoteText?: string;
   quoteOffset?: number;
   sourceMessage?: MessageItem;

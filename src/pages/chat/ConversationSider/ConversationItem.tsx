@@ -138,6 +138,19 @@ const ConversationItem = ({ isActive, isHosted, conversation }: IConversationPro
               {latestMessageContent}
             </div>
           </div>
+          {conversation.unreadMentionCount > 0 && (
+            <span
+              className="conversation-unread mr-1"
+              aria-label={t("unreadMentions", {
+                count: conversation.unreadMentionCount,
+              })}
+            >
+              @
+              {conversation.unreadMentionCount > 99
+                ? "99+"
+                : conversation.unreadMentionCount}
+            </span>
+          )}
           {conversation.unreadCount > 0 && (
             <span className="conversation-unread">
               {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}

@@ -371,8 +371,8 @@
   left: 100%;
 }
 
-.message-content-group:hover .reaction-actions,
-.message-content-group:focus-within .reaction-actions,
+.message-bubble-wrap:hover .reaction-actions,
+.message-bubble-wrap:focus-within .reaction-actions,
 .reaction-actions-open {
   opacity: 1;
   pointer-events: auto;

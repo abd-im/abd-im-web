@@ -16,6 +16,14 @@ type MessageReadCandidate = {
   seq: number;
 };
 
+type SyncedMessageMetadata = {
+  clientMsgID: string;
+  serverMsgID: string;
+  sendTime: number;
+  seq: number;
+  status: number;
+};
+
 export const getFirstUnreadMessageIndex = (
   messages: MessageReadCandidate[],
   selfUserID: string,
@@ -41,6 +49,27 @@ export const mergeMessageBurnTime = <
     return {
       ...message,
       attachedInfoElem: { ...message.attachedInfoElem, hasReadTime },
+    };
+  });
+  return changed ? next : messages;
+};
+
+export const mergeSyncedMessageMetadata = <T extends SyncedMessageMetadata>(
+  messages: T[],
+  updates: SyncedMessageMetadata[],
+) => {
+  const byID = new Map(updates.map((message) => [message.clientMsgID, message]));
+  let changed = false;
+  const next = messages.map((message) => {
+    const update = byID.get(message.clientMsgID);
+    if (!update || message.seq > 0 || update.seq < 1) return message;
+    changed = true;
+    return {
+      ...message,
+      serverMsgID: update.serverMsgID,
+      sendTime: update.sendTime,
+      seq: update.seq,
+      status: update.status,
     };
   });
   return changed ? next : messages;

@@ -133,6 +133,7 @@
   "jumpToMessage": "Jump to message",
   "jumpToLatest": "Jump to latest message",
   "unreadMessages": "Unread messages",
+  "markAllMentionsRead": "Mark all mentions as read",
   "unreadMentions": "{{count}} unread mentions",
   "connect": {
     "syncing": "Syncing",
@@ -219,6 +220,7 @@
     }
   },
   "toast": {
+    "markMentionsReadFailed": "Could not mark mentions as read",
     "accessSuccess": "Operation successful!",
     "accessFailed": "Operation failed!",
     "messageUnavailable": "This message could not be located. It may have been deleted or not synced",
