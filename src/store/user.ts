@@ -7,6 +7,7 @@ import router from "@/routes";
 import { feedbackToast } from "@/utils/common";
 import { clearIMProfile, getLocale, setLocale } from "@/utils/storage";
 
+import { useComposerStore } from "./composer";
 import { useContactStore } from "./contact";
 import { useConversationStore } from "./conversation";
 import { useMessageReadReceiptStore } from "./messageReadReceipt";
@@ -71,6 +72,7 @@ export const useUserStore = create<UserStore>()((set, get) => ({
   userLogout: async (force?: boolean) => {
     if (!force) await IMSDK.logout();
     clearIMProfile();
+    useComposerStore.getState().clear();
     set({ selfInfo: {} as BusinessUserInfo, progress: 0 });
     useContactStore.getState().clearContactStore();
     useMessageReadReceiptStore.getState().clear();

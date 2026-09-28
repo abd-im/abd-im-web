@@ -793,3 +793,16 @@
     }
   }
 }
+
+.composite-message {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+.message-container .message-wrap .composite-message > .bubble {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}

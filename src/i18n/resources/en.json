@@ -1,4 +1,28 @@
 {
+  "filePreview": {
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "page": "Page {{current}} / {{total}}",
+    "open": "Preview file",
+    "close": "Close",
+    "download": "Download file",
+    "loading": "Loading preview",
+    "unsupported": "Preview is not available for this file. Download it to view.",
+    "tooLarge": "This file exceeds {{size}} MB. Download it to view.",
+    "failed": "Could not load the preview. Retry or download the file.",
+    "retry": "Retry"
+  },
+  "attachments": {
+    "pending": "Pending attachments",
+    "sendMode": "Send mode",
+    "combined": "Send together",
+    "separate": "Send separately",
+    "combinedTitle": "Text and attachments",
+    "modeHint": "Together: one bubble, reply and forward. Separately: one message for the text and each attachment.",
+    "mentionHint": "Messages with @mentions are sent separately to preserve mention notifications.",
+    "sending": "Sending…",
+    "remove": "Remove {{name}}"
+  },
   "messageReadReceipt": {
     "status": "Read status",
     "read": "Read",

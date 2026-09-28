@@ -2,7 +2,6 @@ import { PopoverProps, Upload } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
 import i18n, { t } from "i18next";
 import { ContactRound, Film, Image, Paperclip, Smile } from "lucide-react";
-import { UploadRequestOption } from "rc-upload/lib/interface";
 import { memo, ReactNode, useEffect, useState } from "react";
 import React from "react";
 
@@ -70,11 +69,11 @@ i18n.on("languageChanged", () => {
 
 const SendActionBar = ({
   sendMessage,
-  sendFiles,
+  onAddFiles,
   onSelectEmoji,
 }: {
   sendMessage: (params: SendMessageParams) => Promise<unknown>;
-  sendFiles: (files: readonly File[], requestedType?: AttachmentType) => Promise<void>;
+  onAddFiles: (files: readonly File[], requestedType?: AttachmentType) => void;
   onSelectEmoji: (emoji: string) => void;
 }) => {
   const [visibleState, setVisibleState] = useState(false);
@@ -147,9 +146,7 @@ const SendActionBar = ({
             popProps={action.key === "card" ? undefined : popProps}
             key={action.key}
             accept={action.accept}
-            fileHandle={(options) =>
-              void sendFiles([options.file as File], action.key as AttachmentType)
-            }
+            fileHandle={(files) => onAddFiles(files, action.key as AttachmentType)}
           >
             <Button
               variant="ghost"
@@ -182,12 +179,15 @@ const ActionWrap = ({
   accept?: string;
   children: ReactNode;
   popProps?: PopoverProps;
-  fileHandle: (options: UploadRequestOption) => void;
+  fileHandle: (files: File[]) => void;
 }) => {
   return accept ? (
     <Upload
       showUploadList={false}
-      customRequest={fileHandle}
+      beforeUpload={(file, fileList) => {
+        if (file === fileList[0]) fileHandle(fileList);
+        return Upload.LIST_IGNORE;
+      }}
       accept={accept}
       multiple
       className="flex"

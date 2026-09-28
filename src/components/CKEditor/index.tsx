@@ -25,6 +25,7 @@ export type MentionQuery = {
 
 interface CKEditorProps {
   value: string;
+  disabled?: boolean;
   placeholder?: string;
   onChange?: (value: string) => void;
   onEnter?: () => void;
@@ -51,7 +52,15 @@ const keysByCode: Record<number, string> = {
 };
 
 const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
-  { value, placeholder, onChange, onEnter, onMentionQueryChange, onMentionKeyDown },
+  {
+    value,
+    disabled,
+    placeholder,
+    onChange,
+    onEnter,
+    onMentionQueryChange,
+    onMentionKeyDown,
+  },
   ref,
 ) => {
   const ckEditor = useRef<ClassicEditor | null>(null);
@@ -179,6 +188,7 @@ const Index: ForwardRefRenderFunction<CKEditorRef, CKEditorProps> = (
 
   return (
     <CKEditor
+      disabled={disabled}
       editor={ClassicEditor}
       data={value}
       config={{

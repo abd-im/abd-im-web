@@ -312,6 +312,52 @@
   gap: 8px;
   padding: 0 8px 6px;
 }
+[data-panel-id="chat-footer"]:has(.composer-attachments) {
+  min-height: 220px;
+}
+[data-panel-id="chat-footer"]:has(.composer-attachments):has(.chat-composer-reply),
+[data-panel-id="chat-footer"]:has(.composer-mention-hint) {
+  min-height: 264px;
+}
+.composer-attachments {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+.composer-attachment {
+  display: flex;
+  flex: 0 0 220px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+}
+.composer-send-mode {
+  max-width: 150px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  cursor: pointer;
+}
+.composer-send-mode:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.composer-mention-hint {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 12px 6px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
 .chat-composer-tools {
   display: flex;
   align-items: center;

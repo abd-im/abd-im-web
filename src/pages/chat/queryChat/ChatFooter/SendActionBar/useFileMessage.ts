@@ -10,7 +10,93 @@ export interface FileWithPath extends File {
   path?: string;
 }
 
+// Keep successful uploads reusable if another part of the draft fails to prepare.
+const uploadedAttachments = new WeakMap<
+  File,
+  Partial<Record<AttachmentType, Promise<MessageItem>>>
+>();
+
 export function useFileMessage() {
+  const upload = async (file: File) => {
+    const { data } = await IMSDK.uploadFile({
+      name: file.name,
+      contentType: file.type || "application/octet-stream",
+      uuid: uuidV4(),
+      file,
+    });
+    if (!/^https?:\/\//i.test(data.url))
+      throw new Error("Invalid attachment upload URL");
+    return data.url;
+  };
+
+  // Nested merge parts are not uploaded by sendMessage. Upload them first and
+  // create URL-backed messages; never transmit local blob URLs to the recipient.
+  const getUploadedAttachmentMessage = (file: File, type: AttachmentType) => {
+    const cached = uploadedAttachments.get(file) || {};
+    const existing = cached[type];
+    if (existing) return existing;
+    const prepare = async () => {
+      if (type === "image") {
+        const { width, height } = await getPicInfo(file);
+        const picture = {
+          uuid: uuidV4(),
+          type: file.type,
+          size: file.size,
+          width,
+          height,
+          url: await upload(file),
+        };
+        return (
+          await IMSDK.createImageMessageByURL({
+            sourcePicture: picture,
+            bigPicture: picture,
+            snapshotPicture: picture,
+            sourcePath: "",
+          })
+        ).data;
+      }
+      if (type === "video") {
+        const { duration, snapshotFile, width, height } = await getVideoInfo(file);
+        const videoUrl = await upload(file);
+        const snapshotUrl = await upload(snapshotFile);
+        return (
+          await IMSDK.createVideoMessageByURL({
+            videoPath: "",
+            videoType: file.type || "video/mp4",
+            duration,
+            videoSize: file.size,
+            videoUUID: uuidV4(),
+            videoUrl,
+            snapshotPath: "",
+            snapshotUUID: uuidV4(),
+            snapshotUrl,
+            snapshotSize: snapshotFile.size,
+            snapshotWidth: width,
+            snapshotHeight: height,
+            snapShotType: snapshotFile.type,
+          })
+        ).data;
+      }
+      return (
+        await IMSDK.createFileMessageByURL({
+          filePath: "",
+          fileName: file.name,
+          uuid: uuidV4(),
+          sourceUrl: await upload(file),
+          fileSize: file.size,
+          fileType: file.type,
+        })
+      ).data;
+    };
+    const pending = prepare().catch((error) => {
+      delete cached[type];
+      throw error;
+    });
+    cached[type] = pending;
+    uploadedAttachments.set(file, cached);
+    return pending;
+  };
+
   const getImageMessage = async (file: FileWithPath): Promise<MessageItem> => {
     const { width, height } = await getPicInfo(file);
     const blobUrl = URL.createObjectURL(file);
@@ -230,6 +316,7 @@ export function useFileMessage() {
     getVideoMessage,
     getFileMessage,
     getAttachmentMessage,
+    getUploadedAttachmentMessage,
     recreateFileBackedMessage,
   };
 }

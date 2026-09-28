@@ -12,6 +12,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
+import { getMessagePreview } from "../messagePreview";
 import { pushNewMessage, updateOneMessage } from "../useHistoryMessageList";
 import { clearMessageRetry } from "./messageRetry";
 
@@ -47,7 +48,7 @@ const getPushDesc = (message: MessageItem): string => {
     case MessageType.CustomMessage:
       return t("messageDescription.customMessage");
     case MessageType.MergeMessage:
-      return t("messageDescription.mergeMessage");
+      return getMessagePreview(message);
     case MessageType.FaceMessage:
       return t("messageDescription.faceMessage");
     default:
@@ -67,8 +68,9 @@ export function useSendMessage() {
       if (!targetConversation) return false;
       if (!canStartDesktopTask()) return false;
       const finishTask = beginDesktopTask();
-      const shouldRenderInCurrentChat =
-        targetConversation.conversationID === currentConversation?.conversationID;
+      const shouldRenderInCurrentChat = () =>
+        targetConversation.conversationID ===
+        useConversationStore.getState().currentConversation?.conversationID;
 
       const isGroup = GroupSessionTypes.includes(targetConversation.conversationType);
       const recvID = isGroup ? "" : targetConversation.userID ?? "";
@@ -81,7 +83,7 @@ export function useSendMessage() {
       message.sendTime = Date.now();
       message.sessionType = targetConversation.conversationType;
 
-      if (shouldRenderInCurrentChat) {
+      if (shouldRenderInCurrentChat()) {
         pushNewMessage(message);
       }
 
@@ -100,14 +102,14 @@ export function useSendMessage() {
           message,
           offlinePushInfo,
         });
-        if (shouldRenderInCurrentChat) {
+        if (shouldRenderInCurrentChat()) {
           updateOneMessage(data);
         }
         clearMessageRetry(message.clientMsgID);
         return true;
       } catch (error) {
         message.status = MessageStatus.Failed;
-        if (shouldRenderInCurrentChat) {
+        if (shouldRenderInCurrentChat()) {
           updateOneMessage({ ...message });
         }
         return false;

@@ -1,4 +1,9 @@
-import { GroupMemberRole, MessageItem, SessionType } from "@abd-im/wasm-client-sdk";
+import {
+  GroupMemberRole,
+  MessageItem,
+  MessageStatus,
+  SessionType,
+} from "@abd-im/wasm-client-sdk";
 import type {
   AtUsersInfoItem,
   GroupMemberItem,
@@ -10,14 +15,13 @@ import { ArrowUp } from "lucide-react";
 import {
   ClipboardEvent,
   DragEvent,
-  forwardRef,
-  ForwardRefRenderFunction,
   memo,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { v4 as uuidV4 } from "uuid";
 
 import CKEditor, { CKEditorRef, type MentionQuery } from "@/components/CKEditor";
 import { getCleanText } from "@/components/CKEditor/utils";
@@ -29,14 +33,17 @@ import {
 } from "@/hooks/useUserDisplayName";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
+import { useComposerStore } from "@/store/composer";
 import { useContactStore } from "@/store/contact";
 import { feedbackToast } from "@/utils/common";
 import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
 
+import { COMPOSITE_MESSAGE_EX } from "../compositeMessage";
 import { AT_ALL_TAG } from "../mentions";
 import { getMessagePreview } from "../messagePreview";
 import { createQuoteSnapshot } from "../partialQuote";
-import { AttachmentType } from "./attachmentType";
+import { AttachmentType, getAttachmentType } from "./attachmentType";
+import ComposerAttachments from "./ComposerAttachments";
 import MentionPicker, {
   getMentionWireName,
   type MentionCandidate,
@@ -45,7 +52,7 @@ import SendActionBar from "./SendActionBar";
 import { useFileMessage } from "./SendActionBar/useFileMessage";
 import { useSendMessage } from "./useSendMessage";
 
-const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
+const ChatFooter = () => {
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<MentionQuery>();
   const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
@@ -54,10 +61,14 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   const [selectedMentions, setSelectedMentions] = useState<AtUsersInfoItem[]>([]);
   const ckEditorRef = useRef<CKEditorRef>(null);
   const fileDragDepth = useRef(0);
+  const [sendMode, setSendMode] = useState<"combined" | "separate">("combined");
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
   const selfID = useUserStore((state) => state.selfInfo.userID);
+  const draftKey = `${selfID}:${currentConversation?.conversationID || ""}`;
+  const pendingFiles = useComposerStore((state) => state.attachments[draftKey]) || [];
+  const sending = useComposerStore((state) => state.sending.includes(draftKey));
   const friendList = useContactStore((state) => state.friendList);
   const currentMemberInGroup = useConversationStore(
     (state) => state.currentMemberInGroup,
@@ -70,7 +81,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   const quoteMessage = useConversationStore((state) => state.quoteMessage);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
 
-  const { getAttachmentMessage } = useFileMessage();
+  const { getAttachmentMessage, getUploadedAttachmentMessage } = useFileMessage();
   const { sendMessage } = useSendMessage();
   const isGroup = currentConversation?.conversationType === SessionType.WorkingGroup;
   const mentionKeyword = mentionQuery?.query;
@@ -107,6 +118,8 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
     setMentionCandidates([]);
     setSelectedMentions([]);
     setActiveMentionIndex(0);
+    fileDragDepth.current = 0;
+    setIsDraggingFiles(false);
   }, [currentConversation?.conversationID]);
 
   useEffect(() => {
@@ -248,24 +261,29 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   );
 
   const onSelectEmoji = (emoji: string) => {
+    if (sending) return;
     ckEditorRef.current?.insertEmoji(emoji);
   };
 
-  const sendFiles = async (files: readonly File[], requestedType?: AttachmentType) => {
-    if (!files.length || !canStartDesktopTask()) return;
-    const finishTask = beginDesktopTask();
-    try {
-      for (const file of files) {
-        try {
-          const message = await getAttachmentMessage(file, requestedType);
-          await sendMessage({ message });
-        } catch (error) {
-          feedbackToast({ error });
-        }
-      }
-    } finally {
-      finishTask();
-    }
+  const removeAttachments = (ids: string[]) => {
+    useComposerStore.getState().remove(draftKey, ids);
+  };
+
+  const addFiles = (files: readonly File[], requestedType?: AttachmentType) => {
+    if (
+      !files.length ||
+      !currentConversation ||
+      useComposerStore.getState().sending.includes(draftKey) ||
+      !canStartDesktopTask()
+    )
+      return;
+    const additions = files.map((file) => ({
+      id: uuidV4(),
+      file,
+      type: requestedType ?? getAttachmentType(file),
+    }));
+    useComposerStore.getState().add(draftKey, additions);
+    ckEditorRef.current?.focus(true);
   };
 
   const hasDraggedFiles = (event: DragEvent<HTMLElement>) =>
@@ -277,7 +295,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
 
     event.preventDefault();
     event.stopPropagation();
-    void sendFiles(files);
+    addFiles(files);
   };
 
   const handleDragEnter = (event: DragEvent<HTMLElement>) => {
@@ -307,51 +325,109 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
     setIsDraggingFiles(false);
 
     const files = Array.from(event.dataTransfer.files);
-    if (files.length) void sendFiles(files);
+    addFiles(files);
   };
+
+  const hasMentions = selectedMentions.some(({ groupNickname }) =>
+    getCleanText(html || "").includes(`@${groupNickname}`),
+  );
 
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
-    if (!cleanText || !canStartDesktopTask()) return;
+    const conversation = currentConversation;
+    if (
+      (!cleanText && !pendingFiles.length) ||
+      !conversation ||
+      useComposerStore.getState().sending.includes(draftKey) ||
+      !canStartDesktopTask()
+    )
+      return;
+    if (!useComposerStore.getState().startSending(draftKey)) return;
     const finishTask = beginDesktopTask();
+    const clearText = () => {
+      setHtml("");
+      if (
+        useConversationStore.getState().currentConversation?.conversationID ===
+        conversation.conversationID
+      ) {
+        setSelectedMentions([]);
+        setMentionQuery(undefined);
+        if (useConversationStore.getState().quoteMessage === quoteMessage)
+          updateQuoteMessage();
+      }
+    };
     try {
       const atUsersInfo = selectedMentions.filter(({ groupNickname }) =>
         cleanText.includes(`@${groupNickname}`),
       );
-      const message = atUsersInfo.length
-        ? (
-            await IMSDK.createTextAtMessage({
-              text: cleanText,
-              atUserIDList: atUsersInfo.map((item) => item.atUserID),
-              atUsersInfo,
-              message: quoteMessage ? createQuoteSnapshot(quoteMessage) : undefined,
-            })
-          ).data
-        : quoteMessage
-        ? (
-            await (
-              IMSDK.createQuoteMessage as unknown as (params: {
-                text: string;
-                message: MessageItem;
-                quoteText?: string;
-                quoteOffset?: number;
-              }) => ReturnType<typeof IMSDK.createQuoteMessage>
-            )({
-              text: cleanText,
-              message: createQuoteSnapshot(quoteMessage),
-              quoteText: quoteMessage.quoteText,
-              quoteOffset: quoteMessage.quoteOffset,
-            })
-          ).data
-        : (await IMSDK.createTextMessage(cleanText)).data;
-      setHtml("");
-      setSelectedMentions([]);
-      setMentionQuery(undefined);
-      updateQuoteMessage();
-      await sendMessage({ message });
-    } catch (e) {
-      console.error(e);
+      const textMessage =
+        !cleanText && !quoteMessage
+          ? undefined
+          : atUsersInfo.length
+          ? (
+              await IMSDK.createTextAtMessage({
+                text: cleanText,
+                atUserIDList: atUsersInfo.map((item) => item.atUserID),
+                atUsersInfo,
+                message: quoteMessage ? createQuoteSnapshot(quoteMessage) : undefined,
+              })
+            ).data
+          : quoteMessage
+          ? (
+              await (
+                IMSDK.createQuoteMessage as unknown as (params: {
+                  text: string;
+                  message: MessageItem;
+                  quoteText?: string;
+                  quoteOffset?: number;
+                }) => ReturnType<typeof IMSDK.createQuoteMessage>
+              )({
+                text: cleanText,
+                message: createQuoteSnapshot(quoteMessage),
+                quoteText: quoteMessage.quoteText,
+                quoteOffset: quoteMessage.quoteOffset,
+              })
+            ).data
+          : (await IMSDK.createTextMessage(cleanText)).data;
+
+      const combined =
+        sendMode === "combined" &&
+        !atUsersInfo.length &&
+        pendingFiles.length + Number(Boolean(textMessage)) > 1;
+      if (combined) {
+        const parts: MessageItem[] = textMessage ? [textMessage] : [];
+        for (const { file, type } of pendingFiles) {
+          parts.push(await getUploadedAttachmentMessage(file, type));
+        }
+        const { data: message } = await IMSDK.createMergerMessage({
+          messageList: parts.map((part) => ({
+            ...part,
+            status: MessageStatus.Succeed,
+          })),
+          title: t("attachments.combinedTitle"),
+          summaryList: parts.map((part) => getMessagePreview(part)),
+        });
+        message.ex = COMPOSITE_MESSAGE_EX;
+        removeAttachments(pendingFiles.map(({ id }) => id));
+        clearText();
+        await sendMessage({ message, conversation });
+      } else {
+        if (textMessage) {
+          clearText();
+          if (!(await sendMessage({ message: textMessage, conversation }))) return;
+        }
+        for (const { id, file, type } of pendingFiles) {
+          const message = await getAttachmentMessage(file, type);
+          removeAttachments([id]);
+          // Failed transmissions have a retryable bubble; leave all unattempted
+          // attachments in the draft so retrying cannot duplicate successful ones.
+          if (!(await sendMessage({ message, conversation }))) break;
+        }
+      }
+    } catch (error) {
+      feedbackToast({ error });
     } finally {
+      useComposerStore.getState().finishSending(draftKey);
       finishTask();
     }
   };
@@ -374,7 +450,14 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
           <UploadOutlined className="text-3xl text-brand" />
         </div>
       )}
-      <div className="chat-composer-box">
+      <div className="chat-composer-box" aria-busy={sending}>
+        {pendingFiles.length > 0 && (
+          <ComposerAttachments
+            attachments={pendingFiles}
+            disabled={sending}
+            onRemove={(id) => removeAttachments([id])}
+          />
+        )}
         {quoteMessage && (
           <div className="chat-composer-reply" data-testid="composer-reply">
             <RollbackOutlined className="shrink-0 text-muted-foreground" />
@@ -391,6 +474,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
               size="icon"
               title={`${t("cancel")} ${t("placeholder.reply")}`}
               aria-label={`${t("cancel")} ${t("placeholder.reply")}`}
+              disabled={sending}
               onClick={() => updateQuoteMessage()}
             >
               <CloseOutlined />
@@ -401,6 +485,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
           <CKEditor
             ref={ckEditorRef}
             value={html}
+            disabled={sending}
             onEnter={() => void enterToSend()}
             onChange={onChange}
             onMentionQueryChange={(query) =>
@@ -408,7 +493,7 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
             }
             onMentionKeyDown={onMentionKeyDown}
           />
-          {mentionQuery && isGroup && (
+          {mentionQuery && isGroup && !sending && (
             <MentionPicker
               query={mentionQuery}
               candidates={mentionCandidates}
@@ -419,25 +504,53 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
             />
           )}
           <div className="chat-composer-bottom">
-            <SendActionBar
-              sendMessage={sendMessage}
-              sendFiles={sendFiles}
-              onSelectEmoji={onSelectEmoji}
-            />
-            <Button
-              variant="primary"
-              size="small"
-              disabled={!getCleanText(html || "")}
-              onClick={() => void enterToSend()}
-            >
-              {t("placeholder.send")}
-              <ArrowUp />
-            </Button>
+            <fieldset disabled={sending} className="min-w-0 border-0 p-0">
+              <SendActionBar
+                sendMessage={sendMessage}
+                onAddFiles={addFiles}
+                onSelectEmoji={onSelectEmoji}
+              />
+            </fieldset>
+            <div className="flex shrink-0 items-center gap-2">
+              {pendingFiles.length > 0 && (
+                <select
+                  className="composer-send-mode"
+                  aria-label={t("attachments.sendMode")}
+                  value={hasMentions ? "separate" : sendMode}
+                  disabled={sending || hasMentions}
+                  title={
+                    hasMentions
+                      ? t("attachments.mentionHint")
+                      : t("attachments.modeHint")
+                  }
+                  onChange={(event) =>
+                    setSendMode(event.target.value as "combined" | "separate")
+                  }
+                >
+                  <option value="combined">{t("attachments.combined")}</option>
+                  <option value="separate">{t("attachments.separate")}</option>
+                </select>
+              )}
+              <Button
+                variant="primary"
+                size="small"
+                disabled={
+                  sending || (!getCleanText(html || "") && !pendingFiles.length)
+                }
+                onClick={() => void enterToSend()}
+              >
+                {sending ? t("attachments.sending") : t("placeholder.send")}
+                <ArrowUp />
+              </Button>
+            </div>
           </div>
+          {pendingFiles.length > 0 && hasMentions && (
+            <p className="composer-mention-hint">{t("attachments.mentionHint")}</p>
+          )}
         </div>
       </div>
     </footer>
   );
 };
 
-export default memo(forwardRef(ChatFooter));
+export default memo(ChatFooter);

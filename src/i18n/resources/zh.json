@@ -1,4 +1,28 @@
 {
+  "filePreview": {
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "page": "第 {{current}} / {{total}} 页",
+    "open": "预览文件",
+    "close": "关闭",
+    "download": "下载文件",
+    "loading": "正在加载预览",
+    "unsupported": "暂不支持此文件的在线预览，请下载后查看。",
+    "tooLarge": "文件超过 {{size}} MB，无法预览，请下载后查看。",
+    "failed": "预览加载失败，请重试或下载文件。",
+    "retry": "重新加载"
+  },
+  "attachments": {
+    "pending": "待发送附件",
+    "sendMode": "发送方式",
+    "combined": "整体发送",
+    "separate": "分别发送",
+    "combinedTitle": "图文与附件",
+    "modeHint": "整体发送：共用一个气泡、一次回复和转发；分别发送：文字与每个附件各发一条。",
+    "mentionHint": "含 @ 提醒时将分别发送，以确保对方收到提醒。",
+    "sending": "正在发送…",
+    "remove": "移除 {{name}}"
+  },
   "messageReadReceipt": {
     "status": "阅读状态",
     "read": "已读",
