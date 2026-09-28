@@ -53,6 +53,7 @@ const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
   MessageType.LocationMessage,
   MessageType.CustomMessage,
   MessageType.QuoteMessage,
+  MessageType.StreamMessage,
 ]);
 
 const LOCATE_SETTLE_TIMEOUT = 1200;

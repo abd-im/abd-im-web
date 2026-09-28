@@ -86,6 +86,11 @@ export function createMainWindow() {
     if (url.startsWith("https:") || url.startsWith("http:")) shell.openExternal(url);
     return { action: "deny" };
   });
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith("https:") && !url.startsWith("http:")) return;
+    event.preventDefault();
+    void shell.openExternal(url);
+  });
 
   mainWindow.on("focus", () => {
     for (const { timer } of pendingMessageNotifications.values()) {

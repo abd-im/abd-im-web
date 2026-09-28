@@ -11,6 +11,8 @@ const electronMocks = vi.hoisted(() => {
     maximize: ReturnType<typeof vi.fn>;
     unmaximize: ReturnType<typeof vi.fn>;
     webContents: {
+      handlers: Map<string, (...args: unknown[]) => void>;
+      on: ReturnType<typeof vi.fn>;
       send: ReturnType<typeof vi.fn>;
       setWindowOpenHandler: ReturnType<typeof vi.fn>;
     };
@@ -48,6 +50,10 @@ const electronMocks = vi.hoisted(() => {
         window.handlers.get("unmaximize")?.();
       }),
       webContents: {
+        handlers: new Map<string, (...args: unknown[]) => void>(),
+        on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+          window.webContents.handlers.set(event, handler);
+        }),
         send: vi.fn(),
         setWindowOpenHandler: vi.fn(),
       },
@@ -79,6 +85,7 @@ const electronMocks = vi.hoisted(() => {
     quit: vi.fn(),
     setBadgeCount: vi.fn(),
     getIsForceQuit: vi.fn(() => false),
+    openExternal: vi.fn(),
   };
 });
 
@@ -90,7 +97,7 @@ vi.mock("electron", () => ({
   },
   BrowserWindow: electronMocks.BrowserWindow,
   Notification: electronMocks.Notification,
-  shell: { openExternal: vi.fn() },
+  shell: { openExternal: electronMocks.openExternal },
 }));
 vi.mock("../../electron/main/appManage", () => ({
   getIsForceQuit: electronMocks.getIsForceQuit,
@@ -121,6 +128,7 @@ describe("message notifications", () => {
     electronMocks.windows.length = 0;
     electronMocks.quit.mockClear();
     electronMocks.setBadgeCount.mockClear();
+    electronMocks.openExternal.mockClear();
     electronMocks.getIsForceQuit.mockReturnValue(false);
     runtime.forceQuit = false;
     global.pathConfig = {
@@ -162,6 +170,23 @@ describe("message notifications", () => {
       "windowMaximizedChanged",
       false,
     );
+  });
+
+  it("opens HTTP navigation externally without replacing the app", () => {
+    const navigate = electronMocks.windows[1].webContents.handlers.get("will-navigate");
+    if (!navigate) throw new Error("will-navigate handler was not registered");
+    const preventDefault = vi.fn();
+
+    navigate({ preventDefault }, "https://todo.example.com/ABD-49");
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(electronMocks.openExternal).toHaveBeenCalledWith(
+      "https://todo.example.com/ABD-49",
+    );
+
+    preventDefault.mockClear();
+    navigate({ preventDefault }, "file:///local/index.html#/chat");
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   it("keeps the window alive until quit preparation has completed", () => {
