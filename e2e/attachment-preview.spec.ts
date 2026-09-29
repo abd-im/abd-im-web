@@ -73,11 +73,9 @@ test.beforeEach(async ({ page }) => {
       prepare(options, false);
     IMSDK.createImageMessageByFile = (options: Parameters<typeof prepare>[0]) =>
       prepare(options, true);
-    IMSDK.uploadFile = async ({ file }: { file: File }) => {
+    IMSDK.uploadFile = async ({ file, name }: { file: File; name: string }) => {
       state.uploaded.push(file.name);
-      state.uploadedBodies[file.name] = Array.from(
-        new Uint8Array(await file.arrayBuffer()),
-      );
+      state.uploadedBodies[name] = Array.from(new Uint8Array(await file.arrayBuffer()));
       if (state.fail === file.name) throw new Error("Upload failed");
       if (state.hold)
         await new Promise<void>((resolve) => {
@@ -85,9 +83,7 @@ test.beforeEach(async ({ page }) => {
         });
       return {
         data: {
-          url: `${location.origin}/__fixtures/uploaded/${encodeURIComponent(
-            file.name,
-          )}`,
+          url: `${location.origin}/__fixtures/uploaded/${encodeURIComponent(name)}`,
         },
       };
     };
@@ -292,6 +288,48 @@ test("combined mode uploads all attachments then sends one message with one repl
   expect(forwarded.recvID).toBe("preview-chen");
   expect(forwarded.message.ex).toBe(sent.ex);
   expect(forwarded.message.mergeElem.multiMessage).toHaveLength(3);
+});
+
+test("consecutive combined images with the same file name use distinct URLs", async ({
+  page,
+}) => {
+  const editor = page.locator(".ck-editor__editable");
+  for (const text of ["第一张", "第二张"]) {
+    await editor.fill(text);
+    await attach(page, ["image.png"]);
+    await page.getByRole("button", { name: "发送", exact: true }).click();
+    await expect.poll(() => sentCount(page)).toBe(text === "第一张" ? 1 : 2);
+  }
+
+  const messages = await page.evaluate(() =>
+    Reflect.get(window, "attachmentTest").sent.map(
+      (item: {
+        message: {
+          clientMsgID: string;
+          mergeElem: {
+            multiMessage: Array<{
+              contentType: number;
+              pictureElem?: { sourcePicture: { url: string } };
+            }>;
+          };
+        };
+      }) => ({
+        id: item.message.clientMsgID,
+        url: item.message.mergeElem.multiMessage.find(
+          (part) => part.contentType === 102,
+        )?.pictureElem?.sourcePicture.url,
+      }),
+    ),
+  );
+  expect(messages[0].url).toBeTruthy();
+  expect(messages[1].url).toBeTruthy();
+  expect(messages[1].url).not.toBe(messages[0].url);
+  await expect(
+    page.locator(`#chat_${messages[0].id} .message-image img`),
+  ).toHaveAttribute("src", messages[0].url!);
+  await expect(
+    page.locator(`#chat_${messages[1].id} .message-image img`),
+  ).toHaveAttribute("src", messages[1].url!);
 });
 
 test("separate mode sends text and each attachment individually", async ({ page }) => {

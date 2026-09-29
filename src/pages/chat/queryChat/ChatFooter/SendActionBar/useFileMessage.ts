@@ -18,10 +18,11 @@ const uploadedAttachments = new WeakMap<
 
 export function useFileMessage() {
   const upload = async (file: File) => {
+    const uploadID = uuidV4();
     const { data } = await IMSDK.uploadFile({
-      name: file.name,
+      name: `${uploadID}/${file.name}`,
       contentType: file.type || "application/octet-stream",
-      uuid: uuidV4(),
+      uuid: uploadID,
       file,
     });
     if (!/^https?:\/\//i.test(data.url))
