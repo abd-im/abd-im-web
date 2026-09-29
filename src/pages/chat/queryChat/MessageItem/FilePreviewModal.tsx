@@ -1,8 +1,9 @@
 import { Modal, Spin } from "antd";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-import MarkdownContent from "@/components/MarkdownContent";
 import { Button } from "@/components/ui";
 
 import {
@@ -12,6 +13,7 @@ import {
   loadFilePreview,
   PreviewTooLargeError,
 } from "./filePreview";
+import styles from "./message-item.module.scss";
 
 const PdfPreview = lazy(() => import("./PdfPreview"));
 
@@ -57,9 +59,7 @@ export default function FilePreviewModal({
           const content = await blob.text();
           if (!controller.signal.aborted) setText(content);
         } else if (!controller.signal.aborted) {
-          objectUrl = URL.createObjectURL(
-            type === "pdf" ? new Blob([blob], { type: "application/pdf" }) : blob,
-          );
+          objectUrl = URL.createObjectURL(blob);
           setSource(objectUrl);
         }
       })
@@ -133,7 +133,44 @@ export default function FilePreviewModal({
             )}
           </div>
         ) : type === "markdown" ? (
-          <MarkdownContent>{text}</MarkdownContent>
+          <div className={styles["file-markdown"]}>
+            <ReactMarkdown
+              skipHtml
+              remarkPlugins={[remarkGfm]}
+              urlTransform={(url, key) => {
+                const protocols =
+                  key === "src" ? ["https:", "http:"] : ["https:", "http:", "mailto:"];
+                try {
+                  return protocols.includes(new URL(url).protocol) ? url : "";
+                } catch {
+                  return "";
+                }
+              }}
+              components={{
+                a: ({ children, href }) =>
+                  href ? (
+                    <a href={href} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  ) : (
+                    <span>{children}</span>
+                  ),
+                img: ({ src, alt }) =>
+                  src ? (
+                    <img
+                      src={src}
+                      alt={alt || ""}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span>{alt}</span>
+                  ),
+              }}
+            >
+              {text}
+            </ReactMarkdown>
+          </div>
         ) : type === "text" ? (
           <pre className="whitespace-pre-wrap break-words font-mono text-sm">
             {text}

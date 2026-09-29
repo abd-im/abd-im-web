@@ -35,60 +35,7 @@ export function useFileMessage() {
     const cached = uploadedAttachments.get(file) || {};
     const existing = cached[type];
     if (existing) return existing;
-    const prepare = async () => {
-      if (type === "image") {
-        const { width, height } = await getPicInfo(file);
-        const picture = {
-          uuid: uuidV4(),
-          type: file.type,
-          size: file.size,
-          width,
-          height,
-          url: await upload(file),
-        };
-        return (
-          await IMSDK.createImageMessageByURL({
-            sourcePicture: picture,
-            bigPicture: picture,
-            snapshotPicture: picture,
-            sourcePath: "",
-          })
-        ).data;
-      }
-      if (type === "video") {
-        const { duration, snapshotFile, width, height } = await getVideoInfo(file);
-        const videoUrl = await upload(file);
-        const snapshotUrl = await upload(snapshotFile);
-        return (
-          await IMSDK.createVideoMessageByURL({
-            videoPath: "",
-            videoType: file.type || "video/mp4",
-            duration,
-            videoSize: file.size,
-            videoUUID: uuidV4(),
-            videoUrl,
-            snapshotPath: "",
-            snapshotUUID: uuidV4(),
-            snapshotUrl,
-            snapshotSize: snapshotFile.size,
-            snapshotWidth: width,
-            snapshotHeight: height,
-            snapShotType: snapshotFile.type,
-          })
-        ).data;
-      }
-      return (
-        await IMSDK.createFileMessageByURL({
-          filePath: "",
-          fileName: file.name,
-          uuid: uuidV4(),
-          sourceUrl: await upload(file),
-          fileSize: file.size,
-          fileType: file.type,
-        })
-      ).data;
-    };
-    const pending = prepare().catch((error) => {
+    const pending = getAttachmentMessage(file, type, true).catch((error) => {
       delete cached[type];
       throw error;
     });
@@ -97,16 +44,18 @@ export function useFileMessage() {
     return pending;
   };
 
-  const getImageMessage = async (file: FileWithPath): Promise<MessageItem> => {
+  const getImageMessage = async (
+    file: FileWithPath,
+    uploadFirst = false,
+  ): Promise<MessageItem> => {
     const { width, height } = await getPicInfo(file);
-    const blobUrl = URL.createObjectURL(file);
     const baseInfo = {
       uuid: uuidV4(),
       type: file.type,
       size: file.size,
       width,
       height,
-      url: blobUrl,
+      url: uploadFirst ? await upload(file) : URL.createObjectURL(file),
     };
 
     const options = {
@@ -114,33 +63,40 @@ export function useFileMessage() {
       bigPicture: baseInfo,
       snapshotPicture: baseInfo,
       sourcePath: "",
-      file,
     };
 
-    const message = (await IMSDK.createImageMessageByFile(options)).data;
+    const message = (
+      await (uploadFirst
+        ? IMSDK.createImageMessageByURL(options)
+        : IMSDK.createImageMessageByFile({ ...options, file }))
+    ).data;
     if (message.pictureElem) {
       message.pictureElem.sourcePicture = { ...baseInfo };
       message.pictureElem.bigPicture = { ...baseInfo };
       message.pictureElem.snapshotPicture = { ...baseInfo };
     }
-    registerMessageRetry(message.clientMsgID, () => getImageMessage(file));
+    if (!uploadFirst)
+      registerMessageRetry(message.clientMsgID, () => getImageMessage(file));
     return message;
   };
 
-  const getVideoMessage = async (file: FileWithPath): Promise<MessageItem> => {
+  const getVideoMessage = async (
+    file: FileWithPath,
+    uploadFirst = false,
+  ): Promise<MessageItem> => {
     const { duration, snapshotFile, width, height } = await getVideoInfo(file);
-    const videoUrl = URL.createObjectURL(file);
-    const snapshotUrl = URL.createObjectURL(snapshotFile);
+    const videoUrl = uploadFirst ? await upload(file) : URL.createObjectURL(file);
+    const snapshotUrl = uploadFirst
+      ? await upload(snapshotFile)
+      : URL.createObjectURL(snapshotFile);
     const options = {
       videoPath: "",
-      videoFile: file,
       videoType: file.type || "video/mp4",
       duration,
       videoSize: file.size,
       videoUUID: uuidV4(),
       videoUrl,
       snapshotPath: "",
-      snapshotFile,
       snapshotUUID: uuidV4(),
       snapshotSize: snapshotFile.size,
       snapshotUrl,
@@ -148,7 +104,11 @@ export function useFileMessage() {
       snapshotHeight: height,
       snapShotType: snapshotFile.type,
     };
-    const message = (await IMSDK.createVideoMessageByFile(options)).data;
+    const message = (
+      await (uploadFirst
+        ? IMSDK.createVideoMessageByURL(options)
+        : IMSDK.createVideoMessageByFile({ ...options, videoFile: file, snapshotFile }))
+    ).data;
     if (message.videoElem) {
       Object.assign(message.videoElem, {
         videoUrl,
@@ -160,21 +120,28 @@ export function useFileMessage() {
         snapshotHeight: height,
       });
     }
-    registerMessageRetry(message.clientMsgID, () => getVideoMessage(file));
+    if (!uploadFirst)
+      registerMessageRetry(message.clientMsgID, () => getVideoMessage(file));
     return message;
   };
 
-  const getFileMessage = async (file: FileWithPath): Promise<MessageItem> => {
+  const getFileMessage = async (
+    file: FileWithPath,
+    uploadFirst = false,
+  ): Promise<MessageItem> => {
     const options = {
-      file,
-      filePath: file.path || "",
+      filePath: uploadFirst ? "" : file.path || "",
       fileName: file.name,
       uuid: uuidV4(),
-      sourceUrl: URL.createObjectURL(file),
+      sourceUrl: uploadFirst ? await upload(file) : URL.createObjectURL(file),
       fileSize: file.size,
       fileType: file.type,
     };
-    const message = (await IMSDK.createFileMessageByFile(options)).data;
+    const message = (
+      await (uploadFirst
+        ? IMSDK.createFileMessageByURL(options)
+        : IMSDK.createFileMessageByFile({ ...options, file }))
+    ).data;
     if (message.fileElem) {
       Object.assign(message.fileElem, {
         sourceUrl: options.sourceUrl,
@@ -182,18 +149,20 @@ export function useFileMessage() {
         fileSize: file.size,
       });
     }
-    registerMessageRetry(message.clientMsgID, () => getFileMessage(file));
+    if (!uploadFirst)
+      registerMessageRetry(message.clientMsgID, () => getFileMessage(file));
     return message;
   };
 
   const getAttachmentMessage = (
     file: FileWithPath,
     requestedType?: AttachmentType,
+    uploadFirst = false,
   ): Promise<MessageItem> => {
     const attachmentType = requestedType ?? getAttachmentType(file);
-    if (attachmentType === "image") return getImageMessage(file);
-    if (attachmentType === "video") return getVideoMessage(file);
-    return getFileMessage(file);
+    if (attachmentType === "image") return getImageMessage(file, uploadFirst);
+    if (attachmentType === "video") return getVideoMessage(file, uploadFirst);
+    return getFileMessage(file, uploadFirst);
   };
 
   const recreateFileBackedMessage = async (message: MessageItem) => {

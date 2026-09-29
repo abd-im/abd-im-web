@@ -226,7 +226,7 @@ test("paste, drop and upload append inside the composer without sending or losin
     "combined",
   );
   await page.screenshot({
-    path: "/tmp/abd-37-inline-composer.png",
+    path: test.info().outputPath("abd-37-inline-composer.png"),
     animations: "disabled",
   });
   for (const name of ["screenshot.png", "notes.txt", "picked.txt"]) {
@@ -265,7 +265,7 @@ test("combined mode uploads all attachments then sends one message with one repl
   await expect(row.locator(".message-image img")).toBeVisible();
   await expect(row).toBeInViewport({ ratio: 1 });
   await page.screenshot({
-    path: "/tmp/abd-37-combined-message.png",
+    path: test.info().outputPath("abd-37-combined-message.png"),
     animations: "disabled",
   });
   await row.getByTestId("composite-message").hover();
@@ -616,7 +616,7 @@ test("Markdown files preview formatted content and safe links inside the app", a
   await page.route("**/__fixtures/preview", (route) =>
     route.fulfill({
       contentType: "text/markdown",
-      body: "# 文件预览\n\n| 项目 | 状态 |\n| --- | --- |\n| ABD-35 | 完成 |\n\n- [x] 已预览\n\n[链接](https://example.com)\n\n<script>window.previewInjected = true</script>",
+      body: "# 文件预览\n\n| 项目 | 状态 |\n| --- | --- |\n| ABD-35 | 完成 |\n\n- [x] 已预览\n\n~~旧内容~~ [链接](https://example.com)\n\n[run](javascript:alert%281%29) [local](file:///etc/passwd) [relative](../settings) ![bad](data:image/svg+xml,test)\n\n<script>window.previewInjected = true</script>",
     }),
   );
   await addFileMessage(page, "README.md");
@@ -624,6 +624,16 @@ test("Markdown files preview formatted content and safe links inside the app", a
   await expect(dialog.getByRole("heading", { name: "文件预览" })).toBeVisible();
   await expect(dialog.getByRole("table")).toContainText("ABD-35");
   await expect(dialog.getByRole("checkbox")).toBeChecked();
+  await expect(dialog.locator("del")).toHaveText("旧内容");
+  await expect(
+    dialog.locator(
+      'a[href^="javascript:"], a[href^="file:"], a[href="../settings"], img[src^="data:"]',
+    ),
+  ).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "链接", exact: true })).toHaveAttribute(
+    "rel",
+    "noopener noreferrer",
+  );
   await expect(dialog.getByRole("link", { name: "链接", exact: true })).toHaveAttribute(
     "target",
     "_blank",
@@ -633,7 +643,7 @@ test("Markdown files preview formatted content and safe links inside the app", a
   ).toBeUndefined();
   await expect(dialog.getByRole("link", { name: "下载文件" })).toBeVisible();
   await page.screenshot({
-    path: "/tmp/abd-35-markdown-preview.png",
+    path: test.info().outputPath("abd-35-markdown-preview.png"),
     animations: "disabled",
   });
 });
@@ -750,7 +760,7 @@ test("PDF files render a page inside the app instead of navigating away", async 
   await expect(page.getByRole("dialog")).toContainText("第 1 / 2 页");
   await expect(page.getByRole("dialog").locator('[aria-busy="false"]')).toBeVisible();
   await page.screenshot({
-    path: "/tmp/abd-35-pdf-preview.png",
+    path: test.info().outputPath("abd-35-pdf-preview.png"),
     animations: "disabled",
   });
   expect(page.url()).toContain("/ui-preview.html");

@@ -1,6 +1,5 @@
 import { FC } from "react";
-
-import MarkdownContent from "@/components/MarkdownContent";
+import ReactMarkdown from "react-markdown";
 
 import { IMessageItemProps } from ".";
 import styles from "./message-item.module.scss";
@@ -13,7 +12,7 @@ const StreamMessageRender: FC<IMessageItemProps> = ({ message }) => {
     return (
       <div className={styles.bubble}>
         <div className={styles["markdown-content"]} data-quote-source>
-          <MarkdownContent>{content}</MarkdownContent>
+          <ReactMarkdown skipHtml>{content}</ReactMarkdown>
         </div>
       </div>
     );

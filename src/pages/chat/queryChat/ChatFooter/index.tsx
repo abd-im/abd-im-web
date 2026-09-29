@@ -36,7 +36,7 @@ import { useConversationStore, useUserStore } from "@/store";
 import { useComposerStore } from "@/store/composer";
 import { useContactStore } from "@/store/contact";
 import { feedbackToast } from "@/utils/common";
-import { beginDesktopTask, canStartDesktopTask } from "@/utils/desktopTasks";
+import { beginDesktopTask } from "@/utils/desktopTasks";
 
 import { COMPOSITE_MESSAGE_EX } from "../compositeMessage";
 import { AT_ALL_TAG } from "../mentions";
@@ -270,13 +270,7 @@ const ChatFooter = () => {
   };
 
   const addFiles = (files: readonly File[], requestedType?: AttachmentType) => {
-    if (
-      !files.length ||
-      !currentConversation ||
-      useComposerStore.getState().sending.includes(draftKey) ||
-      !canStartDesktopTask()
-    )
-      return;
+    if (!currentConversation) return;
     const additions = files.map((file) => ({
       id: uuidV4(),
       file,
@@ -335,13 +329,7 @@ const ChatFooter = () => {
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
     const conversation = currentConversation;
-    if (
-      (!cleanText && !pendingFiles.length) ||
-      !conversation ||
-      useComposerStore.getState().sending.includes(draftKey) ||
-      !canStartDesktopTask()
-    )
-      return;
+    if ((!cleanText && !pendingFiles.length) || !conversation) return;
     if (!useComposerStore.getState().startSending(draftKey)) return;
     const finishTask = beginDesktopTask();
     const clearText = () => {
