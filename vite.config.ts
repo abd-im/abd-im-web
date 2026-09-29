@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, rmSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
@@ -19,6 +19,14 @@ const syncSdkAssets = () => {
   sdkAssets.forEach((asset) =>
     copyFileSync(path.join(sdkAssetDir, asset), path.join(publicDir, asset)),
   );
+  const pdfAssetDir = path.dirname(require.resolve("pdfjs-dist/package.json"));
+  for (const directory of ["cmaps", "standard_fonts", "wasm"]) {
+    cpSync(
+      path.join(pdfAssetDir, directory),
+      path.join(publicDir, "pdfjs", directory),
+      { recursive: true },
+    );
+  }
 };
 
 // https://vitejs.dev/config/

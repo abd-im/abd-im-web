@@ -46,3 +46,6 @@ OpenIM_*
 
 # Private environment configurations
 .env.development
+
+# Generated PDF preview resources
+/public/pdfjs/

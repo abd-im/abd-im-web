@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { registerDraftSaver, canStartDesktopTask } from "@/utils/desktopTasks";
+
+import { canStartDesktopTask, registerDraftSaver } from "@/utils/desktopTasks";
+
+type Draft = { key: string; value: string };
+const draftListeners = new Set<(draft: Draft) => void>();
 
 export function useDesktopDraft(key: string): [string, (value: string) => void] {
   const read = () => {
@@ -13,6 +17,19 @@ export function useDesktopDraft(key: string): [string, (value: string) => void] 
   const value = draft.key === key ? draft.value : read();
   const latest = useRef({ key, value });
   latest.current = { key, value };
+  useEffect(() => {
+    // An asynchronous send can finish after this conversation remounts.
+    // Synchronize its cleared draft with the currently mounted editor.
+    const receive = (next: Draft) => {
+      if (next.key !== key) return;
+      latest.current = next;
+      setDraft(next);
+    };
+    draftListeners.add(receive);
+    return () => {
+      draftListeners.delete(receive);
+    };
+  }, [key]);
   useEffect(
     () =>
       registerDraftSaver(() => {
@@ -28,6 +45,7 @@ export function useDesktopDraft(key: string): [string, (value: string) => void] 
       if (!canStartDesktopTask()) return;
       latest.current = { key, value: next };
       setDraft(latest.current);
+      for (const receive of draftListeners) receive(latest.current);
       try {
         if (next) localStorage.setItem(key, next);
         else localStorage.removeItem(key);

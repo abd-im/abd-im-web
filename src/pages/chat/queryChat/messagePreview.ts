@@ -1,6 +1,7 @@
 import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import { t } from "i18next";
 
+import { getCompositeParts } from "./compositeMessage";
 import {
   getMarkdownMessageContent,
   MARKDOWN_TEXT_MESSAGE_TYPE,
@@ -8,6 +9,12 @@ import {
 
 export const getMessagePreview = (message?: MessageItem): string => {
   if (!message) return t("messageDescription.catchMessage");
+  const parts = getCompositeParts(message);
+  if (parts)
+    return parts
+      .map((part) => getMessagePreview(part))
+      .filter(Boolean)
+      .join(" ");
 
   switch (message.contentType) {
     case MessageType.TextMessage:
