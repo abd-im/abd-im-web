@@ -1,4 +1,30 @@
 {
+  "mediaCache": {
+    "title": "本地缓存",
+    "usage": "已占用",
+    "limit": "缓存上限",
+    "apply": "保存",
+    "clear": "清理缓存",
+    "clearHint": "正在使用的文件会保留。清理不删除聊天记录和另存到文件夹的副本。",
+    "download": "保存供离线查看",
+    "notCached": "尚未缓存，离线时不可用",
+    "failed": "附件无法读取，请检查网络和存储空间后重试",
+    "cancel": "取消",
+    "saveAs": "另存为"
+  },
+  "passwordVisibility": { "show": "显示密码", "hide": "隐藏密码" },
+  "imagePreview": {
+    "fit": "适应窗口",
+    "viewport": "图片查看区域，可滚轮缩放、拖拽移动、双击缩放",
+    "controls": "图片操作",
+    "failed": "图片加载失败",
+    "zoomOut": "缩小",
+    "zoomIn": "放大",
+    "rotateLeft": "向左旋转",
+    "rotateRight": "向右旋转",
+    "flipHorizontal": "水平翻转",
+    "flipVertical": "垂直翻转"
+  },
   "filePreview": {
     "previousPage": "上一页",
     "nextPage": "下一页",

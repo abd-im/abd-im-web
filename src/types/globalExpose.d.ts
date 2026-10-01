@@ -1,9 +1,14 @@
 import { Platform } from "@abd-im/wasm-client-sdk";
 import type { DesktopUpdateAPI } from "./desktopUpdate";
+import type { MediaStorageHost } from "@abd-im/wasm-client-sdk";
 
 export type DataPath = "public" | "sdkResources" | "logsPath";
 
 export interface IElectronAPI {
+  media: {
+    storage: MediaStorageHost;
+    save: (ref: string, name: string) => Promise<boolean>;
+  };
   updates?: DesktopUpdateAPI;
   getDataPath: (key: DataPath) => string;
   getPlatform: () => Platform;

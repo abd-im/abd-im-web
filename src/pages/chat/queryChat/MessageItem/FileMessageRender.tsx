@@ -41,6 +41,7 @@ const FileMessageRender: FC<IMessageItemProps> = ({ message }) => {
       </button>
       {previewOpen && (
         <FilePreviewModal
+          message={message}
           name={fileElem.fileName}
           url={url}
           size={Number(fileElem.fileSize)}

@@ -87,7 +87,7 @@
     ]
   },
   "dependencies": {
-    "@abd-im/wasm-client-sdk": "3.8.3-patch.25",
+    "@abd-im/wasm-client-sdk": "3.8.3-patch.26",
     "@ant-design/icons": "^5.6.1",
     "@ckeditor/ckeditor5-react": "^8.0.0",
     "@livekit/components-react": "2.6.9",
@@ -110,6 +110,7 @@
     "localforage": "^1.10.0",
     "lucide-react": "0.468.0",
     "md5": "^2.3.0",
+    "media-chrome": "4.19.3",
     "mitt": "^3.0.1",
     "pdfjs-dist": "6.3.289",
     "radix-ui": "^1.6.7",
@@ -122,12 +123,12 @@
     "react-router-dom": "^6.30.4",
     "react-use": "^17.6.1",
     "react-virtuoso": "4.3.8",
+    "react-zoom-pan-pinch": "4.2.0",
     "remark-gfm": "4.0.1",
     "semver": "^7.8.5",
     "tailwind-merge": "^2.6.1",
     "twemoji": "14.0.1",
     "uuid": "^9.0.1",
-    "xgplayer": "^3.0.26",
     "zustand": "^4.5.7"
   }
 }

@@ -1,8 +1,8 @@
 import "./personal-settings.scss";
 
 import { AddFriendPermission, MessageReceiveOptType } from "@abd-im/wasm-client-sdk";
-import { Modal, Segmented, Switch } from "antd";
 import { ArrowLeft, ChevronRight, X } from "lucide-react";
+import { AlertDialog, ToggleGroup } from "radix-ui";
 import {
   forwardRef,
   type ForwardRefRenderFunction,
@@ -12,8 +12,14 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 
-import { modal } from "@/AntdGlobalComp";
-import { IconButton } from "@/components/ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Spinner,
+  Switch,
+} from "@/components/ui";
 import i18n from "@/i18n";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
@@ -24,26 +30,21 @@ import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayV
 import AgentSettings from "./AgentSettings";
 import BlackList from "./BlackList";
 import ChangePassword from "./ChangePassword";
+import { MediaCacheSettings } from "./MediaCacheSettings";
 
 const PersonalSettings: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
   _,
   ref,
 ) => {
+  const { t } = useTranslation();
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
   return (
-    <Modal
-      title={null}
-      footer={null}
-      closable={false}
-      open={isOverlayOpen}
-      onCancel={closeOverlay}
-      centered
-      destroyOnClose
-      width={520}
-      className="no-padding-modal personal-settings-modal"
-    >
-      <PersonalSettingsContent closeOverlay={closeOverlay} />
-    </Modal>
+    <Dialog open={isOverlayOpen} onOpenChange={(open) => !open && closeOverlay()}>
+      <DialogContent className="personal-settings-modal gap-0 p-0">
+        <DialogTitle className="sr-only">{t("placeholder.accountSetting")}</DialogTitle>
+        <PersonalSettingsContent closeOverlay={closeOverlay} />
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -56,6 +57,9 @@ export const PersonalSettingsContent = ({
 }) => {
   const { t } = useTranslation();
   const [page, setPage] = useState<"general" | "agent">("general");
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
+  const clearHistoryRef = useRef<HTMLButtonElement>(null);
   const agentEntryRef = useRef<HTMLButtonElement>(null);
   const backRef = useRef<HTMLButtonElement>(null);
   const selfInfo = useUserStore((state) => state.selfInfo);
@@ -93,19 +97,17 @@ export const PersonalSettingsContent = ({
       feedbackToast({ error });
     }
   };
-  const tryClearAllHistory = () => {
-    modal.confirm({
-      title: t("placeholder.clearChatHistory"),
-      content: t("toast.confirmClearChatHistory"),
-      onOk: async () => {
-        try {
-          await IMSDK.deleteAllMsgFromLocalAndSvr();
-          feedbackToast({ msg: t("toast.accessSuccess") });
-        } catch (error) {
-          feedbackToast({ error });
-        }
-      },
-    });
+  const tryClearAllHistory = async () => {
+    setClearingHistory(true);
+    try {
+      await IMSDK.deleteAllMsgFromLocalAndSvr();
+      feedbackToast({ msg: t("toast.accessSuccess") });
+      setClearHistoryOpen(false);
+    } catch (error) {
+      feedbackToast({ error });
+    } finally {
+      setClearingHistory(false);
+    }
   };
   const navigateSettings = (next: "general" | "agent") => {
     setPage(next);
@@ -132,13 +134,15 @@ export const PersonalSettingsContent = ({
         <h2>
           {t(page === "agent" ? "agent.settings.title" : "placeholder.accountSetting")}
         </h2>
-        <IconButton
+        <Button
+          variant="ghost"
+          size="icon"
           className="app-no-drag"
-          label={t("agent.settings.close")}
+          aria-label={t("agent.settings.close")}
           onClick={closeOverlay}
         >
           <X />
-        </IconButton>
+        </Button>
       </header>
       {page === "agent" ? (
         <AgentSettings />
@@ -148,33 +152,33 @@ export const PersonalSettingsContent = ({
             <h3>{t("placeholder.personalSetting")}</h3>
             <div className="settings-row">
               <span>{t("placeholder.chooseLanguage")}</span>
-              <Segmented
-                size="small"
+              <ToggleGroup.Root
+                type="single"
+                className="ui-segmented"
                 aria-label={t("placeholder.chooseLanguage")}
                 value={localeStr}
-                options={[
-                  { label: "简体中文", value: "zh-CN" },
-                  { label: "English", value: "en-US" },
-                ]}
-                onChange={(value) => localeChange(value as LocaleString)}
-              />
+                onValueChange={(value) => {
+                  if (value === "zh-CN" || value === "en-US") localeChange(value);
+                }}
+              >
+                <ToggleGroup.Item value="zh-CN">简体中文</ToggleGroup.Item>
+                <ToggleGroup.Item value="en-US">English</ToggleGroup.Item>
+              </ToggleGroup.Root>
             </div>
             <div className="settings-row">
               <label htmlFor="settings-beep">{t("placeholder.messageAllowBeep")}</label>
               <Switch
                 id="settings-beep"
-                size="small"
                 checked={allowBeep}
-                onChange={(checked) => updateAppSettings({ allowBeep: checked })}
+                onCheckedChange={(checked) => updateAppSettings({ allowBeep: checked })}
               />
             </div>
             <div className="settings-row">
               <label htmlFor="settings-dnd">{t("placeholder.messageNotNotify")}</label>
               <Switch
                 id="settings-dnd"
-                size="small"
                 checked={selfInfo.globalRecvMsgOpt === MessageReceiveOptType.NotNotify}
-                onChange={(checked) => void updateGlobalDND(checked)}
+                onCheckedChange={(checked) => void updateGlobalDND(checked)}
               />
             </div>
             <div className="settings-row">
@@ -183,11 +187,10 @@ export const PersonalSettingsContent = ({
               </label>
               <Switch
                 id="settings-friend-permission"
-                size="small"
                 checked={
                   selfInfo.addFriendPermission === AddFriendPermission.AddFriendDenied
                 }
-                onChange={(checked) => void updateAddFriendPermission(checked)}
+                onCheckedChange={(checked) => void updateAddFriendPermission(checked)}
               />
             </div>
             <button
@@ -199,6 +202,7 @@ export const PersonalSettingsContent = ({
               <ChevronRight size={15} />
             </button>
           </section>
+          {window.electronAPI && <MediaCacheSettings />}
           <section className="settings-section">
             <h3>{t("placeholder.securitySetting")}</h3>
             <button
@@ -219,13 +223,52 @@ export const PersonalSettingsContent = ({
           <section className="settings-section">
             <button
               className="settings-row settings-link settings-danger"
-              onClick={tryClearAllHistory}
+              ref={clearHistoryRef}
+              onClick={() => setClearHistoryOpen(true)}
             >
               {t("placeholder.clearChatHistory")}
             </button>
           </section>
         </div>
       )}
+      <AlertDialog.Root open={clearHistoryOpen} onOpenChange={setClearHistoryOpen}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="ui-dialog-overlay" />
+          <AlertDialog.Content
+            className="ui-dialog-content"
+            style={{ width: 420 }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              clearHistoryRef.current?.focus();
+            }}
+          >
+            <AlertDialog.Title className="text-base font-semibold">
+              {t("placeholder.clearChatHistory")}
+            </AlertDialog.Title>
+            <AlertDialog.Description className="text-sm text-muted-foreground">
+              {t("toast.confirmClearChatHistory")}
+            </AlertDialog.Description>
+            <div className="flex justify-end gap-2">
+              <AlertDialog.Cancel asChild>
+                <Button disabled={clearingHistory}>{t("cancel")}</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button
+                  variant="primary"
+                  disabled={clearingHistory}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void tryClearAllHistory();
+                  }}
+                >
+                  {clearingHistory && <Spinner />}
+                  {t("confirm")}
+                </Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { getIMToken, getIMUserID } from "@/utils/storage";
 // const isElectronProd = import.meta.env.MODE !== "development" && window.electronAPI;
 
 const openIMSDK = getSDK({
+  mediaStorage: window.electronAPI?.media.storage,
   coreWasmPath: "./openIM.wasm",
   // The production worker runs from dist/assets and resolves this path itself.
   sqlWasmPath:

@@ -1,8 +1,7 @@
 import { GroupType, SessionType } from "@abd-im/wasm-client-sdk";
-import { CloseOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Upload } from "antd";
 import clsx from "clsx";
 import i18n, { t } from "i18next";
+import { X } from "lucide-react";
 import {
   FC,
   forwardRef,
@@ -15,6 +14,14 @@ import {
 
 import { message } from "@/AntdGlobalComp";
 import OIMAvatar from "@/components/OIMAvatar";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Input,
+  Spinner,
+} from "@/components/ui";
 import { useConversationToggle } from "@/hooks/useConversationToggle";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
 import { IMSDK } from "@/layout/MainContentWrap";
@@ -79,31 +86,17 @@ const ChooseModal: ForwardRefRenderFunction<OverlayVisibleHandle, IChooseModalPr
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
 
   return (
-    <Modal
-      title={null}
-      footer={null}
-      centered
-      open={isOverlayOpen}
-      closable={false}
-      width={680}
-      onCancel={closeOverlay}
-      destroyOnClose
-      styles={{
-        mask: {
-          opacity: 0,
-          transition: "none",
-        },
-      }}
-      className="no-padding-modal max-w-[80vw]"
-      maskTransitionName=""
-    >
-      <ChooseContact
-        isOverlayOpen={isOverlayOpen}
-        type={type}
-        extraData={extraData}
-        closeOverlay={closeOverlay}
-      />
-    </Modal>
+    <Dialog open={isOverlayOpen} onOpenChange={(open) => !open && closeOverlay()}>
+      <DialogContent className="gap-0 p-0" style={{ width: 680 }}>
+        <DialogTitle className="sr-only">{titleMap[type]}</DialogTitle>
+        <ChooseContact
+          isOverlayOpen={isOverlayOpen}
+          type={type}
+          extraData={extraData}
+          closeOverlay={closeOverlay}
+        />
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -246,11 +239,14 @@ export const ChooseContact: FC<ChooseContactProps> = ({
     <>
       <div className="flex h-16 items-center justify-between bg-[var(--gap-text)] px-7">
         <div>{titleMap[type]}</div>
-        <CloseOutlined
-          className="cursor-pointer text-[var(--sub-text)]"
-          rev={undefined}
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("close")}
           onClick={closeOverlay}
-        />
+        >
+          <X />
+        </Button>
       </div>
       {type === "CRATE_GROUP" ? (
         <div className="px-6 pt-4">
@@ -272,15 +268,22 @@ export const ChooseContact: FC<ChooseContactProps> = ({
             </div>
             <div className="flex items-center">
               <OIMAvatar src={groupBaseInfo.groupAvatar} isgroup />
-              <Upload
-                accept="image/*"
-                showUploadList={false}
-                customRequest={customUpload as any}
-              >
+              <label className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label={t("placeholder.clickToModify")}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void customUpload({ file });
+                    event.currentTarget.value = "";
+                  }}
+                />
                 <span className="ml-3 cursor-pointer text-xs text-[var(--primary)]">
                   {t("placeholder.clickToModify")}
                 </span>
-              </Upload>
+              </label>
             </div>
           </div>
           <div className="flex">
@@ -309,10 +312,11 @@ export const ChooseContact: FC<ChooseContactProps> = ({
         </Button>
         <Button
           className="px-6"
-          type="primary"
-          loading={loading}
-          onClick={confirmChoose}
+          variant="primary"
+          disabled={loading}
+          onClick={() => void confirmChoose()}
         >
+          {loading && <Spinner />}
           {t("confirm")}
         </Button>
       </div>

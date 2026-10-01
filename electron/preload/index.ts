@@ -3,6 +3,8 @@ import path from "path";
 import type { DataPath, IElectronAPI } from "./../../src/types/globalExpose.d";
 import { contextBridge, ipcRenderer } from "electron";
 import { isProd } from "../utils";
+import type { MediaStorageReader, MediaStorageRequest } from "@abd-im/wasm-client-sdk";
+import { randomUUID } from "node:crypto";
 
 const OpenIMPlatform = {
   Windows: 3,
@@ -77,7 +79,53 @@ const saveFileToDisk = async ({ file }: { file: File }): Promise<string> => {
   return uniqueSavePath;
 };
 
+const mediaReaders = new Map<string, MediaStorageReader>();
+const mediaRefs = new Map<string, string>();
+ipcRenderer.on("media:read", (_event, owner: string, id: string, offset: number) => {
+  const read = mediaReaders.get(owner);
+  const result = read
+    ? read(offset)
+    : Promise.reject(new Error("Media reader released"));
+  void result.then(
+    (data) => ipcRenderer.send("media:read-result", id, data),
+    (error: Error) => ipcRenderer.send("media:read-result", id, "", error.message),
+  );
+});
+
 const Api: IElectronAPI = {
+  media: {
+    storage: async (request, onProgress, read) => {
+      const operation: MediaStorageRequest = JSON.parse(request);
+      const id = randomUUID();
+      if (read) mediaReaders.set(id, read);
+      const unsubscribe = subscribe(
+        "media:progress",
+        (requestID: string, bytes: number) => {
+          if (requestID === id) onProgress(bytes);
+        },
+      );
+      try {
+        const result: string = await ipcInvoke("media:io", id, request);
+        if (read) mediaRefs.set(JSON.parse(result).ref, id);
+        if (operation.method === "release") {
+          const owner = mediaRefs.get(operation.args);
+          if (owner) mediaReaders.delete(owner);
+          mediaRefs.delete(operation.args);
+        }
+        if (operation.method === "close") {
+          mediaReaders.clear();
+          mediaRefs.clear();
+        }
+        return result;
+      } catch (error) {
+        mediaReaders.delete(id);
+        throw error;
+      } finally {
+        unsubscribe();
+      }
+    },
+    save: (ref, name) => ipcInvoke("media:save", ref, name),
+  },
   updates: {
     getState: () => ipcInvoke("desktop-update:getState"),
     check: () => ipcInvoke("desktop-update:check"),

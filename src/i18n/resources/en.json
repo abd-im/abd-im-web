@@ -1,4 +1,30 @@
 {
+  "mediaCache": {
+    "title": "Local cache",
+    "usage": "Storage used",
+    "limit": "Cache limit",
+    "apply": "Save",
+    "clear": "Clear cache",
+    "clearHint": "Files in use are kept. Chat history and copies saved to folders are not deleted.",
+    "download": "Make available offline",
+    "notCached": "Not available offline yet",
+    "failed": "Attachment unavailable. Check your connection and storage, then try again.",
+    "cancel": "Cancel",
+    "saveAs": "Save as"
+  },
+  "passwordVisibility": { "show": "Show password", "hide": "Hide password" },
+  "imagePreview": {
+    "fit": "Fit to window",
+    "viewport": "Image viewer: scroll to zoom, drag to pan, double click to zoom",
+    "controls": "Image controls",
+    "failed": "Could not load the image",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "flipHorizontal": "Flip horizontally",
+    "flipVertical": "Flip vertically"
+  },
   "filePreview": {
     "previousPage": "Previous",
     "nextPage": "Next",

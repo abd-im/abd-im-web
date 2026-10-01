@@ -54,6 +54,18 @@ describe("file previews", () => {
     });
   });
 
+  it("accepts only capability URLs for desktop cache previews", () => {
+    const local = "abd-media://cache/f9a5b3f7-27ce-4b87-a461-9c2134950fbd";
+    expect(getSafeFileUrl(local)).toBe(local);
+    for (const url of [
+      "abd-media://cache/etc/passwd",
+      "abd-media://other/token",
+      `${local}?path=/etc/passwd`,
+    ]) {
+      expect(getSafeFileUrl(url)).toBeUndefined();
+    }
+  });
+
   it("caps streamed bytes even when Content-Length is missing or incorrect", async () => {
     for (const headers of [new Headers(), new Headers({ "content-length": "1" })]) {
       vi.stubGlobal(

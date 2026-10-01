@@ -35,6 +35,11 @@ test.beforeEach(async ({ page }) => {
     };
     Object.assign(window, {
       electronAPI: {
+        media: {
+          storage: async () => {
+            throw new Error("Media I/O is not used by the update view");
+          },
+        },
         updates: api,
         getPlatform: () => 3,
         getDataPath: () => "",

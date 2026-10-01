@@ -1,6 +1,8 @@
 import { MessageItem, MessageType } from "@abd-im/wasm-client-sdk";
 import { FC } from "react";
 
+import { MediaCacheEnabledContext } from "@/hooks/useCachedMedia";
+
 import type { IMessageItemProps } from ".";
 import FileMessageRender from "./FileMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
@@ -19,16 +21,19 @@ const renderers: Partial<Record<MessageType, FC<IMessageItemProps>>> = {
 
 export default function CompositeMessageRender({ parts }: { parts: MessageItem[] }) {
   return (
-    <div
-      className={`${styles.bubble} ${styles["composite-message"]}`}
-      data-testid="composite-message"
-    >
-      {parts.map((message, index) => {
-        const Renderer = renderers[message.contentType];
-        return Renderer ? (
-          <Renderer key={`${message.clientMsgID}:${index}`} message={message} />
-        ) : null;
-      })}
-    </div>
+    // Embedded parts cannot be looked up as independent messages by the SDK.
+    <MediaCacheEnabledContext.Provider value={false}>
+      <div
+        className={`${styles.bubble} ${styles["composite-message"]}`}
+        data-testid="composite-message"
+      >
+        {parts.map((message, index) => {
+          const Renderer = renderers[message.contentType];
+          return Renderer ? (
+            <Renderer key={`${message.clientMsgID}:${index}`} message={message} />
+          ) : null;
+        })}
+      </div>
+    </MediaCacheEnabledContext.Provider>
   );
 }

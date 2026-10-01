@@ -1,4 +1,3 @@
-import { Spin } from "antd";
 import {
   getDocument,
   GlobalWorkerOptions,
@@ -9,7 +8,7 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -116,7 +115,7 @@ export default function PdfPreview({ source, name }: { source: string; name: str
         <div className="relative min-h-[240px]" aria-busy={loading}>
           {loading && (
             <div className="absolute inset-0 z-10 grid place-items-center bg-surface">
-              <Spin />
+              <Spinner />
             </div>
           )}
           <canvas

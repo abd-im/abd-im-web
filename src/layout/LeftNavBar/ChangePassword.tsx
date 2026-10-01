@@ -1,53 +1,96 @@
-import { CloseOutlined } from "@ant-design/icons";
-import { Button, Form, Input, Modal } from "antd";
+import { Eye, EyeOff, X } from "lucide-react";
 import md5 from "md5";
 import { forwardRef, ForwardRefRenderFunction, memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { modifyPassword } from "@/api/login";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Input,
+  Spinner,
+} from "@/components/ui";
 import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
 
-const ChangePassword: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (_, ref) => {
+const ChangePassword: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (
+  _,
+  ref,
+) => {
+  const { t } = useTranslation();
   const { isOverlayOpen, closeOverlay } = useOverlayVisible(ref);
 
   return (
-    <Modal
-      title={null}
-      footer={null}
-      closable={false}
-      open={isOverlayOpen}
-      onCancel={closeOverlay}
-      centered
-      destroyOnClose
-      styles={{
-        mask: {
-          opacity: 0,
-          transition: "none",
-        },
-      }}
-      width={420}
-      className="no-padding-modal"
-      maskTransitionName=""
-    >
-      <ChangePasswordContent closeOverlay={closeOverlay} />
-    </Modal>
+    <Dialog open={isOverlayOpen} onOpenChange={(open) => !open && closeOverlay()}>
+      <DialogContent className="gap-0 p-0" style={{ width: 420 }}>
+        <DialogTitle className="sr-only">{t("placeholder.changePassword")}</DialogTitle>
+        <ChangePasswordContent closeOverlay={closeOverlay} />
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default memo(forwardRef(ChangePassword));
 
-export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => void }) => {
+function PasswordField({
+  name,
+  label,
+  placeholder,
+  autoComplete,
+}: {
+  name: string;
+  label: string;
+  placeholder: string;
+  autoComplete: string;
+}) {
   const { t } = useTranslation();
-  const [form] = Form.useForm();
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="space-y-2">
+      <label htmlFor={name} className="text-xs font-semibold text-muted-foreground">
+        {label}
+      </label>
+      <div className="relative">
+        <Input
+          id={name}
+          name={name}
+          className="h-10 w-full pr-10"
+          type={visible ? "text" : "password"}
+          required
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+        />
+        <IconButton
+          className="absolute right-1 top-1"
+          label={t(visible ? "passwordVisibility.hide" : "passwordVisibility.show")}
+          onClick={() => setVisible(!visible)}
+        >
+          {visible ? <EyeOff /> : <Eye />}
+        </IconButton>
+      </div>
+    </div>
+  );
+}
+
+export const ChangePasswordContent = ({
+  closeOverlay,
+}: {
+  closeOverlay?: () => void;
+}) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const selfInfo = useUserStore((state) => state.selfInfo);
   const userLogout = useUserStore((state) => state.userLogout);
 
-  const handleSubmit = async (values: any) => {
-    const { oldPassword, newPassword, confirmPassword } = values;
+  const handleSubmit = async (values: FormData) => {
+    const oldPassword = String(values.get("oldPassword"));
+    const newPassword = String(values.get("newPassword"));
+    const confirmPassword = String(values.get("confirmPassword"));
 
     if (newPassword !== confirmPassword) {
       feedbackToast({ msg: t("toast.passwordsDifferent") });
@@ -70,7 +113,7 @@ export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => v
       });
       feedbackToast({ msg: t("toast.updatePasswordSuccess") });
       closeOverlay?.();
-      
+
       // Wait a moment for the toast to be seen before logging out
       setTimeout(() => {
         userLogout();
@@ -83,71 +126,61 @@ export const ChangePasswordContent = ({ closeOverlay }: { closeOverlay?: () => v
   };
 
   return (
-    <div className="flex flex-col bg-page-canvas rounded-lg overflow-hidden pb-6">
+    <div className="flex flex-col overflow-hidden rounded-lg bg-page-canvas pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-5 border-b border-surface-border">
-        <span className="text-base font-bold text-foreground">{t("placeholder.changePassword")}</span>
-        <CloseOutlined
-          className="app-no-drag cursor-pointer text-muted-foreground hover:text-red-500 text-lg"
-          rev={undefined}
+      <div className="flex items-center justify-between border-b border-surface-border bg-white p-5">
+        <span className="text-base font-bold text-foreground">
+          {t("placeholder.changePassword")}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="app-no-drag"
+          aria-label={t("close")}
           onClick={closeOverlay}
-        />
+        >
+          <X />
+        </Button>
       </div>
 
       {/* Form */}
       <div className="p-6">
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          requiredMark={false}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSubmit(new FormData(event.currentTarget));
+          }}
         >
-          <div className="mb-4 rounded-lg bg-white p-5 shadow-sm">
-            <Form.Item
+          <div className="mb-4 space-y-4 rounded-lg bg-surface p-5 shadow-sm">
+            <PasswordField
               name="oldPassword"
-              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.oldPassword")}</span>}
-              rules={[{ required: true, message: t("toast.inputOldPassword") }]}
-            >
-              <Input.Password
-                placeholder={t("toast.inputOldPassword")}
-                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
-              />
-            </Form.Item>
-
-            <Form.Item
+              label={t("placeholder.oldPassword")}
+              placeholder={t("toast.inputOldPassword")}
+              autoComplete="current-password"
+            />
+            <PasswordField
               name="newPassword"
-              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.newPassword")}</span>}
-              rules={[{ required: true, message: t("toast.inputPassword") }]}
-            >
-              <Input.Password
-                placeholder={t("toast.passwordRules")}
-                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
-              />
-            </Form.Item>
-
-            <Form.Item
+              label={t("placeholder.newPassword")}
+              placeholder={t("toast.passwordRules")}
+              autoComplete="new-password"
+            />
+            <PasswordField
               name="confirmPassword"
-              label={<span className="text-xs font-semibold text-muted-foreground">{t("placeholder.confirmPassword")}</span>}
-              rules={[{ required: true, message: t("toast.reconfirmPassword") }]}
-            >
-              <Input.Password
-                placeholder={t("toast.reconfirmPassword")}
-                className="h-10 rounded-md border-surface-border hover:border-brand focus:border-brand"
-              />
-            </Form.Item>
+              label={t("placeholder.confirmPassword")}
+              placeholder={t("toast.reconfirmPassword")}
+              autoComplete="new-password"
+            />
           </div>
-
-          <Form.Item className="mb-0">
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              className="w-full h-10 bg-brand hover:bg-brand/90 border-none rounded-md text-sm font-bold shadow-md shadow-sm"
-            >
-              {t("confirm")}
-            </Button>
-          </Form.Item>
-        </Form>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading}
+            className="h-10 w-full"
+          >
+            {loading && <Spinner />}
+            {t("confirm")}
+          </Button>
+        </form>
       </div>
     </div>
   );

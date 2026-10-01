@@ -4,6 +4,11 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## UI components
+
+- Use Radix UI and shadcn/ui patterns for new or migrated UI. Reuse `src/components/ui`.
+- Do not introduce Ant Design components or icons in new code.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

@@ -39,7 +39,14 @@ export const getFilePreviewType = (name: string): FilePreviewType | undefined =>
 export const getSafeFileUrl = (value: string) => {
   try {
     const url = new URL(value);
-    return ["https:", "http:", "blob:"].includes(url.protocol) ? url.href : undefined;
+    return ["https:", "http:", "blob:"].includes(url.protocol) ||
+      (url.protocol === "abd-media:" &&
+        url.hostname === "cache" &&
+        /^\/[a-f0-9-]{36}$/.test(url.pathname) &&
+        !url.search &&
+        !url.hash)
+      ? url.href
+      : undefined;
   } catch {
     return undefined;
   }

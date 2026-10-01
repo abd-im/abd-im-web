@@ -1,19 +1,25 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import clsx from "clsx";
+import { LoaderCircle } from "lucide-react";
 import {
+  Dialog as DialogPrimitive,
   HoverCard as HoverCardPrimitive,
   Popover as PopoverPrimitive,
   Progress as ProgressPrimitive,
   Slot,
+  Switch as SwitchPrimitive,
   Tooltip as TooltipPrimitive,
 } from "radix-ui";
 import {
   type ButtonHTMLAttributes,
+  type ComponentPropsWithoutRef,
   type CSSProperties,
   forwardRef,
   type ReactElement,
   type ReactNode,
+  useRef,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { twMerge } from "tailwind-merge";
 
 const buttonVariants = cva("ui-button", {
@@ -44,6 +50,81 @@ export const Button = forwardRef<
   );
 });
 Button.displayName = "Button";
+
+export const Dialog = DialogPrimitive.Root;
+export const DialogTrigger = DialogPrimitive.Trigger;
+export const DialogClose = DialogPrimitive.Close;
+export const DialogTitle = DialogPrimitive.Title;
+
+export const DialogContent = forwardRef<
+  HTMLDivElement,
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  const previousFocus = useRef<HTMLElement | null>(null);
+  return (
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="ui-dialog-overlay" />
+      <DialogPrimitive.Content
+        ref={ref}
+        aria-describedby={undefined}
+        className={clsx("ui-dialog-content", className)}
+        onOpenAutoFocus={(event) => {
+          previousFocus.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          if (!event.defaultPrevented && previousFocus.current?.isConnected) {
+            event.preventDefault();
+            previousFocus.current.focus();
+          }
+        }}
+        {...props}
+      />
+    </DialogPrimitive.Portal>
+  );
+});
+DialogContent.displayName = "DialogContent";
+
+export const Switch = forwardRef<
+  HTMLButtonElement,
+  ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitive.Root ref={ref} className={clsx("ui-switch", className)} {...props}>
+    <SwitchPrimitive.Thumb className="ui-switch-thumb" />
+  </SwitchPrimitive.Root>
+));
+Switch.displayName = "Switch";
+
+export const Input = forwardRef<HTMLInputElement, ComponentPropsWithoutRef<"input">>(
+  ({ className, ...props }, ref) => (
+    <input ref={ref} className={clsx("ui-input", className)} {...props} />
+  ),
+);
+Input.displayName = "Input";
+
+export function Spinner({ label, className }: { label?: string; className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-2 text-muted-foreground",
+        className,
+      )}
+      role="status"
+      aria-label={label || t("filePreview.loading")}
+    >
+      <LoaderCircle
+        className="h-5 w-5 animate-spin motion-reduce:animate-none"
+        aria-hidden
+      />
+      {label && <span>{label}</span>}
+    </span>
+  );
+}
 
 export function Tooltip({
   label,

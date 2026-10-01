@@ -4,6 +4,115 @@ const previewURL = `${
   process.env.ABD_UI_BASE_URL || "http://localhost:5180"
 }/ui-preview.html`;
 
+test("Radix settings preserve cache controls, keyboard switches and nested dialogs", async ({
+  page,
+}) => {
+  await page.goto(previewURL);
+  await expect(page.locator(".ck-editor__editable")).toBeVisible();
+  await page.evaluate(async () => {
+    const sdkURL = "/src/layout/MainContentWrap.tsx";
+    const { IMSDK } = await import(sdkURL);
+    const state = {
+      maxBytes: 2 * 1024 * 1024 * 1024,
+      limits: [] as number[],
+      clears: 0,
+      histories: 0,
+    };
+    Reflect.set(window, "settingsMigration", state);
+    Reflect.set(window, "electronAPI", { ipcInvoke: async () => null });
+    const usage = () => ({
+      data: { bytes: 1024 * 1024, count: 1, settings: { maxBytes: state.maxBytes } },
+    });
+    IMSDK.getMediaCacheUsage = async () => usage();
+    IMSDK.setMediaCacheSettings = async ({ maxBytes }: { maxBytes: number }) => {
+      state.limits.push(maxBytes);
+      state.maxBytes = maxBytes;
+      return usage();
+    };
+    IMSDK.clearMediaCache = async () => {
+      state.clears++;
+      return { data: { bytes: 0, count: 0, settings: { maxBytes: state.maxBytes } } };
+    };
+    IMSDK.deleteAllMsgFromLocalAndSvr = async () => {
+      state.histories++;
+    };
+  });
+  await page.locator(".workspace-rail > button").click();
+  await page.locator(".ui-popover").getByText("账号设置", { exact: true }).click();
+  const settings = page.getByTestId("personal-settings");
+  const beep = settings.locator("#settings-beep");
+  const wasChecked = await beep.getAttribute("aria-checked");
+  await beep.focus();
+  await page.keyboard.press("Space");
+  await expect(beep).toHaveAttribute(
+    "aria-checked",
+    wasChecked === "true" ? "false" : "true",
+  );
+  await settings.getByRole("radio", { name: "English", exact: true }).click();
+  await expect(
+    settings.getByRole("radio", { name: "English", exact: true }),
+  ).toHaveAttribute("aria-checked", "true");
+  await settings.getByRole("radio", { name: "简体中文", exact: true }).click();
+  const limit = settings.getByRole("spinbutton", { name: "缓存上限" });
+  await expect(limit).toHaveValue("2048");
+  for (const invalid of ["0", "-1", "1.5", ""]) {
+    await limit.fill(invalid);
+    await expect(
+      settings.getByRole("button", { name: "保存", exact: true }),
+    ).toBeDisabled();
+  }
+  await limit.fill("128");
+  await settings.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, "settingsMigration").limits))
+    .toEqual([128 * 1024 * 1024]);
+  await limit.fill("0");
+  await settings.getByRole("button", { name: "清理缓存", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, "settingsMigration").clears))
+    .toBe(1);
+  await expect(settings.getByText("0 B", { exact: true })).toBeVisible();
+  await settings.getByRole("button", { name: "通讯录黑名单", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "通讯录黑名单", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    settings.getByRole("button", { name: "通讯录黑名单", exact: true }),
+  ).toBeFocused();
+  await settings.getByRole("button", { name: "修改密码", exact: true }).click();
+  const password = page.getByRole("dialog", { name: "修改密码", exact: true });
+  await expect(password).toBeVisible();
+  await expect(password.locator("input[required]")).toHaveCount(3);
+  await password.getByRole("button", { name: "显示密码", exact: true }).first().click();
+  await expect(password.locator("#oldPassword")).toHaveAttribute("type", "text");
+  await password.getByRole("button", { name: "隐藏密码", exact: true }).click();
+  await expect(password.locator("#oldPassword")).toHaveAttribute("type", "password");
+  await page.keyboard.press("Escape");
+  await expect(
+    settings.getByRole("button", { name: "修改密码", exact: true }),
+  ).toBeFocused();
+  await settings.getByRole("button", { name: "清空聊天记录", exact: true }).click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toBeVisible();
+  await confirmation.getByRole("button", { name: "取消", exact: true }).click();
+  expect(
+    await page.evaluate(() => Reflect.get(window, "settingsMigration").histories),
+  ).toBe(0);
+  await expect(
+    settings.getByRole("button", { name: "清空聊天记录", exact: true }),
+  ).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 640 });
+  const box = await settings.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  await settings.screenshot({
+    path: test.info().outputPath("radix-cache-settings-mobile.png"),
+  });
+  await page.keyboard.press("Escape");
+  await expect(settings).not.toBeVisible();
+});
+
 test("Agent sidebar keeps its own width beside the workspace", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${previewURL}#/agent`);

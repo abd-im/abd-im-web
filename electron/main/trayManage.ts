@@ -1,6 +1,6 @@
 import { app, Menu, Tray } from "electron";
 import { t } from "i18next";
-import { hideWindow, showWindow } from "./windowManage";
+import { hideWindow, showWindow, toggleDevTools } from "./windowManage";
 
 let appTray: Tray | null = null;
 
@@ -16,7 +16,11 @@ export const createTray = () => {
     },
     {
       label: t("system.toggleDevTools"),
-      role: "toggleDevTools",
+      accelerator: "CmdOrCtrl+F12",
+      click: () => {
+        showWindow();
+        toggleDevTools();
+      },
     },
     {
       label: t("system.quit"),

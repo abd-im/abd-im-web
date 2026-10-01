@@ -1,0 +1,65 @@
+.viewer {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pannable {
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.progress {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  & > * {
+    padding-inline: 12px;
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    box-shadow: var(--surface-shadow);
+    pointer-events: auto;
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
