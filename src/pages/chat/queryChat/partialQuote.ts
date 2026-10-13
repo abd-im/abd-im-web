@@ -60,6 +60,7 @@ export const createQuoteSnapshot = (draft: QuoteDraft) => {
   return {
     ...draft.message,
     contentType: MessageType.TextMessage,
+    message: undefined,
     content: JSON.stringify({ content: draft.sourceText }),
     textElem: { content: draft.sourceText },
     streamElem: undefined,

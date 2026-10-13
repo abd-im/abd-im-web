@@ -4,6 +4,22 @@ import { describe, expect, it } from "vitest";
 import { createQuoteSnapshot } from "./partialQuote";
 
 describe("partial quote snapshot", () => {
+  it("drops the component body from the text-only quote snapshot", () => {
+    const original = {
+      clientMsgID: "v2",
+      contentType: MessageType.ComponentMessage,
+      message: { flags: 32768, components: [{ type: 10, content: "**answer**" }] },
+    } as MessageItem;
+    const snapshot = createQuoteSnapshot({
+      message: original,
+      quoteText: "answer",
+      quoteOffset: 0,
+      sourceText: "answer",
+    });
+    expect(snapshot.message).toBeUndefined();
+    expect(snapshot.textElem?.content).toBe("answer");
+    expect(original.message).toBeDefined();
+  });
   it("replaces stream payloads with the visible canonical text", () => {
     const message = {
       clientMsgID: "message-1",

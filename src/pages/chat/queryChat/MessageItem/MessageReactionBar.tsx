@@ -32,6 +32,7 @@ interface MessageReactionBarProps {
   menuItems?: MenuProps["items"];
   onMenuClick?: MenuProps["onClick"];
   actionsDisabled?: boolean;
+  embedded?: boolean;
   userProfiles?: Record<string, MessageReactionUserProfile>;
 }
 
@@ -48,6 +49,7 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
   menuItems,
   onMenuClick,
   actionsDisabled,
+  embedded,
   userProfiles = {},
 }) => {
   const { t } = useTranslation();
@@ -107,7 +109,9 @@ const MessageReactionBar: FC<MessageReactionBarProps> = ({
       className={clsx(
         styles["reaction-wrapper"],
         isSender && styles["reaction-wrapper-sender"],
+        embedded && styles["reaction-wrapper-embedded"],
       )}
+      data-reaction-has-content={hasReactions ? "true" : "false"}
     >
       {hasReactions && (
         <div className={styles["reaction-bar"]}>

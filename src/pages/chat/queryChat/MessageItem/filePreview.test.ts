@@ -18,6 +18,8 @@ describe("file previews", () => {
     expect(getFilePreviewType("page.html")).toBe("text");
     expect(getFilePreviewType("scan.PDF")).toBe("pdf");
     expect(getFilePreviewType("photo.jpg")).toBe("image");
+    expect(getFilePreviewType("recording.mp3")).toBe("audio");
+    expect(getFilePreviewType("demo.WEBM")).toBe("video");
     expect(getFilePreviewType("archive.zip")).toBeUndefined();
     expect(getFilePreviewType("document.docx")).toBeUndefined();
   });

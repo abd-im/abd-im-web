@@ -19,9 +19,12 @@ import { clearMessageRetry } from "./messageRetry";
 export interface SendMessageParams {
   message: MessageItem;
   conversation?: ConversationItem;
+  prepare?: () => Promise<MessageItem>;
 }
 
 const getPushDesc = (message: MessageItem): string => {
+  if (message.contentType === MessageType.ComponentMessage)
+    return getMessagePreview(message);
   switch (message.contentType) {
     case MessageType.TextMessage:
       return message.textElem?.content || "";
@@ -63,7 +66,7 @@ export function useSendMessage() {
   const selfInfo = useUserStore((state) => state.selfInfo);
 
   const sendMessage = useCallback(
-    async ({ message, conversation }: SendMessageParams) => {
+    async ({ message, conversation, prepare }: SendMessageParams) => {
       const targetConversation = conversation ?? currentConversation;
       if (!targetConversation) return false;
       if (!canStartDesktopTask()) return false;
@@ -88,6 +91,21 @@ export function useSendMessage() {
       }
 
       try {
+        if (prepare) {
+          const prepared = await prepare();
+          message = {
+            ...prepared,
+            clientMsgID: message.clientMsgID,
+            createTime: message.createTime,
+            sendTime: message.sendTime,
+            sendID: message.sendID,
+            senderNickname: message.senderNickname,
+            senderFaceUrl: message.senderFaceUrl,
+            sessionType: message.sessionType,
+            status: MessageStatus.Sending,
+          };
+          if (shouldRenderInCurrentChat()) updateOneMessage(message);
+        }
         const offlinePushInfo = {
           title: isGroup ? targetConversation.showName : selfInfo.nickname,
           desc: getPushDesc(message),

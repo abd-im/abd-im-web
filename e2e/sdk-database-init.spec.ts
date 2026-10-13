@@ -2,6 +2,60 @@ import { expect, test } from "@playwright/test";
 
 const baseURL = process.env.ABD_UI_BASE_URL || "http://localhost:5180";
 
+test("the installed SDK keeps message synchronization running after login", async ({
+  page,
+}) => {
+  const wsAddr = baseURL.replace(/^http/, "ws") + "/sdk-session-test";
+  let syncRequests = 0;
+  let completeLogin!: () => void;
+  const loginComplete = new Promise<void>((resolve) => {
+    completeLogin = resolve;
+  });
+  await page.routeWebSocket(
+    (url) => url.href.startsWith(wsAddr),
+    async (socket) => {
+      socket.onMessage((message) => {
+        if (typeof message !== "string") syncRequests++;
+      });
+      await loginComplete;
+      socket.send(JSON.stringify({ errCode: 0 }));
+    },
+  );
+  await page.goto(`${baseURL}/#/login`);
+  const result = await page.evaluate(
+    async ({ apiAddr, wsAddr }) => {
+      const { IMSDK } = await import("/src/layout/MainContentWrap.tsx");
+      await IMSDK.login({
+        userID: `session-test-${crypto.randomUUID()}`,
+        token: "test-token",
+        platformID: 5,
+        apiAddr,
+        wsAddr,
+        isLogStandardOutput: false,
+      });
+      const conversationID = "si_session_test";
+      const inserted = JSON.parse(
+        await window.insertConversation(
+          JSON.stringify({
+            conversationID,
+            conversationType: 1,
+            userID: "contact",
+            showName: "Test contact",
+            latestMsgSendTime: 1,
+          }),
+        ),
+      );
+      const { data } = await IMSDK.getConversationListSplit({ offset: 0, count: 10 });
+      return { inserted, conversations: data.map((item) => item.conversationID) };
+    },
+    { apiAddr: baseURL, wsAddr },
+  );
+  expect(result.inserted.errCode).toBe(0);
+  expect(result.conversations).toEqual(["si_session_test"]);
+  completeLogin();
+  await expect.poll(() => syncRequests).toBeGreaterThan(0);
+});
+
 test("the installed SDK loads its database worker and mention API", async ({
   page,
 }) => {

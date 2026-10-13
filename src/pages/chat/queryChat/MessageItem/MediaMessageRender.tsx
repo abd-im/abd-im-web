@@ -19,7 +19,13 @@ import { useCachedMedia } from "@/hooks/useCachedMedia";
 import { IMessageItemProps } from ".";
 import { getMediaPreviewSize } from "./mediaPreview";
 
-const MediaMessageRender: FC<IMessageItemProps> = ({ message }) => {
+const MediaMessageRender: FC<
+  IMessageItemProps & {
+    fit?: "tile" | "contain";
+    fluid?: boolean;
+    description?: string;
+  }
+> = ({ message, fit, fluid, description }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -53,27 +59,38 @@ const MediaMessageRender: FC<IMessageItemProps> = ({ message }) => {
 
   return (
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-      <div className="relative inline-grid max-w-full align-top">
+      <div
+        className={`relative inline-grid max-w-full align-top ${
+          fit === "tile" ? "h-full w-full" : ""
+        } ${fluid ? "w-full" : ""}`}
+      >
         <DialogTrigger asChild>
           <button
             type="button"
             className="message-image grid place-items-center overflow-hidden rounded-md border border-surface-border bg-app-shell text-faint-foreground shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             style={{
-              width: `${unavailable ? 132 : previewSize.width}px`,
+              width:
+                fit === "tile" || fluid
+                  ? "100%"
+                  : `${unavailable ? 132 : previewSize.width}px`,
+              height: fit === "tile" ? "100%" : undefined,
               maxWidth: "100%",
-              aspectRatio: unavailable
-                ? "4 / 3"
-                : `${previewSize.width} / ${previewSize.height}`,
+              aspectRatio:
+                fit === "tile"
+                  ? undefined
+                  : unavailable
+                  ? "4 / 3"
+                  : `${previewSize.width} / ${previewSize.height}`,
             }}
-            aria-label={t("placeholder.image")}
+            aria-label={description || t("placeholder.image")}
             disabled={!sourceUrl || imageFailed || isSending}
           >
             {sourceUrl && !imageFailed ? (
               <>
                 <img
-                  className="block h-full w-full object-cover"
+                  className="block h-full w-full object-contain"
                   src={sourceUrl}
-                  alt=""
+                  alt={description || ""}
                   onLoad={() => setImageLoading(false)}
                   onError={() => setImageFailed(true)}
                 />
@@ -113,7 +130,7 @@ const MediaMessageRender: FC<IMessageItemProps> = ({ message }) => {
             width: pictureElem.sourcePicture.width,
             height: pictureElem.sourcePicture.height,
           }}
-          alt={t("placeholder.image")}
+          alt={description || t("placeholder.image")}
         >
           {original.managed && !original.file && <MediaProgress media={original} />}
         </ImageViewer>

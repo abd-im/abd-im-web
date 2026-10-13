@@ -1,4 +1,4 @@
-export type FilePreviewType = "markdown" | "text" | "image" | "pdf";
+export type FilePreviewType = "markdown" | "text" | "image" | "pdf" | "audio" | "video";
 
 export const getFilePreviewType = (name: string): FilePreviewType | undefined => {
   const extension = name.split(".").pop()?.toLowerCase() || "";
@@ -6,6 +6,8 @@ export const getFilePreviewType = (name: string): FilePreviewType | undefined =>
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "avif"].includes(extension))
     return "image";
   if (extension === "pdf") return "pdf";
+  if (["mp4", "webm", "mov", "m4v"].includes(extension)) return "video";
+  if (["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(extension)) return "audio";
   if (
     [
       "txt",

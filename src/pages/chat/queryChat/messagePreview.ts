@@ -6,9 +6,12 @@ import {
   getMarkdownMessageContent,
   MARKDOWN_TEXT_MESSAGE_TYPE,
 } from "./markdownMessage";
+import { getV2Preview } from "./messageV2";
 
 export const getMessagePreview = (message?: MessageItem): string => {
   if (!message) return t("messageDescription.catchMessage");
+  if (message.contentType === MessageType.ComponentMessage)
+    return getV2Preview(message.message);
   const parts = getCompositeParts(message);
   if (parts)
     return parts

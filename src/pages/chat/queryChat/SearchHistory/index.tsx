@@ -15,6 +15,7 @@ import {
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
 import { IMSDK } from "@/layout/MainContentWrap";
 
+import V2MessageRender from "../MessageItem/V2MessageRender";
 import FileMessageRender from "../MessageItem/FileMessageRender";
 import MediaMessageRender from "../MessageItem/MediaMessageRender";
 import VideoMessageRender from "../MessageItem/VideoMessageRender";
@@ -97,10 +98,18 @@ const SearchHistory: ForwardRefRenderFunction<
           .filter((msg) => !msg.attachedInfoElem?.isPrivateChat)
           .map((msg) => (
             <div key={msg.clientMsgID} className="border-b border-gray-100 pb-2">
-              {type === "msg" && <div className="text-sm">{msg.textElem?.content}</div>}
-              {type === "pic" && <MediaMessageRender message={msg} />}
-              {type === "video" && <VideoMessageRender message={msg} />}
-              {type === "file" && <FileMessageRender message={msg} />}
+              {msg.contentType === MessageType.ComponentMessage ? (
+                <V2MessageRender message={msg} />
+              ) : (
+                <>
+                  {type === "msg" && (
+                    <div className="text-sm">{msg.textElem?.content}</div>
+                  )}
+                  {type === "pic" && <MediaMessageRender message={msg} />}
+                  {type === "video" && <VideoMessageRender message={msg} />}
+                  {type === "file" && <FileMessageRender message={msg} />}
+                </>
+              )}
               <div className="mt-1 text-[10px] text-gray-400">
                 {new Date(msg.sendTime).toLocaleString()}
               </div>

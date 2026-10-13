@@ -338,19 +338,6 @@
   border-radius: var(--radius-control);
   background: var(--surface-raised);
 }
-.composer-send-mode {
-  max-width: 150px;
-  padding: 4px 2px;
-  border: 0;
-  background: transparent;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  cursor: pointer;
-}
-.composer-send-mode:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 .composer-mention-hint {
   flex-shrink: 0;
   margin: 0;

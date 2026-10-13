@@ -256,10 +256,21 @@ export const GlobalSearchContent = ({
 
   const renderFileItem = (fileItem: any) => {
     const firstFileMsg = fileItem.messageList?.[0];
-    const fileName = firstFileMsg?.fileElem?.fileName || "文件";
-    const fileSize = firstFileMsg?.fileElem?.fileSize
-      ? bytesToSize(firstFileMsg.fileElem.fileSize)
-      : "";
+    const firstAttachment = firstFileMsg?.message?.attachments?.[0];
+    const fileName =
+      firstFileMsg?.fileElem?.fileName ||
+      firstFileMsg?.message?.attachments
+        ?.map((file: { filename: string }) => file.filename)
+        .join("、") ||
+      "文件";
+    const legacyFileSize = Number(firstFileMsg?.fileElem?.fileSize || 0);
+    const attachmentSize = Number(firstAttachment?.size || 0);
+    const fileSize =
+      legacyFileSize > 0
+        ? bytesToSize(legacyFileSize)
+        : attachmentSize > 0
+        ? bytesToSize(attachmentSize)
+        : "";
 
     return (
       <div

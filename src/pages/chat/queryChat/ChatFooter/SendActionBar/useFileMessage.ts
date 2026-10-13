@@ -1,8 +1,18 @@
-import { MessageItem } from "@abd-im/wasm-client-sdk";
+import {
+  AttachmentV2,
+  ComponentMessageParams,
+  MessageItem,
+  MessageType,
+} from "@abd-im/wasm-client-sdk";
 import { v4 as uuidV4 } from "uuid";
 
 import { IMSDK } from "@/layout/MainContentWrap";
 
+import {
+  registerUploadTask,
+  setUploadProgress,
+  unregisterUploadTask,
+} from "../../uploadProgress";
 import { AttachmentType, getAttachmentType } from "../attachmentType";
 import { registerMessageRetry } from "../messageRetry";
 
@@ -13,30 +23,98 @@ export interface FileWithPath extends File {
 // Keep successful uploads reusable if another part of the draft fails to prepare.
 const uploadedAttachments = new WeakMap<
   File,
-  Partial<Record<AttachmentType, Promise<MessageItem>>>
+  Partial<Record<AttachmentType, Promise<ComponentMessageParams>>>
 >();
 
 export function useFileMessage() {
-  const upload = async (file: File) => {
-    const uploadID = uuidV4();
-    const { data } = await IMSDK.uploadFile({
-      name: `${uploadID}/${file.name}`,
-      contentType: file.type || "application/octet-stream",
-      uuid: uploadID,
-      file,
+  const upload = async (file: File, progressID = uuidV4()) => {
+    const operationID = uuidV4();
+    const total = Math.max(file.size, 1);
+    registerUploadTask(progressID, operationID, () => {
+      IMSDK.cancelUploadFile(operationID);
     });
-    if (!/^https?:\/\//i.test(data.url))
-      throw new Error("Invalid attachment upload URL");
-    return data.url;
+    try {
+      const { data } = await IMSDK.uploadFile(
+        {
+          name: `${progressID}/${file.name}`,
+          contentType: file.type || "application/octet-stream",
+          uuid: progressID,
+          file,
+        },
+        operationID,
+        {
+          onProgress: ({ current, total, percent }) =>
+            setUploadProgress(progressID, { current, total, percent }),
+        },
+      );
+      // The local UI preview returns a blob URL; production uploads must be remote.
+      const isPreviewURL = import.meta.env.DEV && /^blob:/i.test(data.url);
+      if (!/^https?:\/\//i.test(data.url) && !isPreviewURL)
+        throw new Error("Invalid attachment upload URL");
+      setUploadProgress(progressID, {
+        current: total,
+        total,
+        percent: 100,
+      });
+      return data.url;
+    } finally {
+      unregisterUploadTask(progressID, operationID);
+    }
   };
 
-  // Nested merge parts are not uploaded by sendMessage. Upload them first and
-  // create URL-backed messages; never transmit local blob URLs to the recipient.
-  const getUploadedAttachmentMessage = (file: File, type: AttachmentType) => {
+  const getUploadedAttachmentBody = (
+    file: File,
+    type: AttachmentType,
+    progressID = uuidV4(),
+  ) => {
     const cached = uploadedAttachments.get(file) || {};
-    const existing = cached[type];
-    if (existing) return existing;
-    const pending = getAttachmentMessage(file, type, true).catch((error) => {
+    if (cached[type]) return cached[type]!;
+    const pending = (async (): Promise<ComponentMessageParams> => {
+      const url = await upload(file, progressID);
+      const attachment: AttachmentV2 = {
+        id: progressID,
+        filename: file.name,
+        size: file.size,
+        url,
+        proxy_url: url,
+        content_type: file.type || "application/octet-stream",
+      };
+      const attachments = [attachment];
+      if (type === "image") {
+        const { width, height } = await getPicInfo(file);
+        Object.assign(attachment, { width, height });
+      } else if (type === "video") {
+        const { duration, snapshotFile, width, height } = await getVideoInfo(file);
+        attachment.duration_secs = duration;
+        const coverUrl = await upload(snapshotFile, `${progressID}:poster`);
+        attachments.push({
+          id: `${progressID}:poster`,
+          filename: snapshotFile.name,
+          size: snapshotFile.size,
+          url: coverUrl,
+          proxy_url: coverUrl,
+          content_type: snapshotFile.type,
+          width,
+          height,
+        });
+      }
+      const media = { url, proxy_url: url, attachment_id: attachment.id };
+      return {
+        attachments,
+        components: [
+          type === "image" || type === "video"
+            ? { type: 12, id: 1, items: [{ media, description: null, spoiler: false }] }
+            : {
+                type: 13,
+                id: 1,
+                file: media,
+                name: file.name,
+                size: file.size,
+                spoiler: false,
+              },
+        ],
+      };
+    })().catch((error) => {
       delete cached[type];
       throw error;
     });
@@ -167,6 +245,8 @@ export function useFileMessage() {
   };
 
   const recreateFileBackedMessage = async (message: MessageItem) => {
+    // Component attachments are already uploaded; retry the same body and ID.
+    if (message.contentType === MessageType.ComponentMessage) return undefined;
     let sourceUrl = "";
     let fileName = "attachment";
     let createMessage: (file: File) => Promise<MessageItem>;
@@ -286,7 +366,7 @@ export function useFileMessage() {
     getVideoMessage,
     getFileMessage,
     getAttachmentMessage,
-    getUploadedAttachmentMessage,
+    getUploadedAttachmentBody,
     recreateFileBackedMessage,
   };
 }

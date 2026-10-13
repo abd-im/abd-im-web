@@ -45,6 +45,7 @@ import { formatMessageTime } from "@/utils/imCommon";
 
 import { useSendMessage } from "../chat/queryChat/ChatFooter/useSendMessage";
 import { getLatestUnreadMessageSeq } from "../chat/queryChat/historyMessageState";
+import { getV2Preview } from "../chat/queryChat/messageV2";
 import {
   captureQuoteSelection,
   createQuoteSnapshot,
@@ -68,6 +69,8 @@ const textContent = (message: MessageItem) => {
       return message.atTextElem?.text ?? "";
     case MessageType.QuoteMessage:
       return message.quoteElem?.text ?? "";
+    case MessageType.ComponentMessage:
+      return getV2Preview(message.message);
     default:
       return "";
   }
@@ -77,6 +80,7 @@ const USER_MESSAGE_TYPES = new Set<MessageType>([
   MessageType.TextMessage,
   MessageType.AtTextMessage,
   MessageType.QuoteMessage,
+  MessageType.ComponentMessage,
   MessageType.PictureMessage,
   MessageType.FileMessage,
 ]);
@@ -342,7 +346,11 @@ export default function AgentWorkspaceContent({
               quoteOffset: quoteMessage.quoteOffset,
             })
           ).data
-        : (await IMSDK.createTextMessage(trimmedPrompt)).data;
+        : (
+            await IMSDK.createComponentMessage({
+              components: [{ type: 10, id: 1, content: trimmedPrompt }],
+            })
+          ).data;
       if (!(await sendMessage({ message, conversation }))) return;
       setPrompt("");
       updateQuoteMessage();

@@ -6,7 +6,7 @@ import {
 import { type MenuProps, Tooltip } from "antd";
 import clsx from "clsx";
 import { Bot, CircleAlert, LoaderCircle, Reply } from "lucide-react";
-import { FC, memo, useEffect, useMemo, useState } from "react";
+import { FC, memo, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { message as antMessage } from "@/AntdGlobalComp";
@@ -20,6 +20,7 @@ import { useConversationStore, useUserStore } from "@/store";
 
 import { MARKDOWN_TEXT_MESSAGE_TYPE } from "../markdownMessage";
 import { messageDate } from "../messageDate";
+import { getV2Preview } from "../messageV2";
 import { captureQuoteSelection, QuoteSelection } from "../partialQuote";
 import { deleteMessage } from "../useHistoryMessageList";
 import { useVisibleReadCursor } from "../useVisibleReadCursor";
@@ -38,6 +39,7 @@ import MessageReadReceipt from "./MessageReadReceipt";
 import QuoteMessageRender from "./QuoteMessageRender";
 import StreamMessageRender from "./StreamMessageRender";
 import TextMessageRender from "./TextMessageRender";
+import V2MessageRender from "./V2MessageRender";
 import VideoMessageRender from "./VideoMessageRender";
 
 export interface IMessageItemProps {
@@ -62,9 +64,11 @@ export interface IMessageItemProps {
   onToggleSelection?: (messageID: string) => void;
   onForward?: (messageID: string) => void;
   onRetry?: () => void;
+  reactionContent?: ReactNode;
 }
 
 const components: Record<number, FC<IMessageItemProps>> = {
+  [MessageType.ComponentMessage]: V2MessageRender,
   [MessageType.TextMessage]: TextMessageRender,
   [MessageType.AtTextMessage]: AtTextMessageRender,
   [MessageType.StreamMessage]: StreamMessageRender,
@@ -180,6 +184,16 @@ const MessageItem: FC<IMessageItemProps> = ({
       Boolean(message.clientMsgID) &&
       !isPrivate);
   const hasReactions = canReact && Boolean(reactionSummary?.reactions.length);
+  const isV2Message =
+    message.contentType === MessageType.ComponentMessage && Boolean(message.message);
+  const isV2Uploading =
+    isV2Message &&
+    Boolean(
+      message.message?.attachments?.length ||
+        message.message?.components?.some(
+          (c) => c.type === 11 || c.type === 12 || c.type === 13,
+        ),
+    );
   const canShowReadReceipt =
     showReadReceipt &&
     isSender &&
@@ -197,7 +211,10 @@ const MessageItem: FC<IMessageItemProps> = ({
     if (canForward) {
       items.push({ key: "forward", label: t("placeholder.forward") });
     }
-    if (message.contentType === MessageType.TextMessage) {
+    if (
+      message.contentType === MessageType.TextMessage ||
+      message.contentType === MessageType.ComponentMessage
+    ) {
       items.push({ key: "copy", label: t("placeholder.copy") });
     }
     if (canForward) {
@@ -223,7 +240,11 @@ const MessageItem: FC<IMessageItemProps> = ({
     switch (key) {
       case "copy":
         try {
-          await navigator.clipboard.writeText(message.textElem?.content || "");
+          await navigator.clipboard.writeText(
+            isV2Message
+              ? getV2Preview(message.message)
+              : message.textElem?.content || "",
+          );
           antMessage.success(t("toast.copySuccess"));
         } catch (err) {
           antMessage.error(t("toast.copyFailed"));
@@ -393,11 +414,22 @@ const MessageItem: FC<IMessageItemProps> = ({
               )}
             </div>
 
-            <div className={styles["message-content-group"]}>
-              <div className={styles["message-content-row"]}>
+            <div
+              className={clsx(
+                styles["message-content-group"],
+                isV2Message && styles["message-content-group-v2"],
+              )}
+            >
+              <div
+                className={clsx(
+                  styles["message-content-row"],
+                  isV2Message && styles["message-content-row-v2"],
+                )}
+              >
                 {isSender &&
                   showSending &&
-                  message.status === MessageStatus.Sending && (
+                  message.status === MessageStatus.Sending &&
+                  !isV2Uploading && (
                     <span
                       className="mr-2 grid h-7 w-7 shrink-0 place-items-center text-muted-foreground"
                       role="status"
@@ -431,8 +463,12 @@ const MessageItem: FC<IMessageItemProps> = ({
                   data-message-bubble-wrap
                   className={clsx(
                     styles["message-bubble-wrap"],
-                    hasReactions && styles["message-bubble-wrap-reaction-shell"],
-                    hasReactions && styles["message-bubble-wrap-with-reactions"],
+                    hasReactions &&
+                      !isV2Message &&
+                      styles["message-bubble-wrap-reaction-shell"],
+                    hasReactions &&
+                      !isV2Message &&
+                      styles["message-bubble-wrap-with-reactions"],
                   )}
                 >
                   <div className={styles["message-bubble-anchor"]}>
@@ -441,24 +477,48 @@ const MessageItem: FC<IMessageItemProps> = ({
                         message={message}
                         isSender={isSender}
                         disabled={disabled}
+                        reactionContent={
+                          isV2Message ? (
+                            <MessageReactionBar
+                              summary={reactionSummary}
+                              isSender={isSender}
+                              showReactionAction={showReactionAction}
+                              canReact={canReact}
+                              isPending={isReactionPending}
+                              onToggle={onToggleReaction}
+                              userProfiles={reactionUserProfiles}
+                              onReply={
+                                canReply
+                                  ? () => void handleMenuAction("reply")
+                                  : undefined
+                              }
+                              menuItems={menuItems}
+                              onMenuClick={onMenuClick}
+                              actionsDisabled={disabled || selectionMode}
+                              embedded
+                            />
+                          ) : undefined
+                        }
                       />
                     </MessageItemErrorBoundary>
                   </div>
-                  <MessageReactionBar
-                    summary={reactionSummary}
-                    isSender={isSender}
-                    showReactionAction={showReactionAction}
-                    canReact={canReact}
-                    isPending={isReactionPending}
-                    onToggle={onToggleReaction}
-                    userProfiles={reactionUserProfiles}
-                    onReply={
-                      canReply ? () => void handleMenuAction("reply") : undefined
-                    }
-                    menuItems={menuItems}
-                    onMenuClick={onMenuClick}
-                    actionsDisabled={disabled || selectionMode}
-                  />
+                  {!isV2Message && (
+                    <MessageReactionBar
+                      summary={reactionSummary}
+                      isSender={isSender}
+                      showReactionAction={showReactionAction}
+                      canReact={canReact}
+                      isPending={isReactionPending}
+                      onToggle={onToggleReaction}
+                      userProfiles={reactionUserProfiles}
+                      onReply={
+                        canReply ? () => void handleMenuAction("reply") : undefined
+                      }
+                      menuItems={menuItems}
+                      onMenuClick={onMenuClick}
+                      actionsDisabled={disabled || selectionMode}
+                    />
+                  )}
                   {canShowReadReceipt && conversationID && (
                     <MessageReadReceipt
                       conversationID={conversationID}

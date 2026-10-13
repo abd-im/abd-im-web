@@ -127,8 +127,7 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
   },
   updateQuoteMessage: (quote?: QuoteDraft | MessageItem) => {
     set(() => ({
-      quoteMessage:
-        quote && "message" in quote ? quote : quote ? { message: quote } : undefined,
+      quoteMessage: quote && "clientMsgID" in quote ? { message: quote } : quote,
     }));
   },
   getUnReadCountByReq: async () => {

@@ -6,6 +6,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { ImageViewer } from "@/components/ImageViewer";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { MediaProgress } from "@/components/MediaProgress";
 import {
   Button,
@@ -57,7 +59,7 @@ export default function FilePreviewModal({
     setText("");
     setError("");
     setLoading(false);
-    if (!type || !safeUrl) return;
+    if (!type || !safeUrl || type === "video" || type === "audio") return;
     const limit = getPreviewSizeLimit(type);
     if (size > limit) {
       setError("tooLarge");
@@ -176,6 +178,10 @@ export default function FilePreviewModal({
                 </Button>
               )}
             </div>
+          ) : type === "video" ? (
+            <VideoPlayer src={safeUrl} />
+          ) : type === "audio" ? (
+            <AudioPlayer src={safeUrl} name={name} />
           ) : type === "markdown" ? (
             <div className={`typeset ${styles["file-markdown"]}`}>
               <ReactMarkdown

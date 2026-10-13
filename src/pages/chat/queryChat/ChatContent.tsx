@@ -42,6 +42,7 @@ import { useMessageReactions } from "./useMessageReactions";
 import { useMessageReadReceipts } from "./useMessageReadReceipts";
 
 const REACTABLE_MESSAGE_TYPES = new Set<MessageType>([
+  MessageType.ComponentMessage,
   MessageType.TextMessage,
   MessageType.PictureMessage,
   MessageType.VoiceMessage,

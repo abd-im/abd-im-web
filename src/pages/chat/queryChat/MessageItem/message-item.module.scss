@@ -218,12 +218,21 @@
       max-width: 65%;
     }
 
+    .message-content-group-v2 {
+      width: fit-content;
+      max-width: 100%;
+    }
+
     .message-content-row {
       display: flex;
       width: max-content;
       max-width: 100%;
       min-width: 0;
       align-items: center;
+    }
+
+    .message-content-row-v2 {
+      width: fit-content;
     }
 
     .message-bubble-wrap {
@@ -324,6 +333,10 @@
       .message-content-group {
         @apply items-end;
       }
+
+      .message-content-row {
+        justify-content: flex-end;
+      }
     }
   }
 }
@@ -334,6 +347,10 @@
 
 .reaction-wrapper-sender {
   @apply self-end;
+}
+
+.reaction-wrapper-embedded .reaction-bar {
+  margin: 0;
 }
 
 .reaction-actions {

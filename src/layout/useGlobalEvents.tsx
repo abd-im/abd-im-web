@@ -312,6 +312,7 @@ export function useGlobalEvent() {
     updateOneMessage({
       clientMsgID: data.clientMsgID,
       contentType: MessageType.RevokeMessage,
+      message: undefined,
       notificationElem: {
         detail: JSON.stringify(data),
       },

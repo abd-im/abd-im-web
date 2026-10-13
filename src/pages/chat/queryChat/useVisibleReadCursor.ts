@@ -44,11 +44,14 @@ export function useVisibleReadCursor(
       const selfID = useUserStore.getState().selfInfo.userID;
       const mayMentionMe =
         message.sessionType === SessionType.WorkingGroup &&
-        message.contentType === MessageType.AtTextMessage &&
         message.sendID !== selfID &&
-        message.atTextElem?.atUserList?.some(
-          (userID) => userID === selfID || userID === AT_ALL_TAG,
-        );
+        (message.contentType === MessageType.AtTextMessage
+          ? message.atTextElem?.atUserList?.some(
+              (userID) => userID === selfID || userID === AT_ALL_TAG,
+            )
+          : message.contentType === MessageType.ComponentMessage &&
+            (message.message?.mention_everyone ||
+              message.message?.mentions?.some((user) => user.id === selfID)));
       if (
         mayMentionMe &&
         current.unreadMentionCount > 0 &&
@@ -111,6 +114,8 @@ export function useVisibleReadCursor(
     message.contentType,
     message.sendID,
     message.atTextElem?.atUserList,
+    message.message?.mention_everyone,
+    message.message?.mentions,
     immediate,
   ]);
   return ref;

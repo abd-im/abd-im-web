@@ -1,8 +1,11 @@
 import dayjs from "dayjs";
 import { t } from "i18next";
 
-export const messageDate = (timestamp: number) =>
-  dayjs(timestamp < 10000000000 ? timestamp * 1000 : timestamp);
+export const messageDate = (timestamp: number) => {
+  if (!timestamp || isNaN(timestamp) || timestamp < 0) return dayjs();
+  const d = dayjs(timestamp < 10000000000 ? timestamp * 1000 : timestamp);
+  return d.isValid() ? d : dayjs();
+};
 
 export const startsMessageDay = (timestamp: number, previous?: number) =>
   Boolean(timestamp) &&

@@ -20,9 +20,16 @@ import { feedbackToast, secondsToMS } from "@/utils/common";
 import { IMessageItemProps } from ".";
 import { getMediaPreviewSize } from "./mediaPreview";
 
-const VideoMessageRender: FC<IMessageItemProps> = ({ message }) => {
+const VideoMessageRender: FC<
+  IMessageItemProps & {
+    fit?: "tile" | "contain";
+    fluid?: boolean;
+    description?: string;
+  }
+> = ({ message, fit, fluid, description }) => {
   const { t } = useTranslation();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [detectedDuration, setDetectedDuration] = useState(0);
   const videoElem = message.videoElem;
   const snapshot = useCachedMedia(message, "snapshot", true, true);
   const video = useCachedMedia(message, "video", previewOpen, true);
@@ -36,29 +43,45 @@ const VideoMessageRender: FC<IMessageItemProps> = ({ message }) => {
   const previewSize = getMediaPreviewSize(
     videoElem.snapshotWidth,
     videoElem.snapshotHeight,
+    320,
+    180,
   );
 
   const seekToPreviewFrame = (event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
     if (Number.isFinite(video.duration) && video.duration > 0) {
+      setDetectedDuration(video.duration);
       video.currentTime = Math.min(1, video.duration * 0.1);
     }
   };
 
   return (
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="group relative block overflow-hidden rounded-md border border-surface-border bg-app-shell text-left shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          style={{
-            width: `${previewSize.width}px`,
-            maxWidth: "100%",
-            aspectRatio: `${previewSize.width} / ${previewSize.height}`,
-          }}
-          aria-label={t("placeholder.video")}
-          disabled={!videoUrl}
-        >
+      <div
+        className={`relative inline-grid max-w-full align-top ${
+          fit === "tile" ? "h-full w-full" : ""
+        } ${fluid ? "w-full" : ""}`}
+      >
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="group relative block w-full overflow-hidden rounded-md border border-surface-border bg-app-shell text-left shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            style={{
+              width:
+                fit === "tile" || fluid
+                  ? "100%"
+                  : `${previewSize.width}px`,
+              height: fit === "tile" ? "100%" : undefined,
+              maxWidth: "100%",
+              minWidth: fit === "tile" ? undefined : "min(100%, 280px)",
+              aspectRatio:
+                fit === "tile"
+                  ? undefined
+                  : `${previewSize.width} / ${previewSize.height}`,
+            }}
+            aria-label={description || t("placeholder.video")}
+            disabled={!videoUrl}
+          >
           {!snapshot.managed && videoUrl ? (
             <video
               className="h-full w-full object-cover"
@@ -82,7 +105,11 @@ const VideoMessageRender: FC<IMessageItemProps> = ({ message }) => {
             </span>
           </span>
           <span className="absolute bottom-2 right-2 rounded bg-black/65 px-1.5 py-0.5 text-[10px] tabular-nums text-white">
-            {secondsToMS(videoElem.duration)}
+            {videoElem.duration > 0
+              ? secondsToMS(videoElem.duration)
+              : detectedDuration > 0
+              ? secondsToMS(detectedDuration)
+              : t("placeholder.video")}
           </span>
           {message.status === MessageStatus.Sending && (
             <span className="bg-surface/70 absolute inset-0 grid place-items-center">
@@ -91,7 +118,8 @@ const VideoMessageRender: FC<IMessageItemProps> = ({ message }) => {
           )}
         </button>
       </DialogTrigger>
-      <DialogContent className="video-preview-dialog">
+    </div>
+    <DialogContent className="video-preview-dialog">
         <header className="flex items-center justify-end">
           <DialogTitle className="sr-only">{t("placeholder.video")}</DialogTitle>
           <DialogClose asChild>

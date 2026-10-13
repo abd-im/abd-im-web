@@ -38,15 +38,19 @@
     "failed": "Could not load the preview. Retry or download the file.",
     "retry": "Retry"
   },
+  "messageComponents": {
+    "select": "Select an option",
+    "spoiler": "Reveal hidden content",
+    "premium": "Purchase",
+    "notConnected": "Interactions are not connected yet"
+  },
   "attachments": {
     "pending": "Pending attachments",
-    "sendMode": "Send mode",
-    "combined": "Send together",
-    "separate": "Send separately",
     "combinedTitle": "Text and attachments",
-    "modeHint": "Together: one bubble, reply and forward. Separately: one message for the text and each attachment.",
     "mentionHint": "Messages with @mentions are sent separately to preserve mention notifications.",
     "sending": "Sending…",
+    "uploadingMultiple": "Uploading {{count}} files",
+    "uploadingMultipleWithSize": "Uploading {{count}} files — {{size}}",
     "remove": "Remove {{name}}"
   },
   "messageReadReceipt": {

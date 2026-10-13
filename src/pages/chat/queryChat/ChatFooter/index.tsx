@@ -1,7 +1,7 @@
 import {
+  ComponentMessageParams,
   GroupMemberRole,
   MessageItem,
-  MessageStatus,
   SessionType,
 } from "@abd-im/wasm-client-sdk";
 import type {
@@ -38,7 +38,6 @@ import { useContactStore } from "@/store/contact";
 import { feedbackToast } from "@/utils/common";
 import { beginDesktopTask } from "@/utils/desktopTasks";
 
-import { COMPOSITE_MESSAGE_EX } from "../compositeMessage";
 import { AT_ALL_TAG } from "../mentions";
 import { getMessagePreview } from "../messagePreview";
 import { createQuoteSnapshot } from "../partialQuote";
@@ -48,6 +47,7 @@ import MentionPicker, {
   getMentionWireName,
   type MentionCandidate,
 } from "./MentionPicker";
+import { registerMessageRetry } from "./messageRetry";
 import SendActionBar from "./SendActionBar";
 import { useFileMessage } from "./SendActionBar/useFileMessage";
 import { useSendMessage } from "./useSendMessage";
@@ -61,7 +61,6 @@ const ChatFooter = () => {
   const [selectedMentions, setSelectedMentions] = useState<AtUsersInfoItem[]>([]);
   const ckEditorRef = useRef<CKEditorRef>(null);
   const fileDragDepth = useRef(0);
-  const [sendMode, setSendMode] = useState<"combined" | "separate">("combined");
   const currentConversation = useConversationStore(
     (state) => state.currentConversation,
   );
@@ -81,7 +80,7 @@ const ChatFooter = () => {
   const quoteMessage = useConversationStore((state) => state.quoteMessage);
   const updateQuoteMessage = useConversationStore((state) => state.updateQuoteMessage);
 
-  const { getAttachmentMessage, getUploadedAttachmentMessage } = useFileMessage();
+  const { getUploadedAttachmentBody } = useFileMessage();
   const { sendMessage } = useSendMessage();
   const isGroup = currentConversation?.conversationType === SessionType.WorkingGroup;
   const mentionKeyword = mentionQuery?.query;
@@ -277,6 +276,11 @@ const ChatFooter = () => {
       type: requestedType ?? getAttachmentType(file),
     }));
     useComposerStore.getState().add(draftKey, additions);
+    // Start uploading as soon as a file enters the composer. The same cached
+    // promise is awaited again when the message is sent.
+    additions.forEach(({ id, file, type }) => {
+      void getUploadedAttachmentBody(file, type, id).catch(() => undefined);
+    });
     ckEditorRef.current?.focus(true);
   };
 
@@ -322,16 +326,18 @@ const ChatFooter = () => {
     addFiles(files);
   };
 
-  const hasMentions = selectedMentions.some(({ groupNickname }) =>
-    getCleanText(html || "").includes(`@${groupNickname}`),
-  );
-
   const enterToSend = async () => {
     const cleanText = getCleanText(latestHtml.current ?? "");
     const conversation = currentConversation;
     if ((!cleanText && !pendingFiles.length) || !conversation) return;
     if (!useComposerStore.getState().startSending(draftKey)) return;
     const finishTask = beginDesktopTask();
+    let composerReleased = false;
+    const releaseComposer = () => {
+      if (composerReleased) return;
+      composerReleased = true;
+      useComposerStore.getState().finishSending(draftKey);
+    };
     const clearText = () => {
       setHtml("");
       if (
@@ -348,74 +354,108 @@ const ChatFooter = () => {
       const atUsersInfo = selectedMentions.filter(({ groupNickname }) =>
         cleanText.includes(`@${groupNickname}`),
       );
-      const textMessage =
-        !cleanText && !quoteMessage
-          ? undefined
-          : atUsersInfo.length
-          ? (
-              await IMSDK.createTextAtMessage({
-                text: cleanText,
-                atUserIDList: atUsersInfo.map((item) => item.atUserID),
-                atUsersInfo,
-                message: quoteMessage ? createQuoteSnapshot(quoteMessage) : undefined,
-              })
-            ).data
-          : quoteMessage
-          ? (
-              await (
-                IMSDK.createQuoteMessage as unknown as (params: {
-                  text: string;
-                  message: MessageItem;
-                  quoteText?: string;
-                  quoteOffset?: number;
-                }) => ReturnType<typeof IMSDK.createQuoteMessage>
-              )({
-                text: cleanText,
-                message: createQuoteSnapshot(quoteMessage),
-                quoteText: quoteMessage.quoteText,
-                quoteOffset: quoteMessage.quoteOffset,
-              })
-            ).data
-          : (await IMSDK.createTextMessage(cleanText)).data;
-
-      const combined =
-        sendMode === "combined" &&
-        !atUsersInfo.length &&
-        pendingFiles.length + Number(Boolean(textMessage)) > 1;
-      if (combined) {
-        const parts: MessageItem[] = textMessage ? [textMessage] : [];
-        for (const { file, type } of pendingFiles) {
-          parts.push(await getUploadedAttachmentMessage(file, type));
+      // Partial quotes retain their existing protocol until their metadata is migrated.
+      if (quoteMessage) {
+        const { data: message } = atUsersInfo.length
+          ? await IMSDK.createTextAtMessage({
+              text: cleanText,
+              atUserIDList: atUsersInfo.map((item) => item.atUserID),
+              atUsersInfo,
+              message: createQuoteSnapshot(quoteMessage),
+            })
+          : await IMSDK.createQuoteMessage({
+              text: cleanText,
+              message: createQuoteSnapshot(quoteMessage),
+              quoteText: quoteMessage.quoteText,
+              quoteOffset: quoteMessage.quoteOffset,
+            } as Parameters<typeof IMSDK.createQuoteMessage>[0]);
+        clearText();
+        if (!(await sendMessage({ message, conversation }))) return;
+      }
+      let text = cleanText;
+      for (const user of atUsersInfo) {
+        if (user.atUserID === AT_ALL_TAG)
+          text = text.replaceAll(`@${user.groupNickname}`, "@everyone");
+      }
+      const textBody: ComponentMessageParams = {
+        components: !quoteMessage && text ? [{ type: 10, id: 1, content: text }] : [],
+        mentions: atUsersInfo
+          .filter((user) => user.atUserID !== AT_ALL_TAG)
+          .map((user) => ({ id: user.atUserID, username: user.groupNickname })),
+        mention_everyone: atUsersInfo.some((user) => user.atUserID === AT_ALL_TAG),
+      };
+      if (!quoteMessage) {
+        const localURLs: string[] = [];
+        const dispose = () => localURLs.forEach((url) => URL.revokeObjectURL(url));
+        const prepareBody = async (upload: boolean) => {
+          const body: ComponentMessageParams = {
+            ...textBody,
+            components: [...textBody.components],
+            attachments: [],
+          };
+          for (const { id, file, type } of pendingFiles) {
+            if (upload) {
+              const part = await getUploadedAttachmentBody(file, type, id);
+              body.components.push(...part.components);
+              body.attachments!.push(...(part.attachments || []));
+            } else {
+              const url = URL.createObjectURL(file);
+              localURLs.push(url);
+              body.attachments!.push({
+                id,
+                filename: file.name,
+                size: file.size,
+                url,
+                content_type: file.type || "application/octet-stream",
+              });
+              body.components.push(
+                type === "image" || type === "video"
+                  ? { type: 12, items: [{ media: { url, attachment_id: id } }] }
+                  : {
+                      type: 13,
+                      file: { url, attachment_id: id },
+                      name: file.name,
+                      size: file.size,
+                      spoiler: false,
+                    },
+              );
+            }
+          }
+          body.components.forEach((component, index) => {
+            component.id = index + 1;
+          });
+          return (await IMSDK.createComponentMessage(body)).data;
+        };
+        let message: MessageItem;
+        try {
+          message = await prepareBody(false);
+        } catch (error) {
+          dispose();
+          throw error;
         }
-        const { data: message } = await IMSDK.createMergerMessage({
-          messageList: parts.map((part) => ({
-            ...part,
-            status: MessageStatus.Succeed,
-          })),
-          title: t("attachments.combinedTitle"),
-          summaryList: parts.map((part) => getMessagePreview(part)),
-        });
-        message.ex = COMPOSITE_MESSAGE_EX;
+        const prepare = pendingFiles.length ? () => prepareBody(true) : undefined;
+        if (prepare) registerMessageRetry(message.clientMsgID, prepare, dispose);
         removeAttachments(pendingFiles.map(({ id }) => id));
         clearText();
-        await sendMessage({ message, conversation });
+        releaseComposer();
+        await sendMessage({ message, conversation, prepare });
       } else {
-        if (textMessage) {
+        if (textBody.components.length) {
+          const { data: message } = await IMSDK.createComponentMessage(textBody);
           clearText();
-          if (!(await sendMessage({ message: textMessage, conversation }))) return;
+          if (!(await sendMessage({ message, conversation }))) return;
         }
         for (const { id, file, type } of pendingFiles) {
-          const message = await getAttachmentMessage(file, type);
+          const body = await getUploadedAttachmentBody(file, type, id);
+          const { data: message } = await IMSDK.createComponentMessage(body);
           removeAttachments([id]);
-          // Failed transmissions have a retryable bubble; leave all unattempted
-          // attachments in the draft so retrying cannot duplicate successful ones.
           if (!(await sendMessage({ message, conversation }))) break;
         }
       }
     } catch (error) {
       feedbackToast({ error });
     } finally {
-      useComposerStore.getState().finishSending(draftKey);
+      releaseComposer();
       finishTask();
     }
   };
@@ -500,25 +540,6 @@ const ChatFooter = () => {
               />
             </fieldset>
             <div className="flex shrink-0 items-center gap-2">
-              {pendingFiles.length > 0 && (
-                <select
-                  className="composer-send-mode"
-                  aria-label={t("attachments.sendMode")}
-                  value={hasMentions ? "separate" : sendMode}
-                  disabled={sending || hasMentions}
-                  title={
-                    hasMentions
-                      ? t("attachments.mentionHint")
-                      : t("attachments.modeHint")
-                  }
-                  onChange={(event) =>
-                    setSendMode(event.target.value as "combined" | "separate")
-                  }
-                >
-                  <option value="combined">{t("attachments.combined")}</option>
-                  <option value="separate">{t("attachments.separate")}</option>
-                </select>
-              )}
               <Button
                 variant="primary"
                 size="small"
@@ -532,9 +553,6 @@ const ChatFooter = () => {
               </Button>
             </div>
           </div>
-          {pendingFiles.length > 0 && hasMentions && (
-            <p className="composer-mention-hint">{t("attachments.mentionHint")}</p>
-          )}
         </div>
       </div>
     </footer>

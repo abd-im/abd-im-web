@@ -1,7 +1,8 @@
+import { ComponentMessageParams } from "@abd-im/wasm-client-sdk";
 import { PopoverProps, Upload } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
 import i18n, { t } from "i18next";
-import { ContactRound, Film, Image, Paperclip, Smile } from "lucide-react";
+import { ContactRound, Paperclip, Smile } from "lucide-react";
 import { memo, ReactNode, useEffect, useState } from "react";
 import React from "react";
 
@@ -26,22 +27,6 @@ const sendActionList = [
     placement: "top",
   },
   {
-    title: t("placeholder.image"),
-    icon: Image,
-    key: "image",
-    accept: "image/*",
-    comp: null,
-    placement: undefined,
-  },
-  {
-    title: t("placeholder.video"),
-    icon: Film,
-    key: "video",
-    accept: "video/*",
-    comp: null,
-    placement: undefined,
-  },
-  {
     title: t("placeholder.card"),
     icon: ContactRound,
     key: "card",
@@ -53,7 +38,7 @@ const sendActionList = [
     title: t("placeholder.file"),
     icon: Paperclip,
     key: "file",
-    accept: "*",
+    accept: "*/*",
     comp: null,
     placement: undefined,
   },
@@ -61,10 +46,8 @@ const sendActionList = [
 
 i18n.on("languageChanged", () => {
   sendActionList[0].title = t("placeholder.emoji");
-  sendActionList[1].title = t("placeholder.image");
-  sendActionList[2].title = t("placeholder.video");
-  sendActionList[3].title = t("placeholder.card");
-  sendActionList[4].title = t("placeholder.file");
+  sendActionList[1].title = t("placeholder.card");
+  sendActionList[2].title = t("placeholder.file");
 });
 
 const SendActionBar = ({
@@ -83,12 +66,42 @@ const SendActionBar = ({
     const sendCard = async (user: CheckListItem) => {
       if (!user.userID) return;
       try {
-        const { data: message } = await IMSDK.createCardMessage({
-          userID: user.userID,
-          nickname: getUserDisplayName(user, user.showName),
-          faceURL: user.faceURL || "",
-          ex: "",
-        });
+        const nickname = getUserDisplayName(user, user.showName);
+        const cardBody: ComponentMessageParams = {
+          components: [
+            {
+              type: 17,
+              id: 1,
+              components: [
+                {
+                  type: 9,
+                  id: 2,
+                  components: [
+                    {
+                      type: 10,
+                      id: 3,
+                      content: `**<@${user.userID}>**\n${t(
+                        "placeholder.personalCard",
+                      )}`,
+                    },
+                  ],
+                  ...(user.faceURL
+                    ? {
+                        accessory: {
+                          type: 11,
+                          id: 4,
+                          media: { url: user.faceURL },
+                          description: nickname,
+                        },
+                      }
+                    : {}),
+                },
+              ],
+            },
+          ],
+          mentions: [{ id: user.userID, username: nickname }],
+        };
+        const { data: message } = await IMSDK.createComponentMessage(cardBody);
         await sendMessage({ message });
       } catch (error) {
         feedbackToast({ error });
@@ -146,7 +159,11 @@ const SendActionBar = ({
             popProps={action.key === "card" ? undefined : popProps}
             key={action.key}
             accept={action.accept}
-            fileHandle={(files) => onAddFiles(files, action.key as AttachmentType)}
+            fileHandle={(files) =>
+              action.key === "file"
+                ? onAddFiles(files)
+                : onAddFiles(files, action.key as AttachmentType)
+            }
           >
             <Button
               variant="ghost"

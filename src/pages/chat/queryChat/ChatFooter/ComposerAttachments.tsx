@@ -1,4 +1,4 @@
-import { FileText, X } from "lucide-react";
+import { FileText, FileVideo, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,13 +9,15 @@ import { bytesToSize } from "@/utils/common";
 import { getAttachmentType } from "./attachmentType";
 
 function AttachmentThumbnail({ file }: { file: File }) {
+  const attachmentType = getAttachmentType(file);
   const [url, setUrl] = useState<string>();
   useEffect(() => {
-    if (getAttachmentType(file) !== "image") return;
+    if (attachmentType !== "image") return;
     const objectUrl = URL.createObjectURL(file);
     setUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+  }, [attachmentType, file]);
+  const Icon = attachmentType === "video" ? FileVideo : FileText;
   return url ? (
     <img
       src={url}
@@ -23,8 +25,11 @@ function AttachmentThumbnail({ file }: { file: File }) {
       className="h-12 w-12 shrink-0 rounded object-contain"
     />
   ) : (
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded bg-app-shell text-muted-foreground">
-      <FileText size={24} />
+    <span
+      className="grid h-12 w-12 shrink-0 place-items-center rounded bg-app-shell text-muted-foreground"
+      data-attachment-type={attachmentType}
+    >
+      <Icon size={24} />
     </span>
   );
 }
