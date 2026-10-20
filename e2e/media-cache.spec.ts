@@ -122,7 +122,9 @@ test("real WASM caches cross-origin attachments once, reads after offline restar
         return;
       }
       response.setHeader("Content-Length", "11");
-      response.end("hello cache");
+      response.end(
+        request.url === "/object/combined-second" ? "other cache" : "hello cache",
+      );
     } else {
       response.writeHead(404).end();
     }
@@ -242,6 +244,67 @@ test("real WASM caches cross-origin attachments once, reads after offline restar
       rejected: true,
     });
     expect(requests).toBe(1);
+    const combined = await running.page.evaluate(async (apiAddr) => {
+      const sdk = Reflect.get(window, "sdk");
+      const attachments = ["first", "second"].map((id) => ({
+        id,
+        filename: "storage.md",
+        content_type: "text/markdown",
+        size: 11,
+        url: `${apiAddr}/object/combined-${id}`,
+      }));
+      const body = {
+        flags: 32768,
+        components: [
+          { type: 10, id: 1, content: "Combined files" },
+          ...attachments.map((file, index) => ({
+            type: 13,
+            id: index + 2,
+            file: { url: "attachment://storage.md", attachment_id: file.id },
+            name: file.filename,
+            size: file.size,
+            spoiler: false,
+          })),
+        ],
+        attachments,
+      };
+      const raw = await Reflect.get(window, "batchInsertMessageList")(
+        "si_alice_bob",
+        JSON.stringify([
+          {
+            clientMsgID: "combined",
+            status: 2,
+            contentType: 144,
+            sessionType: 1,
+            sendID: "bob",
+            recvID: "alice",
+            seq: 20,
+            sendTime: 1,
+            content: JSON.stringify(body),
+            attachedInfo: "{}",
+          },
+        ]),
+      );
+      if (JSON.parse(raw).errCode) throw new Error(raw);
+      const results = [];
+      for (const attachmentID of ["first", "second"]) {
+        const ref = {
+          conversationID: "si_alice_bob",
+          clientMsgID: "combined",
+          attachmentID,
+          variant: "source",
+        };
+        const state = (await sdk.cacheMedia(ref)).data;
+        const file = (await sdk.openMedia(ref)).data;
+        const text = await (await fetch(file.location)).text();
+        await sdk.closeMedia(file.ref);
+        results.push({ key: state.key, state: state.state, text });
+      }
+      return results;
+    }, apiAddr);
+    expect(combined.map((item) => item.text)).toEqual(["hello cache", "other cache"]);
+    expect(combined.map((item) => item.state)).toEqual(["completed", "completed"]);
+    expect(combined[0].key).not.toBe(combined[1].key);
     const image = await running.page.evaluate(
       async ({ apiAddr, size }) => {
         const sdk = Reflect.get(window, "sdk");
@@ -510,6 +573,24 @@ test("real WASM caches cross-origin attachments once, reads after offline restar
       return widths;
     });
     expect(offlineImages).toEqual([1, 1]);
+    const combinedOffline = await running.page.evaluate(async () => {
+      const sdk = Reflect.get(window, "sdk");
+      const results = [];
+      for (const attachmentID of ["first", "second"]) {
+        const ref = {
+          conversationID: "si_alice_bob",
+          clientMsgID: "combined",
+          attachmentID,
+          variant: "source",
+        };
+        await sdk.cacheMedia(ref);
+        const file = (await sdk.openMedia(ref)).data;
+        results.push(await (await fetch(file.location)).text());
+        await sdk.closeMedia(file.ref);
+      }
+      return results;
+    });
+    expect(combinedOffline).toEqual(["hello cache", "other cache"]);
     const offline = await running.page.evaluate(async () => {
       const sdk = Reflect.get(window, "sdk");
       const ref = {

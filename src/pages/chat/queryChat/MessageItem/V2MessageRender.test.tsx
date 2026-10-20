@@ -1,27 +1,53 @@
 import type { MessageItem, MessageV2 } from "@abd-im/wasm-client-sdk";
+import { useContext } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+
+import {
+  MediaAttachmentIDContext,
+  MediaCacheEnabledContext,
+} from "@/hooks/useCachedMedia";
 
 import { getV2Preview, resolveV2Media } from "../messageV2";
 import V2MessageRender from "./V2MessageRender";
 
 vi.mock("./MediaMessageRender", () => ({
-  default: () => <span>existing picture</span>,
+  default: function MediaMessageRender() {
+    return (
+      <span data-cache-enabled={useContext(MediaCacheEnabledContext)}>
+        existing picture
+      </span>
+    );
+  },
 }));
-vi.mock("./VideoMessageRender", () => ({ default: () => <span>existing video</span> }));
-vi.mock("./FileMessageRender", () => ({
+vi.mock("./VideoMessageRender", () => ({
   default: ({ message }: { message: MessageItem }) => (
-    <button data-file-url={message.fileElem?.sourceUrl}>
-      {message.fileElem?.fileName || "existing file"}
-    </button>
+    <span data-poster={message.videoElem?.snapshotUrl}>existing video</span>
   ),
+}));
+vi.mock("./FileMessageRender", () => ({
+  default: function FileMessageRender({ message }: { message: MessageItem }) {
+    return (
+      <button
+        data-file-url={message.fileElem?.sourceUrl}
+        data-attachment-id={useContext(MediaAttachmentIDContext)}
+        data-cache-enabled={useContext(MediaCacheEnabledContext)}
+      >
+        {message.fileElem?.fileName || "existing file"}
+      </button>
+    );
+  },
 }));
 vi.mock("@/components/AudioPlayer", () => ({
   AudioPlayer: () => <span>audio player</span>,
 }));
 vi.mock("@/hooks/useCachedMedia", async () => {
   const { createContext } = await import("react");
-  return { MediaCacheEnabledContext: createContext(true) };
+  return {
+    MediaCacheEnabledContext: createContext(true),
+    MediaAttachmentIDContext: createContext<string | undefined>(undefined),
+    useCachedMedia: () => ({ managed: false }),
+  };
 });
 
 const body: MessageV2 = {
@@ -82,6 +108,59 @@ describe("V2 message body", () => {
     expect(markup).toContain('data-file-url="https://example.org/report.txt"');
     expect(markup).toContain('data-file-url="https://example.org/design.pdf"');
     expect(markup).not.toContain("<a");
+  });
+
+  it("selects same-name attachments by ID and passes that ID to the cache", () => {
+    const message = {
+      message: {
+        components: [
+          {
+            type: 13,
+            file: { url: "attachment://report.txt", attachment_id: "first" },
+          },
+          {
+            type: 13,
+            file: { url: "attachment://report.txt", attachment_id: "second" },
+          },
+        ],
+        attachments: [
+          {
+            id: "first",
+            filename: "report.txt",
+            url: "https://example.org/object/first",
+          },
+          {
+            id: "second",
+            filename: "report.txt",
+            url: "https://example.org/object/second",
+          },
+        ],
+      },
+    } as MessageItem;
+    const markup = renderToStaticMarkup(<V2MessageRender message={message} />);
+    expect(markup).toContain(
+      'data-file-url="https://example.org/object/first" data-attachment-id="first" data-cache-enabled="true"',
+    );
+    expect(markup).toContain(
+      'data-file-url="https://example.org/object/second" data-attachment-id="second" data-cache-enabled="true"',
+    );
+  });
+
+  it("keeps caching disabled without an attachment ID or inside a disabled parent", () => {
+    const message = {
+      message: {
+        components: [{ type: 13, file: { url: "https://example.org/file.txt" } }],
+      },
+    } as MessageItem;
+    const markup = renderToStaticMarkup(<V2MessageRender message={message} />);
+    expect(markup).toContain('data-cache-enabled="false"');
+    expect(markup).not.toContain("data-attachment-id");
+    const disabled = renderToStaticMarkup(
+      <MediaCacheEnabledContext.Provider value={false}>
+        <V2MessageRender message={{ message: body } as MessageItem} />
+      </MediaCacheEnabledContext.Provider>,
+    );
+    expect(disabled).toContain('data-attachment-id="file" data-cache-enabled="false"');
   });
 
   it("does not turn file references into executable links", () => {
@@ -145,16 +224,49 @@ describe("V2 message body", () => {
         ],
         attachments: [
           {
+            id: "another-image",
+            filename: "other.png",
+            content_type: "image/png",
+            url: "https://example.org/other.png",
+          },
+          {
             id: "video",
             filename: "clip.mp4",
             content_type: "video/mp4",
             url: "https://example.org/clip.mp4",
           },
+          {
+            id: "video:poster",
+            filename: "clip.mp4.jpg",
+            content_type: "image/jpeg",
+            url: "https://example.org/poster.jpg",
+          },
         ],
       },
     } as unknown as MessageItem;
     expect(renderToStaticMarkup(<V2MessageRender message={video} />)).toContain(
-      "existing video",
+      'data-poster="https://example.org/poster.jpg"',
+    );
+  });
+
+  it("uses the original image URL when its stored MIME type cannot identify it", () => {
+    const message = {
+      message: {
+        components: [
+          {
+            type: 12,
+            items: [
+              { media: { attachment_id: "image", url: "attachment://image.png" } },
+            ],
+          },
+        ],
+        attachments: [
+          { id: "image", filename: "image.png", url: "https://example.org/image.png" },
+        ],
+      },
+    } as MessageItem;
+    expect(renderToStaticMarkup(<V2MessageRender message={message} />)).toContain(
+      'data-cache-enabled="false"',
     );
   });
 

@@ -82,18 +82,17 @@ const VideoMessageRender: FC<
             aria-label={description || t("placeholder.video")}
             disabled={!videoUrl}
           >
-          {!snapshot.managed && videoUrl ? (
+          {snapshotUrl ? (
+            <img src={snapshotUrl} className="h-full w-full object-cover" alt="" />
+          ) : !snapshot.managed && videoUrl ? (
             <video
               className="h-full w-full object-cover"
               src={videoUrl}
-              poster={snapshotUrl || undefined}
               preload="metadata"
               muted
               playsInline
               onLoadedMetadata={seekToPreviewFrame}
             />
-          ) : snapshotUrl ? (
-            <img src={snapshotUrl} className="h-full w-full object-cover" alt="" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-faint-foreground">
               <Video size={34} strokeWidth={1.5} />

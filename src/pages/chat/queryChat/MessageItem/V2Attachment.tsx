@@ -1,7 +1,13 @@
 import { type MediaV2, type MessageItem, MessageStatus } from "@abd-im/wasm-client-sdk";
+import { useContext } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { MediaCacheEnabledContext } from "@/hooks/useCachedMedia";
+import { MediaProgress } from "@/components/MediaProgress";
+import {
+  MediaAttachmentIDContext,
+  MediaCacheEnabledContext,
+  useCachedMedia,
+} from "@/hooks/useCachedMedia";
 
 import { resolveV2Media } from "../messageV2";
 import FileMessageRender from "./FileMessageRender";
@@ -24,6 +30,7 @@ export default function V2Attachment({
   fit?: "tile" | "contain";
   fluid?: boolean;
 }) {
+  const cacheEnabled = useContext(MediaCacheEnabledContext);
   const resolved = resolveV2Media(media, message.message?.attachments);
   if (!resolved.url) return null;
   const { attachment, url, contentType, width, height } = resolved;
@@ -48,7 +55,7 @@ export default function V2Attachment({
       /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|webp)(?:[?#]|$)/i.test(imageSource));
   let content;
   if (contentType.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|flac)(\?|$)/i.test(url)) {
-    content = <AudioPlayer src={url} name={name} />;
+    content = <CachedAudio message={message} url={url} name={name} />;
   } else if (isImage) {
     const picture = { uuid, url, type: contentType, size, width, height };
     content = (
@@ -68,6 +75,9 @@ export default function V2Attachment({
       />
     );
   } else if (isVideo) {
+    const poster = message.message?.attachments?.find(
+      (file) => file.id === `${attachment?.id}:poster`,
+    );
     content = (
       <VideoMessageRender
         fit={fit || (kind === "media" ? "tile" : "contain")}
@@ -82,12 +92,12 @@ export default function V2Attachment({
             videoSize: size,
             videoPath: "",
             duration: attachment?.duration_secs || 0,
-            snapshotUUID: "",
-            snapshotUrl: "",
+            snapshotUUID: poster?.id || "",
+            snapshotUrl: poster?.url || "",
             snapshotPath: "",
-            snapshotSize: 0,
-            snapshotWidth: width,
-            snapshotHeight: height,
+            snapshotSize: poster?.size || 0,
+            snapshotWidth: poster?.width || width,
+            snapshotHeight: poster?.height || height,
           },
         }}
       />
@@ -127,11 +137,36 @@ export default function V2Attachment({
       />
     );
   }
-  // Embedded attachments share a message ID. The current SDK media cache cannot
-  // address them individually; use their URLs, as for existing composite parts.
   return (
-    <MediaCacheEnabledContext.Provider value={false}>
-      {content}
+    <MediaCacheEnabledContext.Provider
+      value={
+        cacheEnabled &&
+        Boolean(attachment?.id) &&
+        (!isImage || Boolean(attachment?.content_type?.startsWith("image/"))) &&
+        (!isVideo || Boolean(attachment?.content_type?.startsWith("video/")))
+      }
+    >
+      <MediaAttachmentIDContext.Provider value={attachment?.id}>
+        {content}
+      </MediaAttachmentIDContext.Provider>
     </MediaCacheEnabledContext.Provider>
+  );
+}
+
+function CachedAudio({
+  message,
+  url,
+  name,
+}: {
+  message: MessageItem;
+  url: string;
+  name: string;
+}) {
+  const media = useCachedMedia(message, "source", true, true);
+  const source = media.managed ? media.file?.location : url;
+  return source ? (
+    <AudioPlayer src={source} name={name} />
+  ) : (
+    <MediaProgress media={media} />
   );
 }

@@ -12,6 +12,7 @@ import { IMSDK } from "@/layout/MainContentWrap";
 import { getConversationIDByMsg } from "@/utils/imCommon";
 
 export const MediaCacheEnabledContext = createContext(true);
+export const MediaAttachmentIDContext = createContext<string | undefined>(undefined);
 
 export function useCachedMedia(
   message: MessageItem | undefined,
@@ -20,6 +21,7 @@ export function useCachedMedia(
   automatic = false,
 ) {
   const cacheEnabled = useContext(MediaCacheEnabledContext);
+  const attachmentID = useContext(MediaAttachmentIDContext);
   const managed = Boolean(
     cacheEnabled &&
       window.electronAPI &&
@@ -44,7 +46,12 @@ export function useCachedMedia(
     let opened: MediaFile | undefined;
     let opening: Promise<void> | undefined;
     let key = "";
-    const ref = { conversationID, clientMsgID, variant };
+    const ref: MediaMessageRef = {
+      conversationID,
+      clientMsgID,
+      variant,
+      ...(attachmentID ? { attachmentID } : {}),
+    };
     const release = (file: MediaFile) => {
       void IMSDK.closeMedia(file.ref).catch((reason) =>
         console.error("Close media preview failed", reason),
@@ -98,7 +105,16 @@ export function useCachedMedia(
       IMSDK.off(CbEvents.OnMediaChanged, receive);
       if (opened) release(opened);
     };
-  }, [managed, active, automatic, conversationID, clientMsgID, variant, attempt]);
+  }, [
+    managed,
+    active,
+    automatic,
+    conversationID,
+    clientMsgID,
+    attachmentID,
+    variant,
+    attempt,
+  ]);
 
   return {
     managed,

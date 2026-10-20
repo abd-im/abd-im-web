@@ -21,12 +21,12 @@ export function getV2Preview(message?: MessageV2): string {
 }
 
 export function resolveV2Media(media: MediaV2, attachments: AttachmentV2[] = []) {
-  const attachment = attachments.find(
-    (file) =>
-      file.id === media.attachment_id ||
-      file.url === media.url ||
-      `attachment://${file.filename}` === media.url,
-  );
+  const attachment = media.attachment_id
+    ? attachments.find((file) => file.id === media.attachment_id)
+    : attachments.find(
+        (file) =>
+          file.url === media.url || `attachment://${file.filename}` === media.url,
+      );
   const url = attachment?.url || media.url;
   return {
     url: /^(https?:\/\/|blob:)/i.test(url) ? url : "",

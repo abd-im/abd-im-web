@@ -324,9 +324,15 @@ export function useFileMessage() {
           reject(new Error("Invalid video metadata"));
           return;
         }
+        if (typeof video.requestVideoFrameCallback === "function") {
+          // Seeking can finish before Windows has made the frame available to canvas.
+          video.requestVideoFrameCallback(captureFrame);
+        } else {
+          video.onseeked = captureFrame;
+        }
         video.currentTime = Math.min(1, video.duration * 0.1);
       };
-      video.onseeked = () => {
+      const captureFrame = () => {
         const maxSnapshotEdge = 640;
         const scale = Math.min(
           1,

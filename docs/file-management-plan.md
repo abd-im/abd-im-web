@@ -44,6 +44,7 @@ SDK 登录先初始化本地消息数据库，再在后台连接服务器。离�
 interface MediaMessageRef {
   conversationID: string;
   clientMsgID: string;
+  attachmentID?: string;
   variant: "source" | "snapshot" | "big" | "video";
 }
 ```
@@ -55,6 +56,8 @@ resourceKey = SHA-256(accountID + "\0" + kind + "\0" + UUID + "\0" + variant)
 ```
 
 文件使用 `fileElem.uuid`，原图使用对应 Picture UUID，视频使用 `videoUUID` 或 `snapshotUUID`。图片缩略图使用原图 UUID 和 `snapshot` 变体作为身份，SDK 从原图稳定地址派生固定的 `?height=640&type=image&width=640` 请求，复用后端已有的缩略图生成与缓存。不依赖消息里的缩略图 UUID、大小或 URL，也不上传另一份图片。
+
+V2 组合消息传入 `attachments[].id` 作为 `attachmentID`，SDK 从消息附件表解析对应资源，同名文件分别缓存；视频封面按 `${attachmentID}:poster` 关联。前端缺少附件 ID，或图片、视频缺少用于 SDK 分类的 MIME 时使用原 URL。旧版消息继续使用原有定位参数。
 
 原始附件缺少 UUID、有效大小或稳定 `/object/...` 地址直接报错。派生缩略图下载前的大小为 `-1`，完成后登记实际大小。发送中的 Blob 预览沿用现有流程，发送成功后通过本地消息接入缓存。
 
@@ -129,7 +132,7 @@ abd-media://cache/<file-reference>
 
 ## 8. 构建与验收
 
-本次修改涉及 `abd-im-sdk-core`、`abd-im-sdk-js-wasm`、`abd-im-web`。开发依赖指向相邻的本地 JS SDK，确保接口、类型和 WASM 同步；发布时需一并发布匹配的 SDK 包与应用。
+本次修改涉及 `abd-im-sdk-core`、`abd-im-sdk-js-wasm`、`abd-im-web`。前端依赖已发布的 `@abd-im/wasm-client-sdk@3.8.3-patch.29`，Vite 启动和构建时从该依赖同步 WASM 资源；发布时需使用匹配的 SDK 包与应用。
 
 重新构建现有 WASM：
 
