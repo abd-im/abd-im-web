@@ -7,6 +7,8 @@ import {
   PreviewTooLargeError,
 } from "./filePreview";
 
+vi.mock("@/config", () => ({ RUNTIME_API_URL: "https://alissa.xin/api" }));
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -54,6 +56,44 @@ describe("file previews", () => {
       signal,
       credentials: "omit",
     });
+  });
+
+  it("fetches legacy API object links over HTTPS when previewing on an HTTPS page", async () => {
+    vi.stubGlobal("window", { location: new URL("https://chat.alissa.xin") });
+    const fetchMock = vi.fn().mockResolvedValue(new Response("# Storage"));
+    vi.stubGlobal("fetch", fetchMock);
+    const url = "http://alissa.xin/object/user/file/storage%20notes.md?download=1";
+    const secureUrl =
+      "https://alissa.xin/object/user/file/storage%20notes.md?download=1";
+    const signal = new AbortController().signal;
+
+    expect(getSafeFileUrl(url)).toBe(secureUrl);
+    const result = await loadFilePreview(url, 100, signal);
+    expect(await result.text()).toBe("# Storage");
+    expect(fetchMock).toHaveBeenCalledWith(secureUrl, {
+      signal,
+      credentials: "omit",
+    });
+  });
+
+  it("preserves external HTTP links, other paths and explicit service ports", () => {
+    vi.stubGlobal("window", { location: new URL("https://alissa.xin") });
+    for (const url of [
+      "http://files.example/object/a.md",
+      "http://alissa.xin.example/object/a.md",
+      "http://alissa.xin/downloads/a.md",
+      "http://alissa.xin:10005/object/a.md",
+    ]) {
+      expect(getSafeFileUrl(url)).toBe(url);
+    }
+  });
+
+  it("preserves HTTP object links outside HTTPS pages", () => {
+    const url = "http://alissa.xin/object/user/file/storage.md";
+    for (const pageUrl of ["http://alissa.xin", "file:///app/index.html"]) {
+      vi.stubGlobal("window", { location: new URL(pageUrl) });
+      expect(getSafeFileUrl(url)).toBe(url);
+    }
   });
 
   it("accepts only capability URLs for desktop cache previews", () => {

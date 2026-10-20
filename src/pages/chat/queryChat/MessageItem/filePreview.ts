@@ -1,3 +1,5 @@
+import { RUNTIME_API_URL } from "@/config";
+
 export type FilePreviewType = "markdown" | "text" | "image" | "pdf" | "audio" | "video";
 
 export const getFilePreviewType = (name: string): FilePreviewType | undefined => {
@@ -41,6 +43,16 @@ export const getFilePreviewType = (name: string): FilePreviewType | undefined =>
 export const getSafeFileUrl = (value: string) => {
   try {
     const url = new URL(value);
+    // Fetch does not auto-upgrade HTTP object links like image and video elements do.
+    if (
+      url.protocol === "http:" &&
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:" &&
+      url.host === new URL(RUNTIME_API_URL).host &&
+      url.pathname.startsWith("/object/")
+    ) {
+      url.protocol = "https:";
+    }
     return ["https:", "http:", "blob:"].includes(url.protocol) ||
       (url.protocol === "abd-media:" &&
         url.hostname === "cache" &&
